@@ -7,10 +7,10 @@ Legenda: `[ ]` do zrobienia, `[x]` zrobione.
 
 ## 1. Przygotowanie środowiska (jednorazowo)
 
-Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. **Brakuje Rusta, pełnego Xcode, JDK i Android SDK.**
+Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Zainstalowano Rust 1.99.1, tauri-cli 2.12.3, cargo-deny 0.20.2, cargo-audit 0.22.2. **Brakuje pełnego Xcode, JDK i Android SDK.**
 
-- [ ] Rust: `rustup` (stable) + `rustfmt`, `clippy`
-- [ ] `cargo install tauri-cli cargo-deny cargo-audit --locked`
+- [x] Rust: `rustup` (stable) + `rustfmt`, `clippy`
+- [x] `cargo install tauri-cli cargo-deny cargo-audit --locked`
 - [ ] (etap 11) JDK 17, Android Studio / SDK + NDK, `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`
 - [ ] (v1, iOS) pełny Xcode
 - [ ] `gh` CLI (opcjonalnie, do PR-ów)
@@ -20,15 +20,19 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. **
 ## 2. Etapy
 
 ### Etap 1: Szkielet
-- [ ] Workspace Cargo: `core` (`mossbook-core`), `app/src-tauri`; `rust-toolchain.toml`, `resolver = "2"`, wspólny profil `release` (`lto`, `codegen-units = 1`, `panic = "abort"`?)
-- [ ] `app/`: SvelteKit + `adapter-static` (SPA, `ssr = false`), Svelte 5, TS, Vite. Wszystkie zasoby lokalne
-- [ ] Tauri 2: CSP z SPEC §8.4, capabilities tylko `core:default` minus to, co zbędne; brak pluginów sieciowych
-- [ ] `deny.toml`: licencje zgodne z GPL-3.0 (MIT, Apache-2.0, BSD-2/3, ISC, Zlib, Unicode-3.0, MPL-2.0, CC0); lista zakazanych crate'ów (`reqwest`, `hyper`, `ureq`, `isahc`, `surf`, `attohttpc`, `curl`, `tauri-plugin-http`, `tauri-plugin-updater`), licencje, advisories
-- [ ] Lint „brak logowania”: clippy `disallowed-macros` (`println`, `eprintln`, `dbg`, `log::*`, `tracing::*`) w `clippy.toml`; ESLint `no-console` w `app/`
-- [ ] CI (GitHub Actions): fmt, clippy `-D warnings`, test, deny, audit, `npm run check`, `npm test`; build desktop (ubuntu/windows/macos) – na razie bez podpisywania
-- [ ] Pusta aplikacja startuje: `cargo tauri dev`
+- [x] Workspace Cargo: `core` (`mossbook-core`), `app/src-tauri` (`mossbook`); `rust-toolchain.toml` (1.99.1), resolver 3, edition 2024, profil `release` (`lto`, `codegen-units = 1`, `panic = "abort"`, `strip`)
+- [x] `app/`: SvelteKit 3 + `adapter-static` (SPA, `fallback: index.html`, `ssr = false`), Svelte 5 (runes wymuszone), TS, Vite 8, Vitest, ESLint, Prettier
+- [x] Tauri 2.12: CSP z SPEC §8.4 (+ `devCsp` z websocketem HMR), `freezePrototype`, capabilities puste, usunięty `tauri-plugin-log`; identyfikator `io.github.jakubmarch.mossbook`
+- [x] `deny.toml`: licencje zgodne z GPL-3.0, bany crate'ów sieciowych i `tauri-plugin-log`, tylko crates.io
+- [x] Lint „brak logowania”: clippy `print_stdout`/`print_stderr`/`dbg_macro` + `disallowed-macros` dla `log::*`/`tracing::*`; ESLint `no-console`
+- [x] CI: fmt, clippy, test, deny, audit, `npm run check`/`lint`/`test`, build desktop ubuntu/windows/macos (bez podpisywania)
+- [x] Pusta aplikacja startuje (lokalnie: macOS, `cargo tauri build --debug --no-bundle`)
+- [ ] CI zielone na GitHubie (po pierwszym pushu)
 
-**DoD:** `cargo tauri dev` pokazuje pusty ekran, CI zielone.
+**Ustalenia z etapu 1:**
+- Tauri na Androidzie/iOS zawsze zależy od `reqwest` (+`hyper`), ale używa go tylko pod `cfg(all(dev, mobile))` do proxy dev serwera. `deny.toml` dopuszcza `reqwest` wyłącznie jako zależność `tauri`. Etap 11: sprawdzić, że release `.so` nie zawiera symboli `reqwest`/`hyper`, oprócz testu manifestu.
+- `cargo audit` zgłasza ostrzeżenia (unmaintained/unsound) dla gtk-rs 0.18 na Linuksie, przychodzące z Tauri. Nie blokują CI; `RUSTSEC-2024-0370` jest wyciszony w `deny.toml` z uzasadnieniem.
+- Do rozważenia: przypięcie akcji GitHub do SHA (łańcuch dostaw).
 
 ### Etap 2: Core – kryptografia (`core/src/crypto/`)
 - [ ] `kdf.rs`: Argon2id, `KdfParams { m_kib, t, p, version }`, serializowane w nagłówku; `calibrate(target: Duration)` (zmienia tylko `t`, `m` ≥ 64 MiB)

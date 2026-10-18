@@ -1,0 +1,28 @@
+[workspace]
+resolver = "3"
+members = ["core", "app/src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "GPL-3.0-or-later WITH LicenseRef-Mossbook-AppStore-exception"
+repository = "https://github.com/jakub-m-arch/mossbook"
+publish = false
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+# Zakaz logowania i wypisywania (CLAUDE.md). log::* i tracing::* blokuje clippy.toml.
+print_stdout = "deny"
+print_stderr = "deny"
+dbg_macro = "deny"
+disallowed_macros = "deny"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

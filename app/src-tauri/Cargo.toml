@@ -1,0 +1,23 @@
+[package]
+name = "mossbook"
+description = "Mossbook: prywatny dziennik samopoczucia"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lib]
+name = "mossbook_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7.3", features = [] }
+
+[dependencies]
+mossbook-core = { path = "../../core" }
+tauri = { version = "2.12.4", features = [] }
+
+[lints]
+workspace = true

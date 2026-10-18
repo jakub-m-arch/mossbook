@@ -1,0 +1,78 @@
+# cargo-deny: licencje, podatności i zakaz crate'ów sieciowych (SPEC §1, §10).
+
+[graph]
+all-features = true
+
+[advisories]
+yanked = "deny"
+ignore = [
+  # proc-macro-error (unmaintained) przychodzi przez gtk-rs 0.18 (Linux, zależność Tauri). Brak zamiennika po naszej stronie.
+  { id = "RUSTSEC-2024-0370", reason = "przechodnio przez tauri -> gtk 0.18 (Linux)" },
+]
+
+[licenses]
+# Tylko licencje zgodne z GPL-3.0-or-later.
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Zlib",
+  "Unicode-3.0",
+  "MPL-2.0",
+  "CC0-1.0",
+  "GPL-3.0-or-later",
+]
+confidence-threshold = 0.9
+unused-allowed-license = "allow"
+
+[[licenses.clarify]]
+crate = "mossbook"
+expression = "GPL-3.0-or-later"
+license-files = []
+
+[[licenses.clarify]]
+crate = "mossbook-core"
+expression = "GPL-3.0-or-later"
+license-files = []
+
+[bans]
+multiple-versions = "allow"
+wildcards = "deny"
+allow-wildcard-paths = true
+# Zero sieci: żaden z tych crate'ów nie może trafić do drzewa zależności.
+#
+# Wyjątek: tauri na Androidzie/iOS zależy od reqwest bezwarunkowo, ale używa go
+# wyłącznie pod `#[cfg(all(dev, mobile))]` (proxy do dev serwera Vite, tauri
+# src/protocol/tauri.rs). W buildzie release ten kod nie istnieje. Dlatego
+# reqwest jest dozwolony tylko jako bezpośrednia zależność tauri, a hyper tylko
+# pod reqwest. Twardą gwarancją na Androidzie jest brak uprawnienia INTERNET.
+deny = [
+  { crate = "reqwest", wrappers = ["tauri"], reason = "zero sieci (SPEC §1)" },
+  { crate = "hyper", wrappers = ["reqwest", "hyper-util"], reason = "zero sieci (SPEC §1)" },
+  { crate = "h2", reason = "zero sieci (SPEC §1)" },
+  { crate = "h3", reason = "zero sieci (SPEC §1)" },
+  { crate = "ureq", reason = "zero sieci (SPEC §1)" },
+  { crate = "isahc", reason = "zero sieci (SPEC §1)" },
+  { crate = "surf", reason = "zero sieci (SPEC §1)" },
+  { crate = "attohttpc", reason = "zero sieci (SPEC §1)" },
+  { crate = "curl", reason = "zero sieci (SPEC §1)" },
+  { crate = "curl-sys", reason = "zero sieci (SPEC §1)" },
+  { crate = "rustls", reason = "zero sieci (SPEC §1)" },
+  { crate = "native-tls", reason = "zero sieci (SPEC §1)" },
+  { crate = "openssl", reason = "zero sieci (SPEC §1)" },
+  { crate = "tungstenite", reason = "zero sieci (SPEC §1)" },
+  { crate = "quinn", reason = "zero sieci (SPEC §1)" },
+  { crate = "tauri-plugin-http", reason = "zero sieci (SPEC §1)" },
+  { crate = "tauri-plugin-updater", reason = "zero sieci (SPEC §1)" },
+  { crate = "tauri-plugin-upload", reason = "zero sieci (SPEC §1)" },
+  { crate = "tauri-plugin-websocket", reason = "zero sieci (SPEC §1)" },
+  { crate = "tauri-plugin-log", reason = "zakaz logowania (CLAUDE.md)" },
+  { crate = "sentry", reason = "zero telemetrii (SPEC §1)" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
