@@ -14,11 +14,18 @@ publish = false
 unsafe_code = "deny"
 
 [workspace.lints.clippy]
-# Zakaz logowania i wypisywania (CLAUDE.md). log::* i tracing::* blokuje clippy.toml.
+# No logging or printing (CLAUDE.md). log::* and tracing::* are blocked in clippy.toml.
 print_stdout = "deny"
 print_stderr = "deny"
 dbg_macro = "deny"
 disallowed_macros = "deny"
+
+# Argon2 is tens of times slower unoptimized; tests with default params would take minutes.
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3
 
 [profile.release]
 codegen-units = 1

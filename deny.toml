@@ -1,4 +1,4 @@
-# cargo-deny: licencje, podatności i zakaz crate'ów sieciowych (SPEC §1, §10).
+# cargo-deny: licenses, advisories and a ban on networking crates (SPEC §1, §10).
 
 [graph]
 all-features = true
@@ -6,12 +6,12 @@ all-features = true
 [advisories]
 yanked = "deny"
 ignore = [
-  # proc-macro-error (unmaintained) przychodzi przez gtk-rs 0.18 (Linux, zależność Tauri). Brak zamiennika po naszej stronie.
-  { id = "RUSTSEC-2024-0370", reason = "przechodnio przez tauri -> gtk 0.18 (Linux)" },
+  # proc-macro-error (unmaintained) comes in via gtk-rs 0.18 (Linux, a Tauri dependency). Nothing to replace on our side.
+  { id = "RUSTSEC-2024-0370", reason = "transitive via tauri -> gtk 0.18 (Linux)" },
 ]
 
 [licenses]
-# Tylko licencje zgodne z GPL-3.0-or-later.
+# Only licenses compatible with GPL-3.0-or-later.
 allow = [
   "MIT",
   "Apache-2.0",
@@ -42,35 +42,35 @@ license-files = []
 multiple-versions = "allow"
 wildcards = "deny"
 allow-wildcard-paths = true
-# Zero sieci: żaden z tych crate'ów nie może trafić do drzewa zależności.
+# Zero network: none of these crates may appear in the dependency tree.
 #
-# Wyjątek: tauri na Androidzie/iOS zależy od reqwest bezwarunkowo, ale używa go
-# wyłącznie pod `#[cfg(all(dev, mobile))]` (proxy do dev serwera Vite, tauri
-# src/protocol/tauri.rs). W buildzie release ten kod nie istnieje. Dlatego
-# reqwest jest dozwolony tylko jako bezpośrednia zależność tauri, a hyper tylko
-# pod reqwest. Twardą gwarancją na Androidzie jest brak uprawnienia INTERNET.
+# Exception: on Android/iOS tauri depends on reqwest unconditionally, but only
+# uses it under `#[cfg(all(dev, mobile))]` (proxying the Vite dev server, tauri
+# src/protocol/tauri.rs). That code does not exist in release builds. So reqwest
+# is allowed only as a direct dependency of tauri, and hyper only under reqwest.
+# The hard guarantee on Android is the missing INTERNET permission.
 deny = [
-  { crate = "reqwest", wrappers = ["tauri"], reason = "zero sieci (SPEC §1)" },
-  { crate = "hyper", wrappers = ["reqwest", "hyper-util"], reason = "zero sieci (SPEC §1)" },
-  { crate = "h2", reason = "zero sieci (SPEC §1)" },
-  { crate = "h3", reason = "zero sieci (SPEC §1)" },
-  { crate = "ureq", reason = "zero sieci (SPEC §1)" },
-  { crate = "isahc", reason = "zero sieci (SPEC §1)" },
-  { crate = "surf", reason = "zero sieci (SPEC §1)" },
-  { crate = "attohttpc", reason = "zero sieci (SPEC §1)" },
-  { crate = "curl", reason = "zero sieci (SPEC §1)" },
-  { crate = "curl-sys", reason = "zero sieci (SPEC §1)" },
-  { crate = "rustls", reason = "zero sieci (SPEC §1)" },
-  { crate = "native-tls", reason = "zero sieci (SPEC §1)" },
-  { crate = "openssl", reason = "zero sieci (SPEC §1)" },
-  { crate = "tungstenite", reason = "zero sieci (SPEC §1)" },
-  { crate = "quinn", reason = "zero sieci (SPEC §1)" },
-  { crate = "tauri-plugin-http", reason = "zero sieci (SPEC §1)" },
-  { crate = "tauri-plugin-updater", reason = "zero sieci (SPEC §1)" },
-  { crate = "tauri-plugin-upload", reason = "zero sieci (SPEC §1)" },
-  { crate = "tauri-plugin-websocket", reason = "zero sieci (SPEC §1)" },
-  { crate = "tauri-plugin-log", reason = "zakaz logowania (CLAUDE.md)" },
-  { crate = "sentry", reason = "zero telemetrii (SPEC §1)" },
+  { crate = "reqwest", wrappers = ["tauri"], reason = "zero network (SPEC §1)" },
+  { crate = "hyper", wrappers = ["reqwest", "hyper-util"], reason = "zero network (SPEC §1)" },
+  { crate = "h2", reason = "zero network (SPEC §1)" },
+  { crate = "h3", reason = "zero network (SPEC §1)" },
+  { crate = "ureq", reason = "zero network (SPEC §1)" },
+  { crate = "isahc", reason = "zero network (SPEC §1)" },
+  { crate = "surf", reason = "zero network (SPEC §1)" },
+  { crate = "attohttpc", reason = "zero network (SPEC §1)" },
+  { crate = "curl", reason = "zero network (SPEC §1)" },
+  { crate = "curl-sys", reason = "zero network (SPEC §1)" },
+  { crate = "rustls", reason = "zero network (SPEC §1)" },
+  { crate = "native-tls", reason = "zero network (SPEC §1)" },
+  { crate = "openssl", reason = "zero network (SPEC §1)" },
+  { crate = "tungstenite", reason = "zero network (SPEC §1)" },
+  { crate = "quinn", reason = "zero network (SPEC §1)" },
+  { crate = "tauri-plugin-http", reason = "zero network (SPEC §1)" },
+  { crate = "tauri-plugin-updater", reason = "zero network (SPEC §1)" },
+  { crate = "tauri-plugin-upload", reason = "zero network (SPEC §1)" },
+  { crate = "tauri-plugin-websocket", reason = "zero network (SPEC §1)" },
+  { crate = "tauri-plugin-log", reason = "no logging (CLAUDE.md)" },
+  { crate = "sentry", reason = "zero telemetry (SPEC §1)" },
 ]
 
 [sources]

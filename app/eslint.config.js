@@ -35,7 +35,7 @@ export default defineConfig(
 	},
 	{
 		// Override or add rule settings here, such as:
-		// Zakaz logowania danych użytkownika (CLAUDE.md)
+		// No logging of user data (CLAUDE.md)
 		rules: { 'no-console': 'error' }
 	}
 );

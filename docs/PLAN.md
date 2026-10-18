@@ -35,13 +35,14 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Za
 - Do rozważenia: przypięcie akcji GitHub do SHA (łańcuch dostaw).
 
 ### Etap 2: Core – kryptografia (`core/src/crypto/`)
-- [ ] `kdf.rs`: Argon2id, `KdfParams { m_kib, t, p, version }`, serializowane w nagłówku; `calibrate(target: Duration)` (zmienia tylko `t`, `m` ≥ 64 MiB)
-- [ ] `aead.rs`: XChaCha20-Poly1305, format `nonce(24) || ct || tag(16)`, budowanie AAD z SPEC §6.2
-- [ ] `wrap.rs`: wrap/unwrap DEK, AAD `"mossbook/wrap/v1" || vault_id`
-- [ ] `recovery.rs`: 256 bit → 24 słowa BIP-39 (en), HKDF-SHA256 → KEK_rec; normalizacja wejścia (wielkość liter, spacje, NFKD)
-- [ ] Typy kluczy: `Dek`, `Kek` jako newtype nad `SecretBox<[u8; 32]>`, bez `Clone`/`Debug` ujawniającego treść
-- [ ] Testy: round-trip, złe hasło, zły klucz odzyskiwania, podmiana bajtu, zamiana rekordów (AAD), stałe wektory testowe (`core/tests/vectors/`), proptest
-- [ ] `docs/crypto.md`
+- [x] `kdf.rs`: Argon2id, `KdfParams { m_kib, t, p }`, 13-bajtowe kodowanie do nagłówka, walidacja górnych limitów, `calibrate(CALIBRATION_TARGET)` (podnosi tylko `t`), normalizacja hasła NFC
+- [x] `aead.rs`: XChaCha20-Poly1305, `nonce(24) || ct || tag(16)`, AAD rekordu z SPEC §6.2, `RecordType` z kodami kolumny
+- [x] `wrap.rs`: wrap/unwrap DEK, AAD `"mossbook/wrap/v1" || vault_id`
+- [x] `recovery.rs`: 256 bit ↔ 24 słowa BIP-39, HKDF-SHA256 → KEK_rec, normalizacja wejścia, `confirm()` dla V-1
+- [x] `Dek`, `Kek`, `RecoveryKey` w `SecretBox`, bez `Clone`, `Debug` z redakcją; bufory pośrednie zerowane
+- [x] Testy (40): round-trip, złe hasło/klucz, każdy podmieniony bajt, zamiana rekordów, inny typ/skarbiec, wrogie parametry KDF, cała hierarchia + zmiana hasła, wektor BIP-39, proptest
+- [x] Stałe wektory potwierdzone niezależnie (libsodium, argon2-cffi): `tools/verify-vectors.py`
+- [x] `docs/crypto.md`
 
 ### Etap 3: Core – skarbiec i magazyn (`vault/`, `store/`)
 - [ ] `store/sqlite.rs`: `rusqlite` (`bundled`), schemat z SPEC §7, `WAL`, `secure_delete = ON`, migracje w `core/migrations/` (`PRAGMA user_version`)

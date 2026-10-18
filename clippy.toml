@@ -1,15 +1,15 @@
-# Zakaz logowania danych użytkownika (SPEC §10, CLAUDE.md).
+# No logging of user data (SPEC §10, CLAUDE.md).
 disallowed-macros = [
-  { path = "log::trace", reason = "nie logujemy (CLAUDE.md)" },
-  { path = "log::debug", reason = "nie logujemy (CLAUDE.md)" },
-  { path = "log::info", reason = "nie logujemy (CLAUDE.md)" },
-  { path = "log::warn", reason = "nie logujemy (CLAUDE.md)" },
-  { path = "log::error", reason = "nie logujemy (CLAUDE.md)" },
-  { path = "log::log", reason = "nie logujemy (CLAUDE.md)" },
-  { path = "tracing::trace", reason = "nie logujemy (CLAUDE.md)" },
-  { path = "tracing::debug", reason = "nie logujemy (CLAUDE.md)" },
-  { path = "tracing::info", reason = "nie logujemy (CLAUDE.md)" },
-  { path = "tracing::warn", reason = "nie logujemy (CLAUDE.md)" },
-  { path = "tracing::error", reason = "nie logujemy (CLAUDE.md)" },
-  { path = "tracing::event", reason = "nie logujemy (CLAUDE.md)" },
+  { path = "log::trace", reason = "no logging (CLAUDE.md)" },
+  { path = "log::debug", reason = "no logging (CLAUDE.md)" },
+  { path = "log::info", reason = "no logging (CLAUDE.md)" },
+  { path = "log::warn", reason = "no logging (CLAUDE.md)" },
+  { path = "log::error", reason = "no logging (CLAUDE.md)" },
+  { path = "log::log", reason = "no logging (CLAUDE.md)" },
+  { path = "tracing::trace", reason = "no logging (CLAUDE.md)" },
+  { path = "tracing::debug", reason = "no logging (CLAUDE.md)" },
+  { path = "tracing::info", reason = "no logging (CLAUDE.md)" },
+  { path = "tracing::warn", reason = "no logging (CLAUDE.md)" },
+  { path = "tracing::error", reason = "no logging (CLAUDE.md)" },
+  { path = "tracing::event", reason = "no logging (CLAUDE.md)" },
 ]

@@ -9,6 +9,19 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+argon2 = { version = "0.6.0", default-features = false, features = ["alloc", "zeroize"] }
+bip39 = { version = "3.0.0", default-features = false, features = ["alloc", "zeroize"] }
+chacha20poly1305 = { version = "0.11.0", default-features = false, features = ["alloc", "zeroize"] }
+getrandom = "0.4.3"
+hkdf = "0.13.0"
+secrecy = "0.10.3"
+sha2 = "0.11.1"
+unicode-normalization = "0.1.26"
+zeroize = "1.9.1"
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+hex = "0.4.3"
+proptest = "1.12.0"

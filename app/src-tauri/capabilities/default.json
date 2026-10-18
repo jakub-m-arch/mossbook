@@ -1,7 +1,7 @@
 {
 	"$schema": "../gen/schemas/desktop-schema.json",
 	"identifier": "default",
-	"description": "Minimalny zestaw uprawnień. Każde nowe uprawnienie wymaga uzasadnienia w PR (SPEC §8.4).",
+	"description": "Minimal permission set. Every new permission must be justified in its PR (SPEC §8.4).",
 	"windows": ["main"],
 	"permissions": []
 }

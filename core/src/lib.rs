@@ -1,10 +1,12 @@
-//! Mossbook core: logika domenowa, kryptografia i przechowywanie.
+//! Mossbook core: domain logic, cryptography and storage.
 //!
-//! Crate nie zależy od Tauri i jest testowany niezależnie (SPEC §8.2).
+//! This crate does not depend on Tauri and is tested on its own (SPEC §8.2).
 
 #![forbid(unsafe_code)]
 
-/// Wersja crate'a `mossbook-core`.
+pub mod crypto;
+
+/// Version of the `mossbook-core` crate.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg(test)]

@@ -11,11 +11,11 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			// fallback: SPA bez prerenderowania (Tauri serwuje index.html)
+			// fallback: SPA without prerendering (Tauri serves index.html)
 			adapter: adapter({ fallback: 'index.html' })
 		})
 	],
-	// Tauri: stały port dev serwera, host dla urządzeń mobilnych
+	// Tauri: fixed dev server port, host for mobile devices
 	clearScreen: false,
 	server: {
 		port: 5173,
