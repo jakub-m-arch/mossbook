@@ -1,0 +1,421 @@
+//! Integration tests for the vault lifecycle on a real SQLite file.
+//! All data is synthetic.
+
+use std::path::{Path, PathBuf};
+
+use mossbook_core::crypto::aead::RecordType;
+use mossbook_core::crypto::kdf::KdfParams;
+use mossbook_core::vault::{self, DestroyError, PendingVault, UnlockedVault, VaultError};
+use rusqlite::Connection;
+use tempfile::TempDir;
+
+const PASSWORD: &str = "correct horse battery";
+const MARKER: &[u8] = b"SYNTHETIC-PLAINTEXT-MARKER";
+
+fn fast() -> KdfParams {
+    KdfParams::new(64, 1, 1).unwrap()
+}
+
+struct Fixture {
+    _dir: TempDir,
+    path: PathBuf,
+    phrase: String,
+}
+
+/// Creates a confirmed vault on disk and returns it unlocked.
+fn create_vault() -> (Fixture, UnlockedVault) {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("vault.db");
+    let mut pending = PendingVault::with_kdf_params(PASSWORD, fast()).unwrap();
+    let phrase = pending.recovery_phrase().to_string();
+    confirm(&mut pending, &phrase);
+    let vault = pending.write(&path).unwrap();
+    (
+        Fixture {
+            _dir: dir,
+            path,
+            phrase,
+        },
+        vault,
+    )
+}
+
+fn confirm(pending: &mut PendingVault, phrase: &str) {
+    let words: Vec<&str> = phrase.split(' ').collect();
+    let answers: Vec<(usize, &str)> = pending
+        .confirmation_positions()
+        .iter()
+        .map(|&i| (i, words[i]))
+        .collect();
+    assert!(pending.confirm(&answers));
+}
+
+fn raw_file_bytes(path: &Path) -> Vec<u8> {
+    let mut bytes = std::fs::read(path).unwrap();
+    let wal = PathBuf::from(format!("{}-wal", path.display()));
+    if let Ok(w) = std::fs::read(wal) {
+        bytes.extend(w);
+    }
+    bytes
+}
+
+fn contains(haystack: &[u8], needle: &[u8]) -> bool {
+    haystack.windows(needle.len()).any(|w| w == needle)
+}
+
+#[test]
+fn nothing_is_written_before_confirmation() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("vault.db");
+    let mut pending = PendingVault::with_kdf_params(PASSWORD, fast()).unwrap();
+    let phrase = pending.recovery_phrase().to_string();
+    let words: Vec<&str> = phrase.split(' ').collect();
+    let pos = pending.confirmation_positions();
+
+    // Wrong word, too few words, or other positions: not confirmed.
+    assert!(!pending.confirm(&[
+        (pos[0], words[pos[0]]),
+        (pos[1], words[pos[1]]),
+        (pos[2], "zoo")
+    ]));
+    assert!(!pending.confirm(&[(pos[0], words[pos[0]]), (pos[1], words[pos[1]])]));
+    let others: Vec<(usize, &str)> = (0..24)
+        .filter(|i| !pos.contains(i))
+        .take(3)
+        .map(|i| (i, words[i]))
+        .collect();
+    assert!(!pending.confirm(&others));
+    assert!(std::fs::read_dir(dir.path()).unwrap().next().is_none());
+
+    let err = pending.write(&path).unwrap_err();
+    assert_eq!(err, VaultError::NotConfirmed);
+    assert!(!path.exists());
+}
+
+#[test]
+fn short_password_is_rejected() {
+    assert_eq!(
+        PendingVault::with_kdf_params("1234567", fast()).unwrap_err(),
+        VaultError::PasswordTooShort
+    );
+    // 8 characters, not bytes: multi-byte characters count once.
+    assert!(PendingVault::with_kdf_params("zażółćgę", fast()).is_ok());
+}
+
+#[test]
+fn records_survive_lock_and_unlock() {
+    let (fx, mut v) = create_vault();
+    v.put([1; 16], RecordType::Entry, b"first entry".to_vec())
+        .unwrap();
+    v.put([2; 16], RecordType::Tag, b"tag".to_vec()).unwrap();
+    v.put([1; 16], RecordType::Entry, b"first entry, edited".to_vec())
+        .unwrap();
+    v.put([3; 16], RecordType::Entry, b"to delete".to_vec())
+        .unwrap();
+    assert!(v.delete(&[3; 16]).unwrap());
+    let vault_id = *v.vault_id();
+    v.lock().unwrap();
+
+    let v = vault::unlock(&fx.path, PASSWORD).unwrap();
+    assert_eq!(v.vault_id(), &vault_id);
+    assert_eq!(
+        v.get(&[1; 16]),
+        Some((RecordType::Entry, &b"first entry, edited"[..]))
+    );
+    assert_eq!(v.get(&[2; 16]), Some((RecordType::Tag, &b"tag"[..])));
+    assert_eq!(v.get(&[3; 16]), None);
+    assert_eq!(v.iter(RecordType::Entry).count(), 1);
+    assert_eq!(v.unreadable_records(), 0);
+}
+
+#[test]
+fn wrong_password_and_missing_vault() {
+    let (fx, v) = create_vault();
+    v.lock().unwrap();
+    assert_eq!(
+        vault::unlock(&fx.path, "wrong password").unwrap_err(),
+        VaultError::WrongPassword
+    );
+    assert_eq!(
+        vault::unlock(&fx.path, "").unwrap_err(),
+        VaultError::WrongPassword
+    );
+    let missing = fx.path.with_file_name("missing.db");
+    assert_eq!(
+        vault::unlock(&missing, PASSWORD).unwrap_err(),
+        VaultError::NotFound
+    );
+    assert!(!missing.exists());
+}
+
+#[test]
+fn creating_over_existing_vault_is_refused() {
+    let (fx, v) = create_vault();
+    v.lock().unwrap();
+    let mut pending = PendingVault::with_kdf_params(PASSWORD, fast()).unwrap();
+    let phrase = pending.recovery_phrase().to_string();
+    confirm(&mut pending, &phrase);
+    assert_eq!(
+        pending.write(&fx.path).unwrap_err(),
+        VaultError::AlreadyExists
+    );
+    assert!(vault::unlock(&fx.path, PASSWORD).is_ok());
+}
+
+#[test]
+fn stale_temp_file_is_replaced() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("vault.db");
+    std::fs::write(
+        dir.path().join("vault.db.creating"),
+        b"garbage from a crash",
+    )
+    .unwrap();
+    let mut pending = PendingVault::with_kdf_params(PASSWORD, fast()).unwrap();
+    let phrase = pending.recovery_phrase().to_string();
+    confirm(&mut pending, &phrase);
+    pending.write(&path).unwrap().lock().unwrap();
+    assert!(!dir.path().join("vault.db.creating").exists());
+    assert!(vault::unlock(&path, PASSWORD).is_ok());
+}
+
+#[test]
+fn change_password_keeps_data_and_recovery() {
+    let (fx, mut v) = create_vault();
+    v.put([1; 16], RecordType::Entry, b"kept".to_vec()).unwrap();
+    assert_eq!(
+        v.change_password("not the password", "new password 1")
+            .unwrap_err(),
+        VaultError::WrongPassword
+    );
+    assert_eq!(
+        v.change_password(PASSWORD, "short").unwrap_err(),
+        VaultError::PasswordTooShort
+    );
+    v.change_password(PASSWORD, "new password 1").unwrap();
+    v.lock().unwrap();
+
+    assert_eq!(
+        vault::unlock(&fx.path, PASSWORD).unwrap_err(),
+        VaultError::WrongPassword
+    );
+    let v = vault::unlock(&fx.path, "new password 1").unwrap();
+    assert_eq!(v.get(&[1; 16]).unwrap().1, b"kept");
+    v.lock().unwrap();
+
+    // The recovery key still works after a password change.
+    let v = vault::unlock_with_recovery(&fx.path, &fx.phrase, "after recovery").unwrap();
+    assert_eq!(v.get(&[1; 16]).unwrap().1, b"kept");
+}
+
+#[test]
+fn recovery_sets_new_password() {
+    let (fx, mut v) = create_vault();
+    v.put([1; 16], RecordType::Entry, b"kept".to_vec()).unwrap();
+    v.lock().unwrap();
+
+    let messy = format!("  {}  ", fx.phrase.to_uppercase().replace(' ', "\n"));
+    let v = vault::unlock_with_recovery(&fx.path, &messy, "brand new password").unwrap();
+    assert_eq!(v.get(&[1; 16]).unwrap().1, b"kept");
+    v.lock().unwrap();
+
+    assert_eq!(
+        vault::unlock(&fx.path, PASSWORD).unwrap_err(),
+        VaultError::WrongPassword
+    );
+    assert!(vault::unlock(&fx.path, "brand new password").is_ok());
+}
+
+#[test]
+fn recovery_errors() {
+    let (fx, v) = create_vault();
+    v.lock().unwrap();
+    let (other, other_vault) = create_vault();
+    other_vault.lock().unwrap();
+
+    assert_eq!(
+        vault::unlock_with_recovery(&fx.path, &other.phrase, "new password").unwrap_err(),
+        VaultError::WrongRecoveryKey
+    );
+    assert_eq!(
+        vault::unlock_with_recovery(&fx.path, "not a phrase", "new password").unwrap_err(),
+        VaultError::InvalidRecoveryPhrase
+    );
+    assert_eq!(
+        vault::unlock_with_recovery(&fx.path, &fx.phrase, "short").unwrap_err(),
+        VaultError::PasswordTooShort
+    );
+    // A failed recovery leaves the old password in place.
+    assert!(vault::unlock(&fx.path, PASSWORD).is_ok());
+}
+
+#[test]
+fn destroy_requires_password_and_removes_files() {
+    let (fx, v) = create_vault();
+    let v = match v.destroy("wrong password") {
+        Err(DestroyError::Rejected { vault, error }) => {
+            assert_eq!(error, VaultError::WrongPassword);
+            *vault
+        }
+        other => panic!("expected rejection, got {other:?}"),
+    };
+    assert!(fx.path.exists());
+    v.destroy(PASSWORD).unwrap();
+    let leftovers: Vec<_> = std::fs::read_dir(fx.path.parent().unwrap())
+        .unwrap()
+        .collect();
+    assert!(leftovers.is_empty(), "{leftovers:?}");
+    assert!(!vault::exists(&fx.path));
+}
+
+#[test]
+fn no_plaintext_on_disk() {
+    let (fx, mut v) = create_vault();
+    v.put([1; 16], RecordType::Entry, MARKER.to_vec()).unwrap();
+    // Checked while open (WAL in use) and after lock (checkpointed).
+    assert!(!contains(&raw_file_bytes(&fx.path), MARKER));
+    assert!(!contains(&raw_file_bytes(&fx.path), PASSWORD.as_bytes()));
+    v.lock().unwrap();
+    let bytes = raw_file_bytes(&fx.path);
+    assert!(!contains(&bytes, MARKER));
+    assert!(!contains(&bytes, PASSWORD.as_bytes()));
+    for word in fx.phrase.split(' ').filter(|w| w.len() >= 5) {
+        assert!(!contains(&bytes, word.as_bytes()), "recovery word on disk");
+    }
+}
+
+#[test]
+fn tampered_records_are_isolated() {
+    let (fx, mut v) = create_vault();
+    for i in 1..=4u8 {
+        v.put([i; 16], RecordType::Entry, vec![i; 8]).unwrap();
+    }
+    v.lock().unwrap();
+    {
+        let db = Connection::open(&fx.path).unwrap();
+        // Flip a byte in record 1.
+        db.execute(
+            "UPDATE records SET blob = CAST(x'00' || substr(blob, 2) AS BLOB) WHERE id = ?1",
+            [&[1u8; 16][..]],
+        )
+        .unwrap();
+        // Swap the blobs of records 2 and 3.
+        let b2: Vec<u8> = db
+            .query_row(
+                "SELECT blob FROM records WHERE id = ?1",
+                [&[2u8; 16][..]],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let b3: Vec<u8> = db
+            .query_row(
+                "SELECT blob FROM records WHERE id = ?1",
+                [&[3u8; 16][..]],
+                |r| r.get(0),
+            )
+            .unwrap();
+        db.execute(
+            "UPDATE records SET blob = ?1 WHERE id = ?2",
+            (&b3, &[2u8; 16][..]),
+        )
+        .unwrap();
+        db.execute(
+            "UPDATE records SET blob = ?1 WHERE id = ?2",
+            (&b2, &[3u8; 16][..]),
+        )
+        .unwrap();
+        // Change the type of record 4 and add a row with an unknown type.
+        db.execute(
+            "UPDATE records SET type = 2 WHERE id = ?1",
+            [&[4u8; 16][..]],
+        )
+        .unwrap();
+        db.execute(
+            "INSERT INTO records (id, type, blob) VALUES (?1, 9, x'00')",
+            [&[5u8; 16][..]],
+        )
+        .unwrap();
+    }
+    let v = vault::unlock(&fx.path, PASSWORD).unwrap();
+    assert_eq!(v.unreadable_records(), 5);
+    assert!((1..=5u8).all(|i| v.get(&[i; 16]).is_none()));
+}
+
+#[test]
+fn tampered_header_is_detected() {
+    let cases: [(&str, &str, VaultError); 4] = [
+        (
+            "UPDATE meta SET value = randomblob(16) WHERE key = 'vault_id'",
+            "vault_id",
+            VaultError::WrongPassword,
+        ),
+        (
+            "DELETE FROM meta WHERE key = 'kdf_salt'",
+            "salt",
+            VaultError::Corrupted,
+        ),
+        (
+            "UPDATE meta SET value = x'0200' WHERE key = 'format_version'",
+            "version",
+            VaultError::UnsupportedFormat,
+        ),
+        (
+            "UPDATE meta SET value = x'01ffffffff0100000001000000' WHERE key = 'kdf_params'",
+            "params",
+            VaultError::Corrupted,
+        ),
+    ];
+    for (sql, name, expected) in cases {
+        let (fx, v) = create_vault();
+        v.lock().unwrap();
+        Connection::open(&fx.path)
+            .unwrap()
+            .execute(sql, [])
+            .unwrap();
+        assert_eq!(
+            vault::unlock(&fx.path, PASSWORD).unwrap_err(),
+            expected,
+            "{name}"
+        );
+    }
+}
+
+/// A vault file written by format version 1 must keep opening in every later build.
+/// Regenerate only on purpose: `cargo test -p mossbook-core -- --ignored generate_v1_fixture`.
+const FIXTURE_V1: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/vault-v1.db");
+const FIXTURE_PASSWORD: &str = "fixture password v1";
+
+#[test]
+fn opens_format_v1_fixture() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("vault.db");
+    std::fs::copy(FIXTURE_V1, &path).unwrap();
+    let v = vault::unlock(&path, FIXTURE_PASSWORD).unwrap();
+    assert_eq!(v.unreadable_records(), 0);
+    assert_eq!(
+        v.get(&[1; 16]),
+        Some((RecordType::Entry, &b"fixture entry"[..]))
+    );
+    assert_eq!(
+        v.get(&[2; 16]),
+        Some((RecordType::Settings, &b"fixture settings"[..]))
+    );
+}
+
+#[test]
+#[ignore = "writes tests/fixtures/vault-v1.db"]
+fn generate_v1_fixture() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("vault.db");
+    let mut pending = PendingVault::with_kdf_params(FIXTURE_PASSWORD, fast()).unwrap();
+    let phrase = pending.recovery_phrase().to_string();
+    confirm(&mut pending, &phrase);
+    let mut v = pending.write(&path).unwrap();
+    v.put([1; 16], RecordType::Entry, b"fixture entry".to_vec())
+        .unwrap();
+    v.put([2; 16], RecordType::Settings, b"fixture settings".to_vec())
+        .unwrap();
+    v.lock().unwrap();
+    std::fs::create_dir_all(Path::new(FIXTURE_V1).parent().unwrap()).unwrap();
+    std::fs::copy(&path, FIXTURE_V1).unwrap();
+}

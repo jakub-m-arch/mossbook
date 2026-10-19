@@ -77,6 +77,44 @@ wrapped = AEAD(KEK, AAD, DEK)        -- 24 + 32 + 16 = 72 bytes
 - During setup, the user must retype 3 randomly chosen words before the vault is
   written to disk (decision D-3 in `docs/PLAN.md`).
 
+## Vault file
+
+`vault.db` is an SQLite database (schema in `core/migrations/`, version tracked in
+`PRAGMA user_version`; a file from a newer build is refused, never modified).
+Pragmas: `journal_mode = WAL`, `secure_delete = ON`, `synchronous = FULL`; the WAL is
+checkpointed and truncated when the vault is locked.
+
+The header lives in the `meta` table; every value is random, public or ciphertext:
+
+| key               | value                                              |
+|-------------------|----------------------------------------------------|
+| `format_version`  | `u16` LE, currently `1`                             |
+| `vault_id`        | 16 random bytes (UUID v4 layout)                    |
+| `kdf_params`      | 13 bytes, see *Password KDF*                        |
+| `kdf_salt`        | 16 random bytes; replaced on every password change  |
+| `wrapped_dek_pwd` | 72 bytes, DEK wrapped under `KEK_pwd`              |
+| `wrapped_dek_rec` | 72 bytes, DEK wrapped under `KEK_rec`              |
+
+Records are rows `(id BLOB(16), type INTEGER, blob BLOB)` in `records`, see *Records*.
+
+Behaviour that matters for independent readers and for the threat model:
+
+- **Creation** happens in memory; the file is written only after the user retyped 3
+  recovery words, first as `vault.db.creating` and then renamed to `vault.db`.
+- **Unlocking** decrypts every record into memory. A record that fails authentication
+  or has an unknown type is skipped and counted (`unreadable_records`), so one damaged
+  row does not lock the user out of the rest.
+- **Tampering with the header** fails closed: a changed `vault_id`, salt or KDF params
+  makes the unwrap fail (reported as a wrong password); a missing key or a hostile
+  parameter value is reported as a damaged file.
+- **Password change and recovery** write a new salt and `wrapped_dek_pwd` in one
+  transaction. The recovery key never changes.
+- **Failed attempts** are delayed 1 s, 2 s, 4 s … up to 60 s, in memory only
+  (decision D-5). Data is never wiped automatically.
+- **Destroying** the vault removes `vault.db`, `-wal` and `-shm` after re-checking the
+  password. The files are not overwritten, since that does not help on flash storage
+  and the content is ciphertext anyway.
+
 ## Secrets in memory
 
 - DEK, KEKs and recovery entropy live in `secrecy::SecretBox` and are zeroed on drop.
@@ -100,8 +138,11 @@ python3 -m venv .venv && .venv/bin/pip install pynacl argon2-cffi
 A change in any vector means the on-disk format changed: bump the format version,
 add a migration and a migration test (see `CLAUDE.md`).
 
+`core/tests/fixtures/vault-v1.db` is a vault written by format version 1 (password
+`fixture password v1`, synthetic records). The test `opens_format_v1_fixture` must keep
+passing in every later build; add a new fixture for every new format version.
+
 ## Not covered yet
 
-- Vault header layout in SQLite `meta` (stage 3) and the `.mossbook` backup format
-  (stage 9, `docs/backup-format.md`).
+- The `.mossbook` backup format (stage 9, `docs/backup-format.md`).
 - Sealed-box inbox for quick entries without unlocking and biometric unlock (v1, SPEC §6.4–6.5).

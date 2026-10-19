@@ -5,6 +5,8 @@
 #![forbid(unsafe_code)]
 
 pub mod crypto;
+pub mod store;
+pub mod vault;
 
 /// Version of the `mossbook-core` crate.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

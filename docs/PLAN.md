@@ -45,11 +45,14 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Za
 - [x] `docs/crypto.md`
 
 ### Etap 3: Core – skarbiec i magazyn (`vault/`, `store/`)
-- [ ] `store/sqlite.rs`: `rusqlite` (`bundled`), schemat z SPEC §7, `WAL`, `secure_delete = ON`, migracje w `core/migrations/` (`PRAGMA user_version`)
-- [ ] `VaultHeader` (meta) + `UnlockedVault` (DEK + rekordy w pamięci, `Drop` zeruje)
-- [ ] `create` (patrz decyzja D-3), `unlock`, `unlock_recovery` (+ nowe hasło), `lock`, `change_password` (rewrap), `destroy` (usunięcie pliku + WAL/SHM)
-- [ ] Opóźnienie po błędnych próbach (D-5)
-- [ ] Testy integracyjne na `tempfile`; test migracji „baza z każdej wersji”
+- [x] `store/`: `rusqlite` (`bundled`), schemat z SPEC §7 (`STRICT`), `WAL`, `secure_delete = ON`, migracje przez `PRAGMA user_version`, odmowa otwarcia bazy z nowszej wersji
+- [x] `VaultHeader` w `meta`, `UnlockedVault` (DEK + rekordy w pamięci, zerowane przy `Drop`); rekordy jako bajty, typy domenowe w etapie 4
+- [x] `PendingVault` (D-3): skarbiec w pamięci, zapis dopiero po potwierdzeniu 3 słów, przez `vault.db.creating` + rename
+- [x] `unlock`, `unlock_with_recovery` (+ nowe hasło), `lock` (checkpoint WAL), `change_password` (rewrap, nowa sól), `destroy` (oddaje skarbiec przy złym haśle)
+- [x] `UnlockThrottle`: 1, 2, 4… 60 s, tylko w pamięci (D-5)
+- [x] Uszkodzone rekordy są pomijane i liczone, a nie blokują całego skarbca
+- [x] Testy integracyjne (14): cykl życia, złe hasło/fraza, odzyskiwanie, zmiana hasła, usuwanie, brak jawnej treści na dysku, podmiana/zamiana rekordów, podmiana nagłówka, fixture formatu v1
+- [x] `docs/crypto.md`: sekcja *Vault file*
 
 ### Etap 4: Core – domena i zapytania
 - [ ] `domain/`: `Entry`, `EntryKind`, `Tag`, `SafetyPlan`, `Settings`, `Emotion`/`Symptom` z `Custom(String)`; walidacja zakresów (1..=5, 0..=10); UUIDv7; CBOR (`ciborium`); ręczny `Debug` z redakcją
