@@ -280,7 +280,9 @@
 		"saved": "Saved.",
 		"tags": "Tags",
 		"security": "Security",
-		"data": "Data"
+		"data": "Data",
+		"language": "Language",
+		"systemLanguage": "Same as the system"
 	},
 	"backup": {
 		"title": "Backup",
@@ -327,10 +329,28 @@
 		"label": "Navigation",
 		"journal": "Journal",
 		"plan": "Plan",
-		"settings": "Settings"
+		"settings": "Settings",
+		"patterns": "Patterns"
 	},
 	"day": {
 		"today": "Today",
 		"yesterday": "Yesterday"
+	},
+	"patterns": {
+		"title": "Patterns",
+		"chart": "Mood over time",
+		"chartHint": "Average rating of each day, from 1 (very hard) to 5 (very good).",
+		"week": "Week",
+		"month": "Month",
+		"threeMonths": "3 months",
+		"range": "Period",
+		"summary": "Average: {average} (rated days: {days}).",
+		"empty": "No mood ratings in this period yet. They will appear here once you add entries with a rating.",
+		"table": "Show as a table",
+		"date": "Day",
+		"average": "Average",
+		"count": "Ratings",
+		"tooltip": "{date}: average {average}, ratings: {count}",
+		"note": "These are only your notes shown over time, not an assessment of your health."
 	}
 }

@@ -110,8 +110,10 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Za
 - [x] Testy: eksport → przywrócenie / import do innego skarbca = identyczne dane, scalanie, złe hasło/klucz, manipulacje (bajt, usunięcie, zamiana, obcy manifest, obcięty plik, wersja), stary hasło po zmianie, fixture `backup-v1.mossbook`; E2E: przywracanie, ustawienia, zmiana hasła, usunięcie danych
 
 ### Etap 10: Wykres i i18n
-- [ ] A-1 z `uPlot` (lokalnie), tydzień/miesiąc/3 mies.
-- [ ] i18n pl/en/uk (np. `svelte-i18n` lub własny lekki moduł), klucze dla emocji/objawów
+- [x] A-1: zakładka „Wzorce”, wykres samopoczucia (tydzień / miesiąc / 3 miesiące) jako własny SVG zamiast uPlot (D-12): linia 2 px, znaczniki z obwódką, siatka, krzyżyk + podpowiedź (mysz i strzałki), widok tabeli; kolory serii zwalidowane (jasny/ciemny); tylko obserwacje, bez wniosków klinicznych
+- [x] Język w ustawieniach: „jak w systemie”, Polski, English, Українська; `Settings.locale` opcjonalne (stare rekordy z napisem nadal się wczytują), stosowane po odblokowaniu (D-2)
+- [x] Teksty z liczbami przeformułowane tak, żeby nie wymagały odmiany liczebników
+- [ ] Tłumaczenia uk do przejrzenia przez native speakera przed wydaniem
 
 ### Etap 11: Android
 - [ ] `cargo tauri android init`, commit `gen/android`
@@ -145,3 +147,4 @@ Status: **przyjęte** (2026-10-18) albo **otwarte**. Przyjęte decyzje wiążą 
 | D-9 | przyjęte | **Stara kopia po zmianie hasła** otwiera się starym hasłem (zawiera DEK opakowany starym KEK) | Udokumentować w UI zmiany hasła i w `docs/backup-format.md` |
 | D-10 | otwarte | **Router frontendu**: SPEC wymienia `routes/` | SvelteKit + `adapter-static` (oficjalny szablon Tauri) |
 | D-11 | przyjęte | **Desktop „natychmiast po przejściu w tło”**: na desktopie utrata fokusu zdarza się ciągle | Desktop: domyślnie blokada przy minimalizacji/ukryciu + timer 5 min; utrata fokusu tylko zasłania okno |
+| D-12 | przyjęte | **Biblioteka wykresów**: SPEC wskazuje uPlot | Własny wykres SVG (~150 linii): jedna seria, ≤ 90 punktów; brak zależności, kolory ze zmiennych CSS (tryb ciemny bez przerysowania), dostępność (rola slider, tabela). uPlot wrócić do rozważenia przy A-2–A-4, jeśli wykresy się rozrosną |

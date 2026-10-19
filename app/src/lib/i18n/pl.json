@@ -280,7 +280,9 @@
 		"saved": "Zapisano.",
 		"tags": "Tagi",
 		"security": "Bezpieczeństwo",
-		"data": "Dane"
+		"data": "Dane",
+		"language": "Język",
+		"systemLanguage": "Jak w systemie"
 	},
 	"backup": {
 		"title": "Kopia zapasowa",
@@ -327,10 +329,28 @@
 		"label": "Nawigacja",
 		"journal": "Dziennik",
 		"plan": "Plan",
-		"settings": "Ustawienia"
+		"settings": "Ustawienia",
+		"patterns": "Wzorce"
 	},
 	"day": {
 		"today": "Dziś",
 		"yesterday": "Wczoraj"
+	},
+	"patterns": {
+		"title": "Wzorce",
+		"chart": "Samopoczucie w czasie",
+		"chartHint": "Średnia ocena z każdego dnia, od 1 (bardzo ciężko) do 5 (bardzo dobrze).",
+		"week": "Tydzień",
+		"month": "Miesiąc",
+		"threeMonths": "3 miesiące",
+		"range": "Okres",
+		"summary": "Średnia: {average} (dni z oceną: {days}).",
+		"empty": "W tym okresie nie ma jeszcze ocen samopoczucia. Pojawią się tu, gdy dodasz wpisy z oceną.",
+		"table": "Pokaż jako tabelę",
+		"date": "Dzień",
+		"average": "Średnia",
+		"count": "Liczba ocen",
+		"tooltip": "{date}: średnio {average}, ocen: {count}",
+		"note": "To tylko twoje zapiski pokazane w czasie, a nie ocena stanu zdrowia."
 	}
 }

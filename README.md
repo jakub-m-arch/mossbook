@@ -37,8 +37,8 @@ interface, and so do encrypted backups. There are no releases yet.
 | 7 | Quick entry, entry forms, timeline | done |
 | 8 | Plan for a hard moment, crisis lines, grounding exercises | done |
 | 9 | Encrypted `.mossbook` backup: export and import | done |
-| 10 | Mood chart, full translations (pl / en / uk) | next |
-| 11 | Android build | planned |
+| 10 | Mood chart, full translations (pl / en / uk) | done |
+| 11 | Android build | next |
 | 12 | Release 0.1.0 | planned |
 
 The detailed checklist lives in [`docs/PLAN.md`](docs/PLAN.md) and the full

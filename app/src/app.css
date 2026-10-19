@@ -28,6 +28,10 @@
 	--kind-note: #5f7a5c;
 	--kind-nightmare: #6a6290;
 
+	/* Chart series and grid (validated: chroma, lightness band, contrast vs surface). */
+	--chart-series: #2e7d4f;
+	--chart-grid: #ebebe5;
+
 	--radius-sm: 10px;
 	--radius: 14px;
 	--radius-lg: 20px;
@@ -55,6 +59,8 @@
 		--focus: #86b4e6;
 		--shadow: 0 1px 2px rgb(0 0 0 / 0.3);
 		--shadow-raised: 0 4px 24px rgb(0 0 0 / 0.5);
+		--chart-series: #46a86b;
+		--chart-grid: #262a26;
 	}
 }
 

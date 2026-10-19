@@ -170,10 +170,10 @@ fn plan_and_settings_persist_with_defaults() {
 
     let mut settings = Settings::default();
     settings.autolock = AutoLock::After5Min;
-    settings.locale = "uk".into();
+    settings.locale = Some("uk".into());
     j.save_settings(settings.clone()).unwrap();
     let mut bad = settings.clone();
-    bad.locale = "xx".into();
+    bad.locale = Some("xx".into());
     assert!(j.save_settings(bad).is_err());
 
     let j = reopen(&fx, j);

@@ -193,7 +193,8 @@ export interface Reminder {
 
 export interface Settings {
 	autolock: AutoLock;
-	locale: 'pl' | 'en' | 'uk';
+	/** `null` follows the system language. */
+	locale: 'pl' | 'en' | 'uk' | null;
 	crisis_country: string;
 	reminders: Reminder[];
 }

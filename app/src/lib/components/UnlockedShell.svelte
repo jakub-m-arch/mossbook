@@ -1,6 +1,7 @@
 <script lang="ts">
 	// Frame of every unlocked screen: top bar with the lock button (V-4),
 	// bottom tab bar on the main screens, back button on sub-screens.
+	import ChartLine from '@lucide/svelte/icons/chart-line';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import LifeBuoy from '@lucide/svelte/icons/life-buoy';
 	import Lock from '@lucide/svelte/icons/lock';
@@ -10,8 +11,8 @@
 
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { vaultLock, vaultStatus } from '#lib/api/index.js';
-	import { t } from '#lib/i18n/index.svelte.js';
+	import { settingsGet, vaultLock, vaultStatus } from '#lib/api/index.js';
+	import { detectLocale, setLocale, t } from '#lib/i18n/index.svelte.js';
 	import { toLockScreen } from '#lib/session.svelte.js';
 
 	interface Props {
@@ -29,6 +30,7 @@
 	const TABS = [
 		{ href: '/timeline', label: 'nav.journal', icon: NotebookPen },
 		{ href: '/plan', label: 'nav.plan', icon: LifeBuoy },
+		{ href: '/patterns', label: 'nav.patterns', icon: ChartLine },
 		{ href: '/settings', label: 'nav.settings', icon: Settings }
 	] as const;
 
@@ -37,6 +39,10 @@
 			.then((status) => {
 				if (status.state !== 'unlocked') return toLockScreen();
 				unreadable = status.unreadable_records;
+				// The saved language applies once settings can be read (D-2).
+				settingsGet()
+					.then((settings) => setLocale(settings.locale ?? detectLocale()))
+					.catch(() => {});
 			})
 			.catch(() => toLockScreen());
 	});

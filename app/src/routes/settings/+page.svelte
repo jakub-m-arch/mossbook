@@ -18,11 +18,18 @@
 	import PasswordField from '#lib/components/PasswordField.svelte';
 	import StrengthMeter from '#lib/components/StrengthMeter.svelte';
 	import UnlockedShell from '#lib/components/UnlockedShell.svelte';
-	import { t } from '#lib/i18n/index.svelte.js';
+	import { detectLocale, setLocale, t } from '#lib/i18n/index.svelte.js';
 	import { MIN_PASSWORD_CHARS } from '#lib/password.js';
 	import { errorText, handleLocked } from '#lib/session.svelte.js';
 
 	const AUTOLOCK: AutoLock[] = ['immediately', 'after1_min', 'after5_min', 'after15_min'];
+	/** Each language in its own name, so it can be found whatever is shown now. */
+	const LANGUAGES: Array<{ value: Settings['locale']; name: string | null }> = [
+		{ value: null, name: null },
+		{ value: 'pl', name: 'Polski' },
+		{ value: 'en', name: 'English' },
+		{ value: 'uk', name: 'Українська' }
+	];
 
 	let settings = $state<Settings | null>(null);
 	/** One message line per section. */
@@ -59,6 +66,15 @@
 		});
 	}
 
+	function saveLanguage(value: Settings['locale']) {
+		if (!settings) return;
+		const next = { ...$state.snapshot(settings), locale: value } as Settings;
+		setLocale(value ?? detectLocale());
+		void attempt('language', async () => {
+			settings = await settingsSave(next);
+		});
+	}
+
 	function onImported(outcome: ImportOutcome) {
 		const r = outcome.report;
 		messages.import =
@@ -92,6 +108,27 @@
 			<span>{t('settings.tags')}</span>
 			<ChevronRight size={20} />
 		</a>
+
+		<section class="card stack" aria-labelledby="language">
+			<h2 id="language">{t('settings.language')}</h2>
+			{#if settings}
+				<fieldset class="choices">
+					<legend class="sr-only">{t('settings.language')}</legend>
+					{#each LANGUAGES as option (option.value ?? 'system')}
+						<label>
+							<input
+								type="radio"
+								name="language"
+								checked={settings.locale === option.value}
+								onchange={() => saveLanguage(option.value)}
+							/>
+							{option.name ?? t('settings.systemLanguage')}
+						</label>
+					{/each}
+				</fieldset>
+			{/if}
+			{#if messages.language}<p class="notice" aria-live="polite">{messages.language}</p>{/if}
+		</section>
 
 		<section class="card stack" aria-labelledby="autolock">
 			<h2 id="autolock">{t('settings.autolock')}</h2>

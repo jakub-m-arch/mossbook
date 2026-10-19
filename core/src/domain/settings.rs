@@ -17,17 +17,15 @@ pub struct Settings {
     #[serde(default)]
     #[zeroize(skip)]
     pub autolock: AutoLock,
-    #[serde(default = "default_locale")]
-    pub locale: String,
+    /// UI language; `None` follows the system language (decision D-2).
+    /// Older records stored a plain string, which still decodes as `Some`.
+    #[serde(default)]
+    pub locale: Option<String>,
     /// ISO 3166-1 alpha-2 country of the crisis numbers, e.g. `PL`.
     #[serde(default = "default_crisis_country")]
     pub crisis_country: String,
     #[serde(default)]
     pub reminders: Vec<Reminder>,
-}
-
-fn default_locale() -> String {
-    "pl".into()
 }
 
 fn default_crisis_country() -> String {
@@ -38,7 +36,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             autolock: AutoLock::default(),
-            locale: default_locale(),
+            locale: None,
             crisis_country: default_crisis_country(),
             reminders: Vec::new(),
         }
@@ -47,7 +45,11 @@ impl Default for Settings {
 
 impl Settings {
     pub fn validate(&self) -> Result<(), DomainError> {
-        if !LOCALES.contains(&self.locale.as_str()) {
+        if self
+            .locale
+            .as_deref()
+            .is_some_and(|l| !LOCALES.contains(&l))
+        {
             return Err(DomainError::InvalidField("locale"));
         }
         let c = self.crisis_country.as_bytes();
@@ -137,9 +139,9 @@ mod tests {
     #[test]
     fn invalid_values_are_rejected() {
         let mut s = Settings::default();
-        s.locale = "de".into();
+        s.locale = Some("de".into());
         assert_eq!(s.validate(), Err(DomainError::InvalidField("locale")));
-        s.locale = "uk".into();
+        s.locale = Some("uk".into());
         s.crisis_country = "pl".into();
         assert_eq!(
             s.validate(),
@@ -156,6 +158,26 @@ mod tests {
             s.validate(),
             Err(DomainError::InvalidField("reminder_time"))
         );
+    }
+
+    #[test]
+    fn older_records_with_a_plain_locale_still_decode() {
+        #[derive(serde::Serialize)]
+        struct V1<'a> {
+            autolock: &'a str,
+            locale: &'a str,
+            crisis_country: &'a str,
+        }
+        let bytes = encode(&V1 {
+            autolock: "after5_min",
+            locale: "pl",
+            crisis_country: "PL",
+        })
+        .unwrap();
+        let s: Settings = decode(&bytes).unwrap();
+        assert_eq!(s.locale.as_deref(), Some("pl"));
+        assert_eq!(s.autolock, AutoLock::After5Min);
+        assert_eq!(Settings::default().locale, None);
     }
 
     #[test]

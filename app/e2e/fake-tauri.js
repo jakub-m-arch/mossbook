@@ -32,7 +32,7 @@
 		blockedUntil: 0,
 		entries: [],
 		tags: [],
-		settings: { autolock: 'immediately', locale: 'pl', crisis_country: 'PL', reminders: [] },
+		settings: { autolock: 'immediately', locale: null, crisis_country: 'PL', reminders: [] },
 		pendingBackup: false,
 		plan: {
 			warning_signs: [],
@@ -202,6 +202,23 @@
 			return null;
 		},
 		clipboard_clear_if: () => false,
+		stats_mood: ({ range }) => {
+			if (state.vault !== 'unlocked') return fail('locked');
+			const days = { week: 7, month: 30, three_months: 90 }[range];
+			const from = Date.now() - days * 86400000;
+			const byDay = new Map();
+			for (const e of state.entries) {
+				const t = Date.parse(e.occurred_at);
+				if (e.mood === null || t < from) continue;
+				const d = new Date(t);
+				const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+				const [sum, n] = byDay.get(key) ?? [0, 0];
+				byDay.set(key, [sum + e.mood, n + 1]);
+			}
+			return [...byDay.entries()]
+				.sort(([a], [b]) => a.localeCompare(b))
+				.map(([date, [sum, count]]) => ({ date, average: sum / count, count }));
+		},
 		settings_get: () => (state.vault === 'unlocked' ? state.settings : fail('locked')),
 		settings_save: ({ settings }) => {
 			if (state.vault !== 'unlocked') return fail('locked');
