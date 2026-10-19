@@ -129,6 +129,8 @@ types in `core/src/domain/`:
 
 - Structs are CBOR maps keyed by snake_case field names; enums use serde's external
   tagging with snake_case variant names (`{"fear": {...}}`, `"note"`).
+- Ids (UUIDs) are 16-byte CBOR byte strings. (Over IPC to the UI, which uses JSON,
+  they are hyphenated UUID strings.)
 - Timestamps are RFC 3339 strings with the original UTC offset
   (`2026-10-19T21:30:00+02:00`), so the local time of an entry survives travel.
 - Missing optional fields decode to their defaults; unknown fields are ignored.
@@ -166,7 +168,10 @@ add a migration and a migration test (see `CLAUDE.md`).
 `fixture password v1`, synthetic records). The test `opens_format_v1_fixture` must keep
 passing in every later build; add a new fixture for every new format version.
 
+## Backups
+
+The `.mossbook` backup format is specified in [`backup-format.md`](backup-format.md).
+
 ## Not covered yet
 
-- The `.mossbook` backup format (stage 9, `docs/backup-format.md`).
 - Sealed-box inbox for quick entries without unlocking and biometric unlock (v1, SPEC §6.4–6.5).

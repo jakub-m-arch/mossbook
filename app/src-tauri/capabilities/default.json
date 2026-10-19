@@ -36,6 +36,9 @@
     "allow-stats-mood",
     "allow-clipboard-clear-if",
     "allow-crisis-lines",
-    "allow-dial"
+    "allow-dial",
+    "allow-backup-export",
+    "allow-backup-pick",
+    "allow-backup-import"
   ]
 }

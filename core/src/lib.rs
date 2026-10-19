@@ -4,6 +4,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod backup;
 pub mod crisis;
 pub mod crypto;
 pub mod domain;

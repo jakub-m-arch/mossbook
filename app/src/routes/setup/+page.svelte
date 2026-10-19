@@ -90,6 +90,7 @@
 		<p>{t('setup.welcome.body')}</p>
 		<p class="notice">{t('setup.welcome.disclaimer')}</p>
 		<button type="button" onclick={() => (step = 'password')}>{t('setup.welcome.start')}</button>
+		<a class="button secondary" href={resolve('/restore')}>{t('backup.haveBackup')}</a>
 	{:else if step === 'password'}
 		<h1>{t('setup.password.title')}</h1>
 		<p>{t('setup.password.body')}</p>

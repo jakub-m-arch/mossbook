@@ -30,4 +30,7 @@ pub const COMMANDS: &[&str] = &[
     "clipboard_clear_if",
     "crisis_lines",
     "dial",
+    "backup_export",
+    "backup_pick",
+    "backup_import",
 ];

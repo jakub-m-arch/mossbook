@@ -24,7 +24,13 @@
 		"vault_corrupted": "The journal file is damaged.",
 		"unsupported_format": "This journal was saved by a newer version of the app.",
 		"generic": "Something went wrong. Please try again.",
-		"duplicate_tag_name": "A tag with this name already exists."
+		"duplicate_tag_name": "A tag with this name already exists.",
+		"not_a_backup": "This is not a Mossbook backup file.",
+		"unsupported_backup": "This backup comes from a newer version of the app.",
+		"backup_corrupted": "The backup file is damaged or was changed.",
+		"backup_too_large": "The file is too large to be a Mossbook backup.",
+		"io": "Could not read or write the file.",
+		"locked": "The journal is locked."
 	},
 	"strength": {
 		"label": "Password strength",
@@ -255,5 +261,56 @@
 		"save": "Save plan",
 		"saved": "Plan saved.",
 		"item": "Item {n}"
+	},
+	"settings": {
+		"title": "Settings",
+		"open": "Settings",
+		"autolock": "Automatic lock",
+		"immediately": "As soon as you leave the app",
+		"after1_min": "After 1 minute without activity",
+		"after5_min": "After 5 minutes without activity",
+		"after15_min": "After 15 minutes without activity",
+		"saved": "Saved."
+	},
+	"backup": {
+		"title": "Backup",
+		"intro": "A backup is a single encrypted file. It opens with the password or recovery key from the day it was made.",
+		"export": "Save a backup",
+		"exported": "Backup saved.",
+		"import": "Load a backup",
+		"picked": "Saved items in the backup: {records}.",
+		"sameVault": "This is a backup of this same journal.",
+		"secretKind": "Open the backup with",
+		"usePassword": "password",
+		"useRecovery": "recovery key",
+		"password": "Backup password",
+		"phrase": "Recovery key",
+		"mode": "What to do with your current entries",
+		"merge": "Merge: add what is missing, keep newer versions",
+		"replace": "Replace: the journal becomes exactly the backup",
+		"replaceWarning": "Entries that are not in the backup will be deleted.",
+		"submit": "Load",
+		"report": "Added {added}, updated {updated}, unchanged {unchanged}.",
+		"skipped": "Unreadable items skipped: {skipped}.",
+		"restored": "Journal restored from the backup.",
+		"restoreTitle": "Restore from a backup",
+		"restoreIntro": "Have a .mossbook file from another device? Choose it and open it with its password or recovery key. The journal keeps the backup's password and key.",
+		"haveBackup": "I have a backup",
+		"choose": "Choose a file"
+	},
+	"password": {
+		"title": "Change password",
+		"current": "Current password",
+		"new": "New password",
+		"submit": "Change password",
+		"changed": "Password changed. Your recovery key stays the same.",
+		"oldBackups": "Older backups still open with the previous password."
+	},
+	"destroy": {
+		"title": "Delete all data",
+		"intro": "Your journal, tags, plan and settings will be permanently deleted from this device. Backups saved elsewhere stay.",
+		"confirmLabel": "Type your password to confirm",
+		"submit": "Delete everything",
+		"question": "Delete all data for good? This cannot be undone."
 	}
 }

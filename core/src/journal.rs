@@ -6,6 +6,8 @@
 use core::fmt;
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
+
 use time::OffsetDateTime;
 
 use crate::crypto::aead::RecordType;
@@ -16,7 +18,7 @@ use crate::domain::{
 };
 use crate::query::stats::{MoodPoint, mood_by_day};
 use crate::query::{EntryFilter, StatsRange};
-use crate::vault::{UnlockedVault, VaultError};
+use crate::vault::{LoadedRecord, UnlockedVault, VaultError};
 
 /// Fixed record id of the safety plan (a singleton).
 pub const PLAN_ID: Id = Id::from_bytes([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3]);
@@ -55,6 +57,69 @@ impl From<VaultError> for JournalError {
     }
 }
 
+/// How a backup is brought into an existing journal (X-2).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ImportMode {
+    /// Add what is missing; an entry in both keeps the newer `updated_at`;
+    /// a tag with the same name is merged; the current plan and settings stay.
+    Merge,
+    /// The journal becomes exactly the backup's content.
+    Replace,
+}
+
+/// What an import changed, for the confirmation shown to the user.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct ImportReport {
+    pub added: usize,
+    pub updated: usize,
+    pub unchanged: usize,
+    /// Records in the backup that could not be decoded or were invalid.
+    pub skipped: usize,
+}
+
+/// Domain objects decoded from a list of records.
+#[derive(Default)]
+struct Decoded {
+    entries: HashMap<Id, Entry>,
+    tags: HashMap<Id, Tag>,
+    plan: Option<SafetyPlan>,
+    settings: Option<Settings>,
+    bad: usize,
+}
+
+impl Decoded {
+    /// Decodes records; one must carry the id of the row it came from.
+    fn from_records(records: Vec<LoadedRecord>) -> Self {
+        let mut d = Self::default();
+        for record in records {
+            let id = Id::from_bytes(record.id);
+            let bytes = record.plaintext.as_slice();
+            let ok = match record.record_type {
+                RecordType::Entry => match decode::<Entry>(bytes) {
+                    Ok(e) if e.id == id => d.entries.insert(id, e).is_none(),
+                    _ => false,
+                },
+                RecordType::Tag => match decode::<Tag>(bytes) {
+                    Ok(t) if t.id == id => d.tags.insert(id, t).is_none(),
+                    _ => false,
+                },
+                RecordType::Plan if id == PLAN_ID => {
+                    decode(bytes).map(|p| d.plan = Some(p)).is_ok()
+                }
+                RecordType::Settings if id == SETTINGS_ID => {
+                    decode(bytes).map(|s| d.settings = Some(s)).is_ok()
+                }
+                RecordType::Plan | RecordType::Settings => false,
+            };
+            if !ok {
+                d.bad += 1;
+            }
+        }
+        d
+    }
+}
+
 pub struct Journal {
     vault: UnlockedVault,
     entries: HashMap<Id, Entry>,
@@ -76,41 +141,14 @@ impl Journal {
     /// Decodes the records decrypted on unlock. Records that do not decode are
     /// added to the vault's unreadable count instead of failing the unlock.
     pub fn open(mut vault: UnlockedVault) -> Self {
-        let mut entries = HashMap::new();
-        let mut tags = HashMap::new();
-        let mut plan = SafetyPlan::default();
-        let mut settings = Settings::default();
-        let mut bad = 0;
-        for record in vault.take_loaded() {
-            let id = Id::from_bytes(record.id);
-            let bytes = record.plaintext.as_slice();
-            // A decoded object must carry the id of the row it came from.
-            let ok = match record.record_type {
-                RecordType::Entry => match decode::<Entry>(bytes) {
-                    Ok(e) if e.id == id => entries.insert(id, e).is_none(),
-                    _ => false,
-                },
-                RecordType::Tag => match decode::<Tag>(bytes) {
-                    Ok(t) if t.id == id => tags.insert(id, t).is_none(),
-                    _ => false,
-                },
-                RecordType::Plan if id == PLAN_ID => decode(bytes).map(|p| plan = p).is_ok(),
-                RecordType::Settings if id == SETTINGS_ID => {
-                    decode(bytes).map(|s| settings = s).is_ok()
-                }
-                RecordType::Plan | RecordType::Settings => false,
-            };
-            if !ok {
-                bad += 1;
-            }
-        }
-        vault.add_unreadable(bad);
+        let d = Decoded::from_records(vault.take_loaded());
+        vault.add_unreadable(d.bad);
         Self {
             vault,
-            entries,
-            tags,
-            plan,
-            settings,
+            entries: d.entries,
+            tags: d.tags,
+            plan: d.plan.unwrap_or_default(),
+            settings: d.settings.unwrap_or_default(),
         }
     }
 
@@ -340,6 +378,160 @@ impl Journal {
         )?;
         self.settings = settings;
         Ok(&self.settings)
+    }
+
+    // ---- import ----
+
+    /// Brings decrypted backup records into this journal, re-encrypted with
+    /// this vault's key, in one transaction (X-2, decision D-4).
+    pub fn import(
+        &mut self,
+        records: Vec<LoadedRecord>,
+        mode: ImportMode,
+    ) -> Result<ImportReport, JournalError> {
+        let backup = Decoded::from_records(records);
+        let mut report = ImportReport {
+            skipped: backup.bad,
+            ..ImportReport::default()
+        };
+        match mode {
+            ImportMode::Replace => self.import_replace(backup, &mut report)?,
+            ImportMode::Merge => self.import_merge(backup, &mut report)?,
+        }
+        Ok(report)
+    }
+
+    fn import_replace(
+        &mut self,
+        b: Decoded,
+        report: &mut ImportReport,
+    ) -> Result<(), JournalError> {
+        let mut tags = HashMap::new();
+        for (id, mut tag) in b.tags {
+            match tag.normalize() {
+                Ok(()) => drop(tags.insert(id, tag)),
+                Err(_) => report.skipped += 1,
+            }
+        }
+        let mut entries = HashMap::new();
+        for (id, mut entry) in b.entries {
+            entry.tags.retain(|t| tags.contains_key(t));
+            match entry.validate() {
+                Ok(()) => drop(entries.insert(id, entry)),
+                Err(_) => report.skipped += 1,
+            }
+        }
+        let plan = b.plan.unwrap_or_default();
+        let settings = b
+            .settings
+            .filter(|s| s.validate().is_ok())
+            .unwrap_or_default();
+
+        let mut encoded = Vec::new();
+        for e in entries.values() {
+            encoded.push((*e.id.as_bytes(), RecordType::Entry, encode(e)?));
+        }
+        for t in tags.values() {
+            encoded.push((*t.id.as_bytes(), RecordType::Tag, encode(t)?));
+        }
+        encoded.push((*PLAN_ID.as_bytes(), RecordType::Plan, encode(&plan)?));
+        encoded.push((
+            *SETTINGS_ID.as_bytes(),
+            RecordType::Settings,
+            encode(&settings)?,
+        ));
+        let puts: Vec<_> = encoded
+            .iter()
+            .map(|(id, rt, bytes)| (*id, *rt, bytes.as_slice()))
+            .collect();
+        let deletes: Vec<_> = self
+            .entries
+            .keys()
+            .chain(self.tags.keys())
+            .filter(|id| !entries.contains_key(id) && !tags.contains_key(id))
+            .map(|id| *id.as_bytes())
+            .collect();
+        self.vault.write_batch(&puts, &deletes)?;
+
+        report.added = entries.len() + tags.len();
+        self.entries = entries;
+        self.tags = tags;
+        self.plan = plan;
+        self.settings = settings;
+        Ok(())
+    }
+
+    fn import_merge(&mut self, b: Decoded, report: &mut ImportReport) -> Result<(), JournalError> {
+        // Tags: same id → keep ours; same name → map onto ours; otherwise add.
+        let mut tag_map: HashMap<Id, Id> = HashMap::new();
+        let mut new_tags: Vec<Tag> = Vec::new();
+        for (id, mut tag) in b.tags {
+            if self.tags.contains_key(&id) {
+                tag_map.insert(id, id);
+                report.unchanged += 1;
+            } else if let Some(ours) = self
+                .tags
+                .values()
+                .chain(&new_tags)
+                .find(|t| t.same_name(&tag.name))
+            {
+                tag_map.insert(id, ours.id);
+                report.unchanged += 1;
+            } else if tag.normalize().is_ok() {
+                tag_map.insert(id, id);
+                new_tags.push(tag);
+            } else {
+                report.skipped += 1;
+            }
+        }
+
+        // Entries: add missing ones; for entries in both, the newer edit wins.
+        let mut changed: Vec<Entry> = Vec::new();
+        for (id, mut entry) in b.entries {
+            let mut seen = Vec::new();
+            for t in entry.tags.iter().filter_map(|t| tag_map.get(t)) {
+                if !seen.contains(t) {
+                    seen.push(*t);
+                }
+            }
+            entry.tags = seen;
+            if entry.validate().is_err() {
+                report.skipped += 1;
+                continue;
+            }
+            match self.entries.get(&id) {
+                None => {
+                    report.added += 1;
+                    changed.push(entry);
+                }
+                Some(ours) if entry.updated_at > ours.updated_at => {
+                    report.updated += 1;
+                    changed.push(entry);
+                }
+                Some(_) => report.unchanged += 1,
+            }
+        }
+        report.added += new_tags.len();
+
+        let mut encoded = Vec::new();
+        for t in &new_tags {
+            encoded.push((*t.id.as_bytes(), RecordType::Tag, encode(t)?));
+        }
+        for e in &changed {
+            encoded.push((*e.id.as_bytes(), RecordType::Entry, encode(e)?));
+        }
+        let puts: Vec<_> = encoded
+            .iter()
+            .map(|(id, rt, bytes)| (*id, *rt, bytes.as_slice()))
+            .collect();
+        self.vault.write_batch(&puts, &[])?;
+        for t in new_tags {
+            self.tags.insert(t.id, t);
+        }
+        for e in changed {
+            self.entries.insert(e.id, e);
+        }
+        Ok(())
     }
 
     // ---- patterns ----

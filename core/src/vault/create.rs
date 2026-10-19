@@ -15,7 +15,7 @@ use crate::crypto::kdf::{CALIBRATION_TARGET, KdfParams, calibrate, derive_kek, g
 use crate::crypto::recovery::{RecoveryKey, WORD_COUNT};
 use crate::crypto::wrap::wrap_dek;
 use crate::crypto::{Dek, VaultId, random_bytes};
-use crate::store::Store;
+use crate::store::{RawRecord, Store};
 
 use super::{UnlockedVault, VaultError, VaultHeader, exists, sidecar, validate_new_password};
 
@@ -100,27 +100,41 @@ impl PendingVault {
         if !self.confirmed {
             return Err(VaultError::NotConfirmed);
         }
-        if exists(path) {
-            return Err(VaultError::AlreadyExists);
-        }
-        let tmp = sidecar(path, ".creating");
-        for stale in [tmp.clone(), sidecar(&tmp, "-wal"), sidecar(&tmp, "-shm")] {
-            match fs::remove_file(&stale) {
-                Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(VaultError::Io),
-                _ => {}
-            }
-        }
-        let mut store = Store::create(&tmp)?;
-        self.header.save(&mut store)?;
-        store.close()?;
-        if exists(path) {
-            return Err(VaultError::AlreadyExists);
-        }
-        fs::rename(&tmp, path)?;
+        write_new_vault(path, &self.header, &[])?;
         let store = Store::open(path)?;
         let Self { header, dek, .. } = self;
         super::unlock::load(path, store, header, dek)
     }
+}
+
+/// Writes a new vault file with `header` and already-encrypted `records`.
+///
+/// The file is first written as `<path>.creating` and then renamed, so a crash
+/// never leaves a half-written vault at `path`. Refuses to replace a vault.
+pub(crate) fn write_new_vault(
+    path: &Path,
+    header: &VaultHeader,
+    records: &[RawRecord],
+) -> Result<(), VaultError> {
+    if exists(path) {
+        return Err(VaultError::AlreadyExists);
+    }
+    let tmp = sidecar(path, ".creating");
+    for stale in [tmp.clone(), sidecar(&tmp, "-wal"), sidecar(&tmp, "-shm")] {
+        match fs::remove_file(&stale) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(VaultError::Io),
+            _ => {}
+        }
+    }
+    let mut store = Store::create(&tmp)?;
+    header.save(&mut store)?;
+    store.apply(records, &[])?;
+    store.close()?;
+    if exists(path) {
+        return Err(VaultError::AlreadyExists);
+    }
+    fs::rename(&tmp, path)?;
+    Ok(())
 }
 
 /// Random UUID v4 bytes for the vault id.

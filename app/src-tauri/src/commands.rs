@@ -8,16 +8,23 @@
 use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::Instant;
 
+use mossbook_core::backup::{Backup, BackupError, MAX_BACKUP_BYTES};
 use mossbook_core::crisis::{self, CrisisDirectory};
 use mossbook_core::domain::{Entry, EntryDraft, EntryKindTag, Id, SafetyPlan, Settings, Tag};
+use mossbook_core::journal::ImportMode;
 use mossbook_core::query::{EntryFilter, MoodPoint, StatsRange};
 use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_clipboard_manager::ClipboardExt;
+use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_fs::{FilePath, FsExt, OpenOptions};
 use tauri_plugin_opener::OpenerExt;
 use zeroize::Zeroizing;
 
 use crate::error::{AppError, AppResult};
-use crate::session::{LockReason, RecoveryAnswer, RecoverySetup, Session, Status};
+use crate::session::{
+    BackupSecret, BackupSummary, ImportOutcome, LockReason, RecoveryAnswer, RecoverySetup, Session,
+    Status,
+};
 
 /// Event sent to the UI whenever the vault locks.
 pub const EVENT_LOCKED: &str = "vault-locked";
@@ -254,6 +261,111 @@ pub fn stats_mood(state: State<'_, AppState>, range: StatsRange) -> AppResult<Ve
     with_session(&state, |s| {
         let now = s.now();
         Ok(s.journal()?.mood_series(range, now))
+    })
+}
+
+// ---- backups (X-1, X-2) ----
+
+/// Runs a system file dialog. The background lock is suspended meanwhile
+/// (decision D-6); the session is not held while the dialog is open.
+fn with_dialog<T>(state: &State<'_, AppState>, dialog: impl FnOnce() -> T) -> T {
+    state.session().begin_dialog();
+    let result = dialog();
+    state.session().end_dialog(Instant::now());
+    result
+}
+
+/// Saves an encrypted backup where the user chooses. `false` if cancelled.
+#[tauri::command(async)]
+pub fn backup_export(app: AppHandle, state: State<'_, AppState>) -> AppResult<bool> {
+    let name = {
+        let session = state.session();
+        session.journal()?;
+        format!("mossbook-{}.mossbook", session.now().date())
+    };
+    let target = with_dialog(&state, || {
+        app.dialog()
+            .file()
+            .add_filter("Mossbook", &["mossbook"])
+            .set_file_name(name)
+            .blocking_save_file()
+    });
+    let Some(target) = target else {
+        return Ok(false);
+    };
+    // The vault may have locked on idle while the dialog was open.
+    let bytes = state
+        .session()
+        .journal()?
+        .vault()
+        .export_backup()?
+        .to_bytes()?;
+    write_file(&app, target, &bytes)
+        .map_err(|_| AppError::new("io", "cannot write the backup file"))?;
+    Ok(true)
+}
+
+fn write_file(app: &AppHandle, target: FilePath, bytes: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+    let mut options = OpenOptions::new();
+    options.write(true).create(true).truncate(true);
+    let mut file = app.fs().open(target, options)?;
+    file.write_all(bytes)?;
+    file.sync_all()
+}
+
+/// Lets the user pick a backup file and checks its structure. `None` if cancelled.
+#[tauri::command(async)]
+pub fn backup_pick(app: AppHandle, state: State<'_, AppState>) -> AppResult<Option<BackupSummary>> {
+    let picked = with_dialog(&state, || {
+        app.dialog()
+            .file()
+            .add_filter("Mossbook", &["mossbook"])
+            .blocking_pick_file()
+    });
+    let Some(picked) = picked else {
+        return Ok(None);
+    };
+    let bytes = read_limited(&app, picked).map_err(|e| match e {
+        ReadError::TooLarge => AppError::from(BackupError::TooLarge),
+        ReadError::Io => AppError::new("io", "cannot read the file"),
+    })?;
+    let backup = Backup::from_bytes(&bytes)?;
+    Ok(Some(state.session().set_pending_backup(backup)))
+}
+
+enum ReadError {
+    TooLarge,
+    Io,
+}
+
+fn read_limited(app: &AppHandle, path: FilePath) -> Result<Vec<u8>, ReadError> {
+    use std::io::Read;
+    let mut options = OpenOptions::new();
+    options.read(true);
+    let file = app.fs().open(path, options).map_err(|_| ReadError::Io)?;
+    let mut bytes = Vec::new();
+    file.take(MAX_BACKUP_BYTES as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| ReadError::Io)?;
+    if bytes.len() > MAX_BACKUP_BYTES {
+        return Err(ReadError::TooLarge);
+    }
+    Ok(bytes)
+}
+
+/// Opens the picked backup with its password or recovery phrase and restores
+/// it (no vault yet) or imports it into the unlocked journal.
+#[tauri::command(async)]
+pub fn backup_import(
+    state: State<'_, AppState>,
+    secret: String,
+    kind: BackupSecret,
+    mode: ImportMode,
+) -> AppResult<ImportOutcome> {
+    let secret = Zeroizing::new(secret);
+    with_session(&state, |s| {
+        s.import_pending(&secret, kind, mode, Instant::now())
     })
 }
 

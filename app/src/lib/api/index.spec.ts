@@ -65,7 +65,10 @@ async function invokedCommands(): Promise<string[]> {
 		() => api.statsMood('week'),
 		() => api.clipboardClearIf('copied'),
 		() => api.crisisLines('PL'),
-		() => api.dial('112')
+		() => api.dial('112'),
+		api.backupExport,
+		api.backupPick,
+		() => api.backupImport('pw', 'password', 'merge')
 	];
 	for (const call of calls) await call();
 	return invoke.mock.calls.map((c) => c[0]);

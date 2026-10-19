@@ -24,7 +24,7 @@ encrypted on your device, and can be shared with a therapist only if you choose 
 
 **Pre-alpha, not ready for real data yet.** The encrypted core is complete and
 heavily tested; journaling, tags, the safety plan and crisis lines work in the
-interface. Backups are not done yet. There are no releases yet.
+interface, and so do encrypted backups. There are no releases yet.
 
 | Stage | Scope | State |
 |---|---|---|
@@ -36,8 +36,8 @@ interface. Backups are not done yet. There are no releases yet.
 | 6 | Setup, lock and recovery screens | done |
 | 7 | Quick entry, entry forms, timeline | done |
 | 8 | Plan for a hard moment, crisis lines, grounding exercises | done |
-| 9 | Encrypted `.mossbook` backup: export and import | next |
-| 10 | Mood chart, full translations (pl / en / uk) | planned |
+| 9 | Encrypted `.mossbook` backup: export and import | done |
+| 10 | Mood chart, full translations (pl / en / uk) | next |
 | 11 | Android build | planned |
 | 12 | Release 0.1.0 | planned |
 
@@ -75,9 +75,11 @@ specification in [`SPEC.md`](SPEC.md) (both in Polish).
 Out of scope: a device with malware or root access, keyloggers, physical coercion, and
 memory analysis while the journal is unlocked.
 
-The cryptographic design is documented in [`docs/crypto.md`](docs/crypto.md) in
-enough detail to write an independent reader. Its test vectors are cross-checked
-against libsodium and argon2-cffi by [`tools/verify-vectors.py`](tools/verify-vectors.py).
+The cryptographic design is documented in [`docs/crypto.md`](docs/crypto.md) and the
+backup file in [`docs/backup-format.md`](docs/backup-format.md), in enough detail to
+write an independent reader. The test vectors are cross-checked against libsodium and
+argon2-cffi by [`tools/verify-vectors.py`](tools/verify-vectors.py), and
+[`tools/read-backup.py`](tools/read-backup.py) opens backups without any Mossbook code.
 
 **Found a security issue?** Please do not open a public issue. Use GitHub's
 [private vulnerability reporting](https://github.com/jakub-m-arch/mossbook/security/advisories/new).
@@ -114,8 +116,8 @@ mossbook/
 │   ├── src-tauri/    Tauri commands, session, capabilities
 │   ├── src/          Svelte UI (routes/, lib/api, lib/i18n, lib/components)
 │   └── e2e/          Playwright scenarios against a fake backend
-├── docs/             crypto.md, PLAN.md
-├── tools/            verify-vectors.py
+├── docs/             crypto.md, backup-format.md, PLAN.md
+├── tools/            verify-vectors.py, read-backup.py (independent readers)
 └── SPEC.md           full specification (Polish)
 ```
 

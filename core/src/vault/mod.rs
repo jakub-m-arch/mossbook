@@ -4,11 +4,11 @@
 //! recovery phrase is confirmed) → [`UnlockedVault`] (DEK and plaintext in
 //! memory) → dropped or [`UnlockedVault::lock`]ed (all secrets zeroed).
 
-mod create;
+pub(crate) mod create;
 mod header;
 mod rekey;
 mod throttle;
-mod unlock;
+pub(crate) mod unlock;
 
 use core::fmt;
 use std::fs;
@@ -176,6 +176,19 @@ impl UnlockedVault {
     /// They stay untouched on disk; the UI can tell the user some data is damaged.
     pub fn unreadable_records(&self) -> usize {
         self.unreadable
+    }
+
+    pub(crate) fn header(&self) -> &VaultHeader {
+        &self.header
+    }
+
+    pub(crate) fn dek(&self) -> &Dek {
+        &self.dek
+    }
+
+    /// All records as stored (encrypted), e.g. for a backup.
+    pub(crate) fn raw_records(&self) -> Result<Vec<RawRecord>, VaultError> {
+        Ok(self.store.records_all()?.records)
     }
 
     /// Hands out the records decrypted on unlock. Returns an empty list on later calls.

@@ -3,6 +3,7 @@
 
 use std::time::Duration;
 
+use mossbook_core::backup::BackupError;
 use mossbook_core::domain::DomainError;
 use mossbook_core::journal::JournalError;
 use mossbook_core::vault::VaultError;
@@ -88,6 +89,22 @@ impl From<JournalError> for AppError {
             JournalError::Vault(e) => e.into(),
             JournalError::DuplicateTagName => Self::new("duplicate_tag_name", e.to_string()),
         }
+    }
+}
+
+impl From<BackupError> for AppError {
+    fn from(e: BackupError) -> Self {
+        let code = match e {
+            BackupError::NotABackup => "not_a_backup",
+            BackupError::UnsupportedVersion => "unsupported_backup",
+            BackupError::Corrupted => "backup_corrupted",
+            BackupError::TooLarge => "backup_too_large",
+            BackupError::WrongPassword => "wrong_password",
+            BackupError::WrongRecoveryKey => "wrong_recovery_key",
+            BackupError::InvalidRecoveryPhrase => "invalid_recovery_phrase",
+            BackupError::Vault(e) => return e.into(),
+        };
+        Self::new(code, e.to_string())
     }
 }
 

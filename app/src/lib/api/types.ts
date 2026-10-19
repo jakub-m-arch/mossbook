@@ -26,6 +26,11 @@ export type ErrorCode =
 	| 'invalid_field'
 	| 'not_found'
 	| 'duplicate_tag_name'
+	| 'not_a_backup'
+	| 'unsupported_backup'
+	| 'backup_corrupted'
+	| 'backup_too_large'
+	| 'io'
 	| 'internal';
 
 export interface AppError {
@@ -228,4 +233,28 @@ export interface CrisisDirectory {
 export interface CrisisInfo {
 	countries: string[];
 	directory: CrisisDirectory | null;
+}
+
+// ---- backups ----
+
+export interface BackupSummary {
+	records: number;
+	/** The backup comes from the vault that is currently unlocked. */
+	same_vault: boolean;
+}
+
+export type BackupSecret = 'password' | 'recovery_phrase';
+export type ImportMode = 'merge' | 'replace';
+
+export interface ImportReport {
+	added: number;
+	updated: number;
+	unchanged: number;
+	skipped: number;
+}
+
+export interface ImportOutcome {
+	/** `true` when there was no vault and the backup became the vault. */
+	restored: boolean;
+	report: ImportReport;
 }

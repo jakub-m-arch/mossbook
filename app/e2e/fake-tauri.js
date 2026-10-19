@@ -2,7 +2,8 @@
 // It mirrors the command contract of app/src-tauri (codes, state machine) so the
 // UI can be exercised in a plain browser. Synthetic data only.
 (() => {
-	const PASSWORD = 'correct horse battery';
+	let password = 'correct horse battery';
+	const BACKUP_PASSWORD = 'backup password';
 	const WORDS = Array.from({ length: 24 }, (_, i) => `word${i + 1}`);
 	const POSITIONS = [2, 10, 20];
 
@@ -31,6 +32,8 @@
 		blockedUntil: 0,
 		entries: [],
 		tags: [],
+		settings: { autolock: 'immediately', locale: 'pl', crisis_country: 'PL', reminders: [] },
+		pendingBackup: false,
 		plan: {
 			warning_signs: [],
 			self_coping: [],
@@ -95,7 +98,7 @@
 			save();
 			return null;
 		},
-		vault_unlock: ({ password }) => unlockAttempt(password === PASSWORD),
+		vault_unlock: (args) => unlockAttempt(args.password === password),
 		vault_unlock_recovery: ({ phrase }) =>
 			phrase.trim().split(/\s+/).join(' ') === WORDS.join(' ')
 				? unlockAttempt(true)
@@ -199,6 +202,62 @@
 			return null;
 		},
 		clipboard_clear_if: () => false,
+		settings_get: () => (state.vault === 'unlocked' ? state.settings : fail('locked')),
+		settings_save: ({ settings }) => {
+			if (state.vault !== 'unlocked') return fail('locked');
+			state.settings = settings;
+			return settings;
+		},
+		vault_change_password: ({ old, new: next }) => {
+			if (old !== password) return fail('wrong_password');
+			if ([...next].length < 8) return fail('password_too_short');
+			password = next;
+			return null;
+		},
+		vault_destroy: (args) => {
+			if (args.password !== password) return fail('wrong_password');
+			state.vault = 'no_vault';
+			state.entries = [];
+			save();
+			return null;
+		},
+		backup_export: () => (state.vault === 'unlocked' ? true : fail('locked')),
+		// The fake backup holds one synthetic note and opens with BACKUP_PASSWORD.
+		backup_pick: () => {
+			state.pendingBackup = true;
+			return { records: 3, same_vault: false };
+		},
+		backup_import: ({ secret, kind, mode }) => {
+			if (!state.pendingBackup) return fail('invalid_state');
+			if (state.vault === 'locked') return fail('locked');
+			const ok =
+				kind === 'password' ? secret === BACKUP_PASSWORD : secret.trim().split(/\s+/).length === 24;
+			if (!ok) return fail(kind === 'password' ? 'wrong_password' : 'wrong_recovery_key');
+			state.pendingBackup = false;
+			const note = {
+				id: 'backup-entry',
+				schema: 1,
+				created_at: '2026-10-01T10:00:00+02:00',
+				updated_at: '2026-10-01T10:00:00+02:00',
+				occurred_at: '2026-10-01T10:00:00+02:00',
+				kind: 'note',
+				mood: null,
+				intensity: null,
+				tags: [],
+				note: 'Wpis z kopii',
+				incomplete: false,
+				sensitive: false
+			};
+			const restored = state.vault !== 'unlocked';
+			if (restored) {
+				password = BACKUP_PASSWORD;
+				state.vault = 'unlocked';
+				save();
+			}
+			const replaced = mode === 'replace' || restored;
+			state.entries = replaced ? [note] : [...state.entries.filter((e) => e.id !== note.id), note];
+			return { restored, report: { added: 1, updated: 0, unchanged: 0, skipped: 0 } };
+		},
 		plan_get: () => (state.vault === 'unlocked' ? state.plan : fail('locked')),
 		plan_save: ({ plan }) => {
 			if (state.vault !== 'unlocked') return fail('locked');

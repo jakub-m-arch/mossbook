@@ -5,9 +5,10 @@
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
+use mossbook_core::backup::Backup;
 use mossbook_core::crypto::kdf::KdfParams;
 use mossbook_core::domain::AutoLock;
-use mossbook_core::journal::Journal;
+use mossbook_core::journal::{ImportMode, ImportReport, Journal};
 use mossbook_core::vault::{self, DestroyError, PendingVault, UnlockThrottle, VaultError};
 use serde::{Deserialize, Serialize};
 use time::{OffsetDateTime, UtcOffset};
@@ -79,6 +80,32 @@ pub struct Session {
     utc_offset: UtcOffset,
     /// Cheap KDF params for tests; `None` in the app (calibrated params).
     kdf_override: Option<KdfParams>,
+    /// A backup file picked by the user, waiting for its password (X-2).
+    pending_backup: Option<Backup>,
+}
+
+/// What the UI learns about a picked backup before it is opened.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct BackupSummary {
+    pub records: usize,
+    /// The backup comes from the vault that is currently unlocked.
+    pub same_vault: bool,
+}
+
+/// Which secret opens a backup.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BackupSecret {
+    Password,
+    RecoveryPhrase,
+}
+
+/// Result of bringing a backup in.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ImportOutcome {
+    /// `true` when there was no vault and the backup became the vault.
+    pub restored: bool,
+    pub report: ImportReport,
 }
 
 impl Session {
@@ -96,6 +123,7 @@ impl Session {
             dialogs_open: 0,
             utc_offset: UtcOffset::UTC,
             kdf_override: None,
+            pending_backup: None,
         }
     }
 
@@ -316,6 +344,72 @@ impl Session {
         }
     }
 
+    // ---- backups ----
+
+    /// Keeps a parsed backup until the user enters its password.
+    pub fn set_pending_backup(&mut self, backup: Backup) -> BackupSummary {
+        let same_vault = self
+            .journal()
+            .is_ok_and(|j| j.vault().vault_id() == backup.vault_id());
+        let summary = BackupSummary {
+            records: backup.records.len(),
+            same_vault,
+        };
+        self.pending_backup = Some(backup);
+        summary
+    }
+
+    /// Opens the picked backup and restores it (no vault yet) or imports it
+    /// into the unlocked journal. On a wrong secret the backup stays picked.
+    pub fn import_pending(
+        &mut self,
+        secret: &str,
+        kind: BackupSecret,
+        mode: ImportMode,
+        now: Instant,
+    ) -> AppResult<ImportOutcome> {
+        if matches!(self.state, VaultState::Locked) {
+            return Err(AppError::locked());
+        }
+        let backup = self
+            .pending_backup
+            .take()
+            .ok_or_else(|| AppError::invalid_state("no backup picked"))?;
+        let opened = match kind {
+            BackupSecret::Password => backup.clone().open_with_password(secret),
+            BackupSecret::RecoveryPhrase => backup.clone().open_with_recovery(secret),
+        };
+        let opened = match opened {
+            Ok(opened) => opened,
+            Err(e) => {
+                self.pending_backup = Some(backup);
+                return Err(e.into());
+            }
+        };
+        match &mut self.state {
+            VaultState::Unlocked(journal) => {
+                let report = journal.import(opened.decrypt()?, mode)?;
+                Ok(ImportOutcome {
+                    restored: false,
+                    report,
+                })
+            }
+            _ => {
+                let added = opened.record_count();
+                let vault = opened.restore(&self.vault_path)?;
+                self.state = VaultState::Unlocked(Box::new(Journal::open(vault)));
+                self.last_activity = now;
+                Ok(ImportOutcome {
+                    restored: true,
+                    report: ImportReport {
+                        added,
+                        ..ImportReport::default()
+                    },
+                })
+            }
+        }
+    }
+
     // ---- auto-lock ----
 
     /// The UI reports user activity (input, navigation).
@@ -353,18 +447,10 @@ impl Session {
     }
 
     /// Marks a system dialog as open; pair with [`Self::end_dialog`].
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "used by backup export/import (stage 9)")
-    )]
     pub fn begin_dialog(&mut self) {
         self.dialogs_open += 1;
     }
 
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "used by backup export/import (stage 9)")
-    )]
     pub fn end_dialog(&mut self, now: Instant) {
         self.dialogs_open = self.dialogs_open.saturating_sub(1);
         self.last_activity = now;
@@ -556,6 +642,81 @@ mod tests {
         s.destroy(PASSWORD).unwrap();
         assert_eq!(state(&s), StatusKind::NoVault);
         assert!(std::fs::read_dir(dir.path()).unwrap().next().is_none());
+    }
+
+    #[test]
+    fn restore_and_import_a_picked_backup() {
+        let (_src_dir, mut src) = unlocked();
+        let now = src.now();
+        src.journal_mut()
+            .unwrap()
+            .quick_entry(EntryKindTag::Note, None, now)
+            .unwrap();
+        let backup = src.journal().unwrap().vault().export_backup().unwrap();
+
+        // No vault yet: the backup becomes the vault (keeps its password).
+        let (_dir, mut s) = session();
+        assert!(!s.set_pending_backup(backup.clone()).same_vault);
+        let e = s
+            .import_pending(
+                "wrong",
+                BackupSecret::Password,
+                ImportMode::Merge,
+                Instant::now(),
+            )
+            .unwrap_err();
+        assert_eq!(e.code, "wrong_password");
+        let outcome = s
+            .import_pending(
+                PASSWORD,
+                BackupSecret::Password,
+                ImportMode::Merge,
+                Instant::now(),
+            )
+            .unwrap();
+        assert!(outcome.restored);
+        assert_eq!(state(&s), StatusKind::Unlocked);
+        assert_eq!(s.journal().unwrap().entries(&Default::default()).len(), 1);
+
+        // Into the same, unlocked vault: nothing new.
+        assert!(s.set_pending_backup(backup).same_vault);
+        let outcome = s
+            .import_pending(
+                PASSWORD,
+                BackupSecret::Password,
+                ImportMode::Merge,
+                Instant::now(),
+            )
+            .unwrap();
+        assert!(!outcome.restored);
+        assert_eq!(outcome.report.added, 0);
+        assert_eq!(
+            s.import_pending(
+                PASSWORD,
+                BackupSecret::Password,
+                ImportMode::Merge,
+                Instant::now()
+            )
+            .unwrap_err()
+            .code,
+            "invalid_state"
+        );
+
+        // A locked vault must be unlocked first.
+        s.lock().unwrap();
+        let backup = src.journal().unwrap().vault().export_backup().unwrap();
+        s.set_pending_backup(backup);
+        assert_eq!(
+            s.import_pending(
+                PASSWORD,
+                BackupSecret::Password,
+                ImportMode::Merge,
+                Instant::now()
+            )
+            .unwrap_err()
+            .code,
+            "locked"
+        );
     }
 
     #[test]

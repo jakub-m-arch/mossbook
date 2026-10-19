@@ -102,9 +102,12 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Za
 - [ ] Teksty ćwiczeń do konsultacji z psychoterapeutą przed v1 (SPEC §9); numery do ponownej weryfikacji przed każdym wydaniem
 
 ### Etap 9: Kopia `.mossbook`
-- [ ] `backup/format.rs` + `docs/backup-format.md` (magic, wersja, vault_id, KDF, opakowane DEK, rekordy)
-- [ ] Eksport przez systemowe okno zapisu; import: scalanie / zastąpienie (D-4)
-- [ ] Testy: eksport → import do pustego skarbca → identyczne dane; uszkodzony plik; zła wersja; stały plik testowy v1
+- [x] `core::backup`: `MOSSBOOK` + wersja + CBOR; nagłówek i zaszyfrowane rekordy 1:1 z bazy; manifest (SHA-256 rekordów, szyfrowany DEK) wykrywa usunięcie, dodanie i zmianę kolejności; limit 512 MiB
+- [x] Otwieranie hasłem albo kluczem odzyskiwania z dnia kopii (D-9); przywracanie na nowym urządzeniu bez ponownego szyfrowania; import do istniejącego dziennika z ponownym szyfrowaniem (D-4): scalanie (nowsze `updated_at`, tagi po nazwie, plan i ustawienia bez zmian) albo zastąpienie, w jednej transakcji
+- [x] Komendy `backup_export` / `backup_pick` / `backup_import` z systemowymi oknami (plugin `dialog` + `fs`, obsługa `content://` na Androidzie); blokada w tle wstrzymana na czas okna (D-6), mutex sesji nie jest trzymany w trakcie
+- [x] Ekran ustawień: kopia (zapis, wczytanie), automatyczna blokada (V-3), zmiana hasła (V-5), usunięcie wszystkich danych (V-9); „Mam kopię zapasową” na pierwszym ekranie
+- [x] `docs/backup-format.md` + niezależny czytnik `tools/read-backup.py` (libsodium, argon2-cffi, cbor2), sprawdzony na fixture
+- [x] Testy: eksport → przywrócenie / import do innego skarbca = identyczne dane, scalanie, złe hasło/klucz, manipulacje (bajt, usunięcie, zamiana, obcy manifest, obcięty plik, wersja), stary hasło po zmianie, fixture `backup-v1.mossbook`; E2E: przywracanie, ustawienia, zmiana hasła, usunięcie danych
 
 ### Etap 10: Wykres i i18n
 - [ ] A-1 z `uPlot` (lokalnie), tydzień/miesiąc/3 mies.
@@ -139,6 +142,6 @@ Status: **przyjęte** (2026-10-18) albo **otwarte**. Przyjęte decyzje wiążą 
 | D-6 | przyjęte | **Auto-blokada a okna systemowe**: okno zapisu kopii albo picker na Androidzie powoduje utratę fokusu lub przejście w tło, co zablokowałoby skarbiec w trakcie eksportu | Flaga „operacja systemowa w toku” w Ruście wstrzymuje blokadę „natychmiast”, ale nie timer bezczynności |
 | D-7 | przyjęte | **Typy TS**: ręczne utrzymywanie typów to ryzyko rozjazdu | `specta` + `tauri-specta` (generowanie `bindings.ts`), jeśli wersja zgodna z Tauri 2 jest stabilna; inaczej ręcznie + test snapshot |
 | D-8 | otwarte | **Kolumna `type` jawna** ujawnia liczbę wpisów w odróżnieniu od tagów | Akceptujemy i dopisujemy do listy wycieków w SPEC §2 (albo jeden typ „record” z typem tylko w AAD/treści) |
-| D-9 | otwarte | **Stara kopia po zmianie hasła** otwiera się starym hasłem (zawiera DEK opakowany starym KEK) | Udokumentować w UI zmiany hasła i w `docs/backup-format.md` |
+| D-9 | przyjęte | **Stara kopia po zmianie hasła** otwiera się starym hasłem (zawiera DEK opakowany starym KEK) | Udokumentować w UI zmiany hasła i w `docs/backup-format.md` |
 | D-10 | otwarte | **Router frontendu**: SPEC wymienia `routes/` | SvelteKit + `adapter-static` (oficjalny szablon Tauri) |
 | D-11 | przyjęte | **Desktop „natychmiast po przejściu w tło”**: na desktopie utrata fokusu zdarza się ciągle | Desktop: domyślnie blokada przy minimalizacji/ukryciu + timer 5 min; utrata fokusu tylko zasłania okno |

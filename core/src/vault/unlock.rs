@@ -46,7 +46,7 @@ pub fn unlock_with_recovery(
 }
 
 /// Derives `KEK_pwd` and unwraps the DEK; a failed unwrap means a wrong password.
-pub(super) fn unwrap_with_password(
+pub(crate) fn unwrap_with_password(
     header: &VaultHeader,
     password: &str,
 ) -> Result<Dek, VaultError> {
@@ -68,7 +68,7 @@ fn open_existing(path: &Path) -> Result<Store, VaultError> {
 /// Decrypts every record into memory. Records that fail to decrypt or have an
 /// unknown type are counted, not fatal: one damaged row must not lock the user
 /// out of everything else.
-pub(super) fn load(
+pub(crate) fn load(
     path: &Path,
     store: Store,
     header: VaultHeader,

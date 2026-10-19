@@ -162,7 +162,10 @@
 			{/each}
 		</ul>
 
-		<a class="button secondary" href={resolve('/tags')}>{t('tags.manage')}</a>
+		<div class="links">
+			<a class="button secondary" href={resolve('/tags')}>{t('tags.manage')}</a>
+			<a class="button secondary" href={resolve('/settings')}>{t('settings.open')}</a>
+		</div>
 	</div>
 </UnlockedShell>
 
@@ -222,6 +225,11 @@
 	.check input {
 		width: 1.4rem;
 		min-height: 1.4rem;
+	}
+	.links {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.5rem;
 	}
 	.list {
 		display: flex;

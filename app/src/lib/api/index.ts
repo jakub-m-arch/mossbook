@@ -6,7 +6,11 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 import type {
 	AppError,
+	BackupSecret,
+	BackupSummary,
 	CrisisInfo,
+	ImportMode,
+	ImportOutcome,
 	Entry,
 	EntryDraft,
 	EntryFilter,
@@ -104,3 +108,13 @@ export const clipboardClearIf = (text: string) => invoke<boolean>('clipboard_cle
 export const crisisLines = (country: string) => invoke<CrisisInfo>('crisis_lines', { country });
 /** Starts a call. Only crisis numbers and safety-plan contacts are allowed. */
 export const dial = (number: string) => invoke<void>('dial', { number });
+
+// ---- backups (X-1, X-2) ----
+
+/** Opens the system save dialog and writes an encrypted backup. `false` if cancelled. */
+export const backupExport = () => invoke<boolean>('backup_export');
+/** Opens the system file picker and checks the file. `null` if cancelled. */
+export const backupPick = () => invoke<BackupSummary | null>('backup_pick');
+/** Opens the picked backup and restores it (no vault) or imports it (unlocked). */
+export const backupImport = (secret: string, kind: BackupSecret, mode: ImportMode) =>
+	invoke<ImportOutcome>('backup_import', { secret, kind, mode });

@@ -24,7 +24,13 @@
 		"vault_corrupted": "Plik dziennika jest uszkodzony.",
 		"unsupported_format": "Ten dziennik został zapisany w nowszej wersji aplikacji.",
 		"generic": "Coś poszło nie tak. Spróbuj jeszcze raz.",
-		"duplicate_tag_name": "Tag o tej nazwie już istnieje."
+		"duplicate_tag_name": "Tag o tej nazwie już istnieje.",
+		"not_a_backup": "To nie jest plik kopii Mossbook.",
+		"unsupported_backup": "Ta kopia pochodzi z nowszej wersji aplikacji.",
+		"backup_corrupted": "Plik kopii jest uszkodzony albo został zmieniony.",
+		"backup_too_large": "Plik jest za duży, żeby był kopią Mossbook.",
+		"io": "Nie udało się odczytać ani zapisać pliku.",
+		"locked": "Dziennik jest zablokowany."
 	},
 	"strength": {
 		"label": "Siła hasła",
@@ -255,5 +261,56 @@
 		"save": "Zapisz plan",
 		"saved": "Plan zapisany.",
 		"item": "Punkt {n}"
+	},
+	"settings": {
+		"title": "Ustawienia",
+		"open": "Ustawienia",
+		"autolock": "Automatyczna blokada",
+		"immediately": "Od razu po wyjściu z aplikacji",
+		"after1_min": "Po 1 minucie bez aktywności",
+		"after5_min": "Po 5 minutach bez aktywności",
+		"after15_min": "Po 15 minutach bez aktywności",
+		"saved": "Zapisano."
+	},
+	"backup": {
+		"title": "Kopia zapasowa",
+		"intro": "Kopia to jeden zaszyfrowany plik. Otworzysz go hasłem albo kluczem odzyskiwania z dnia, w którym ją zrobiono.",
+		"export": "Zapisz kopię",
+		"exported": "Kopia zapisana.",
+		"import": "Wczytaj kopię",
+		"picked": "Liczba zapisanych elementów w kopii: {records}.",
+		"sameVault": "To kopia tego samego dziennika.",
+		"secretKind": "Otwórz kopię",
+		"usePassword": "hasłem",
+		"useRecovery": "kluczem odzyskiwania",
+		"password": "Hasło do kopii",
+		"phrase": "Klucz odzyskiwania",
+		"mode": "Co zrobić z obecnymi wpisami",
+		"merge": "Połącz: dodaj brakujące, zachowaj nowsze wersje",
+		"replace": "Zastąp: dziennik będzie dokładnie taki jak kopia",
+		"replaceWarning": "Wpisy, których nie ma w kopii, zostaną usunięte.",
+		"submit": "Wczytaj",
+		"report": "Dodano {added}, zaktualizowano {updated}, bez zmian {unchanged}.",
+		"skipped": "Pominięte nieczytelne elementy: {skipped}.",
+		"restored": "Dziennik przywrócony z kopii.",
+		"restoreTitle": "Przywróć z kopii",
+		"restoreIntro": "Masz plik .mossbook z innego urządzenia? Wybierz go i otwórz hasłem albo kluczem odzyskiwania. Dziennik zachowa hasło i klucz z kopii.",
+		"haveBackup": "Mam kopię zapasową",
+		"choose": "Wybierz plik"
+	},
+	"password": {
+		"title": "Zmień hasło",
+		"current": "Obecne hasło",
+		"new": "Nowe hasło",
+		"submit": "Zmień hasło",
+		"changed": "Hasło zmienione. Klucz odzyskiwania się nie zmienia.",
+		"oldBackups": "Starsze kopie nadal otworzysz poprzednim hasłem."
+	},
+	"destroy": {
+		"title": "Usuń wszystkie dane",
+		"intro": "Dziennik, tagi, plan i ustawienia zostaną trwale usunięte z tego urządzenia. Kopie zapasowe zapisane gdzie indziej pozostaną.",
+		"confirmLabel": "Wpisz hasło, żeby potwierdzić",
+		"submit": "Usuń wszystko",
+		"question": "Na pewno usunąć wszystkie dane? Tego nie da się cofnąć."
 	}
 }
