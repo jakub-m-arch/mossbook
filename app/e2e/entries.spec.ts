@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 const card = (page: Page, text: string) => page.getByRole('listitem').filter({ hasText: text });
 const dialog = (page: Page) => page.getByRole('dialog');
 
-test('quick entry takes at most two taps', async ({ page }) => {
+test('quick entry takes at most two taps, then opens its form', async ({ page }) => {
 	await page.getByRole('button', { name: 'Szybki wpis' }).click();
 	await expect(dialog(page)).toBeVisible();
 	await page.waitForTimeout(300); // let the sheet finish sliding in before the screenshot
@@ -17,8 +17,15 @@ test('quick entry takes at most two taps', async ({ page }) => {
 	await dialog(page).getByRole('button', { name: 'Lęk / wyzwalacz' }).click(); // tap 1
 	await page.screenshot({ path: `${SHOTS}/9-quick-value.png` });
 	await dialog(page).getByRole('button', { name: '7', exact: true }).click(); // tap 2
+
+	// Saved already; the form opens to add details now or later.
 	await expect(dialog(page)).toBeHidden();
+	await expect(page.getByRole('heading', { name: 'Lęk / wyzwalacz' })).toBeVisible();
 	await expect(page.getByText('Zapisano. Możesz uzupełnić później.')).toBeVisible();
+	await expect(
+		page.getByRole('group', { name: 'Intensywność (0–10)' }).getByRole('radio', { name: '7' })
+	).toBeChecked();
+	await page.getByRole('link', { name: 'Wstecz' }).click();
 	const fear = card(page, 'Lęk / wyzwalacz');
 	await expect(fear).toContainText('7/10');
 	await expect(fear).toContainText('do uzupełnienia');
@@ -27,8 +34,12 @@ test('quick entry takes at most two taps', async ({ page }) => {
 	await page.getByRole('button', { name: 'Szybki wpis' }).click();
 	await dialog(page).getByRole('button', { name: 'Samopoczucie' }).click();
 	await dialog(page).getByRole('button', { name: 'dobrze', exact: true }).click();
+	await expect(page.getByRole('heading', { name: 'Samopoczucie' })).toBeVisible();
+	await page.getByRole('link', { name: 'Wstecz' }).click();
 	await page.getByRole('button', { name: 'Szybki wpis' }).click();
 	await dialog(page).getByRole('button', { name: 'Notatka' }).click();
+	await expect(page.getByRole('heading', { name: 'Notatka' })).toBeVisible();
+	await page.getByRole('link', { name: 'Wstecz' }).click();
 	await expect(page.getByRole('listitem')).toHaveCount(3);
 	await page.screenshot({ path: `${SHOTS}/10-timeline.png`, fullPage: true });
 });
@@ -36,7 +47,7 @@ test('quick entry takes at most two taps', async ({ page }) => {
 test('full fear form, edit and delete', async ({ page }) => {
 	await page.getByRole('button', { name: 'Szybki wpis' }).click();
 	await dialog(page).getByRole('button', { name: 'Lęk / wyzwalacz' }).click();
-	await dialog(page).getByRole('link', { name: 'Więcej szczegółów' }).click();
+	await dialog(page).getByRole('button', { name: 'Zapisz bez oceny' }).click();
 
 	await page.getByLabel('Co to wywołało').fill('tłum w tramwaju');
 	await page
@@ -99,7 +110,7 @@ test('tags, tag filter and diacritic-insensitive search', async ({ page }) => {
 	] as const) {
 		await page.getByRole('button', { name: 'Szybki wpis' }).click();
 		await dialog(page).getByRole('button', { name: 'Lęk / wyzwalacz' }).click();
-		await dialog(page).getByRole('link', { name: 'Więcej szczegółów' }).click();
+		await dialog(page).getByRole('button', { name: 'Zapisz bez oceny' }).click();
 		await page.getByLabel('Notatka').fill(note);
 		if (tagged) await page.getByRole('button', { name: 'Praca' }).click();
 		await page.getByRole('button', { name: 'Zapisz' }).click();

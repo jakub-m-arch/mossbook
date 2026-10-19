@@ -51,6 +51,7 @@
 	{#if missing}<p class="muted">{t('entry.notFound')}</p>{/if}
 	{#if error}<p class="notice" aria-live="polite">{error}</p>{/if}
 	{#if entry}
+		{#if entry.incomplete}<p class="notice" role="status">{t('quick.done')}</p>{/if}
 		{#key entry.id}
 			<EntryForm initial={draftFromEntry(entry)} {tags} onsave={save} />
 		{/key}

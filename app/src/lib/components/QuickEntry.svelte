@@ -1,11 +1,11 @@
 <script lang="ts">
 	// E-10: at most two taps (type, then rating or intensity). The entry is saved
-	// as "to complete" and can be filled in later.
+	// as "to complete" right away; the caller then opens its form so details can
+	// be added now or later.
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 
-	import { resolve } from '$app/paths';
 	import { quickEntry } from '#lib/api/index.js';
-	import type { EntryKindTag } from '#lib/api/index.js';
+	import type { Entry, EntryKindTag } from '#lib/api/index.js';
 	import { CREATABLE_KINDS } from '#lib/entries.js';
 	import { t } from '#lib/i18n/index.svelte.js';
 	import { errorText, handleLocked } from '#lib/session.svelte.js';
@@ -14,7 +14,7 @@
 	import MoodIcon from './MoodIcon.svelte';
 	import Sheet from './Sheet.svelte';
 
-	let { onsaved }: { onsaved: () => void } = $props();
+	let { onsaved }: { onsaved: (entry: Entry) => void } = $props();
 
 	let sheet: Sheet;
 	let kind = $state<EntryKindTag | null>(null);
@@ -35,9 +35,9 @@
 		busy = true;
 		error = '';
 		try {
-			await quickEntry(tag, value);
+			const entry = await quickEntry(tag, value);
 			sheet.close();
-			onsaved();
+			onsaved(entry);
 		} catch (e) {
 			if (!(await handleLocked(e))) error = errorText(e);
 		} finally {
@@ -101,7 +101,6 @@
 				{t('quick.saveWithout')}
 			</button>
 		</div>
-		<a class="button secondary" href={resolve(`/entry/new?kind=${kind}`)}>{t('quick.more')}</a>
 	{/if}
 	{#if error}<p class="notice" aria-live="polite">{error}</p>{/if}
 </Sheet>

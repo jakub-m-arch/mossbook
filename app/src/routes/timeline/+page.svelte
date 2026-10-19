@@ -5,6 +5,8 @@
 	import Sprout from '@lucide/svelte/icons/sprout';
 	import { onMount } from 'svelte';
 
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { entriesList, tagsList } from '#lib/api/index.js';
 	import type { Entry, EntryFilter, EntryKindTag, Tag } from '#lib/api/index.js';
 	import EntryCard from '#lib/components/EntryCard.svelte';
@@ -20,7 +22,6 @@
 	let tags = $state<Tag[]>([]);
 	let loaded = $state(false);
 	let error = $state('');
-	let saved = $state(false);
 	let quick: QuickEntry;
 	let filters: Sheet;
 
@@ -89,10 +90,9 @@
 		incompleteOnly = false;
 	}
 
-	function onQuickSaved() {
-		saved = true;
-		setTimeout(() => (saved = false), 4000);
-		void load();
+	/** After a quick entry, go straight to its form to add details (or leave). */
+	function onQuickSaved(entry: Entry) {
+		void goto(resolve('/entry/[id]', { id: entry.id }));
 	}
 </script>
 
@@ -124,7 +124,6 @@
 			</button>
 		</div>
 
-		{#if saved}<p class="notice" role="status">{t('quick.done')}</p>{/if}
 		{#if error}<p class="notice">{error}</p>{/if}
 
 		{#if loaded && entries.length === 0}

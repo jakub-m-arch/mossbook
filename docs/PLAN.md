@@ -83,7 +83,7 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Za
 - [ ] Tłumaczenia uk do przejrzenia przez native speakera przed wydaniem
 
 ### Etap 7: UI – wpisy
-- [x] Szybki wpis (E-10): rodzaj + ocena/intensywność = 2 stuknięcia; sen i notatka 1 stuknięcie; zapis jako „do uzupełnienia”, link „Więcej szczegółów”
+- [x] Szybki wpis (E-10): rodzaj + ocena/intensywność = 2 stuknięcia; sen i notatka 1 stuknięcie; zapis jako „do uzupełnienia”, po czym od razu otwiera się formularz wpisu (można uzupełnić teraz albo wyjść)
 - [x] Formularze E-1 (piktogramy pogody 1–5, nie emoji), E-2, E-3 (objawy + własne, unikanie, strategia, intensywność po), E-4, E-6; koszmar (E-5) tylko przy edycji istniejących (tworzenie w v1); zapis po jednym polu; pełny zapis kończy „do uzupełnienia”
 - [x] Oś czasu z filtrami (rodzaj, tagi, zakres dat, tylko do uzupełnienia) i wyszukiwaniem w Ruście; edycja; usuwanie z potwierdzeniem w miejscu (bez `confirm()`)
 - [x] Tagi (E-12): tworzenie, zmiana nazwy, kolor z palety, usuwanie, łączenie
