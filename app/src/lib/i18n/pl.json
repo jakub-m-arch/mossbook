@@ -1,0 +1,76 @@
+{
+	"app": { "name": "Mossbook", "tagline": "Prywatny dziennik samopoczucia" },
+	"common": {
+		"next": "Dalej",
+		"back": "Wstecz",
+		"cancel": "Anuluj",
+		"lock": "Zablokuj",
+		"show": "Pokaż",
+		"hide": "Ukryj",
+		"working": "Chwileczkę…",
+		"password": "Hasło",
+		"passwordRepeat": "Powtórz hasło"
+	},
+	"errors": {
+		"wrong_password": "To hasło nie pasuje. Spróbuj jeszcze raz.",
+		"wrong_recovery_key": "Ten klucz odzyskiwania należy do innego dziennika.",
+		"invalid_recovery_phrase": "Sprawdź klucz: powinno to być 24 słowa z listy, w tej samej kolejności.",
+		"password_too_short": "Hasło musi mieć co najmniej 8 znaków.",
+		"recovery_mismatch": "Słowa się nie zgadzają. Sprawdź zapisany klucz i spróbuj jeszcze raz.",
+		"throttled": "Odczekaj chwilę przed kolejną próbą.",
+		"vault_corrupted": "Plik dziennika jest uszkodzony.",
+		"unsupported_format": "Ten dziennik został zapisany w nowszej wersji aplikacji.",
+		"generic": "Coś poszło nie tak. Spróbuj jeszcze raz."
+	},
+	"strength": {
+		"label": "Siła hasła",
+		"0": "za krótkie",
+		"1": "słabe",
+		"2": "w porządku",
+		"3": "mocne"
+	},
+	"setup": {
+		"welcome": {
+			"title": "Witaj w Mossbook",
+			"body": "To miejsce na twoje zapiski: samopoczucie, zdarzenia, lęki i sen. Wszystko zostaje na tym urządzeniu, zaszyfrowane. Nie ma konta, serwera ani wysyłania danych.",
+			"disclaimer": "Mossbook nie zastępuje pomocy specjalisty. Jeśli grozi ci niebezpieczeństwo, zadzwoń pod 112.",
+			"start": "Zaczynam"
+		},
+		"password": {
+			"title": "Ustaw hasło",
+			"body": "Hasło otwiera dziennik. Wybierz takie, którego nie używasz nigdzie indziej. Najłatwiej zapamiętać kilka zwykłych słów.",
+			"mismatch": "Hasła się różnią."
+		},
+		"phrase": {
+			"title": "Twój klucz odzyskiwania",
+			"body": "Te 24 słowa pozwolą otworzyć dziennik, gdy zapomnisz hasła. Zapisz je na papierze i schowaj w bezpiecznym miejscu.",
+			"warning": "Jeśli zgubisz hasło i ten klucz, nikt (także my) nie odzyska twoich wpisów.",
+			"saved": "Zapisałem/zapisałam klucz w bezpiecznym miejscu"
+		},
+		"confirm": {
+			"title": "Sprawdźmy klucz",
+			"body": "Wpisz słowa z podanych miejsc, przepisując je z kartki.",
+			"word": "Słowo nr {n}",
+			"submit": "Załóż dziennik"
+		}
+	},
+	"lock": {
+		"title": "Dziennik jest zablokowany",
+		"unlock": "Otwórz",
+		"wait": "Następna próba za {seconds} s",
+		"forgot": "Nie pamiętam hasła"
+	},
+	"recover": {
+		"title": "Odzyskaj dostęp",
+		"body": "Wpisz 24 słowa klucza odzyskiwania i ustaw nowe hasło. Klucz pozostaje ten sam.",
+		"phrase": "Klucz odzyskiwania",
+		"newPassword": "Nowe hasło",
+		"submit": "Odzyskaj i ustaw hasło"
+	},
+	"timeline": {
+		"title": "Twój dziennik",
+		"empty": "Tu pojawią się twoje wpisy.",
+		"unreadable": "Nie udało się odczytać części zapisanych danych ({count}). Pozostałe wpisy są bezpieczne."
+	},
+	"curtain": { "text": "Mossbook" }
+}

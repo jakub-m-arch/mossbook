@@ -72,9 +72,15 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Za
 - [x] Aplikacja startuje lokalnie (macOS)
 
 ### Etap 6: UI – zakładanie skarbca i blokada
-- [ ] `setup`: hasło + wskaźnik siły (lokalnie, np. `zxcvbn-ts` bez słowników z sieci), wyświetlenie 24 słów, potwierdzenie 3 losowych, komunikat z kryteriów V-1
-- [ ] `lock`: hasło, odzyskiwanie kluczem, przyciski „Plan na trudny moment / telefony”
-- [ ] Przycisk blokady zawsze widoczny (layout)
+- [x] `setup`: powitanie z komunikatem z §9, hasło + powtórzenie + lokalny wskaźnik siły (bez zależności), 24 słowa z ostrzeżeniem z V-1, „zapisałem” wymagane, przepisanie 3 słów
+- [x] `lock`: hasło, odliczanie opóźnienia po błędnej próbie, „Nie pamiętam hasła”; `recover`: 24 słowa + nowe hasło
+- [x] Przycisk blokady zawsze widoczny po odblokowaniu (`UnlockedShell`), komunikat o nieczytelnych rekordach
+- [x] Zdarzenia z Rusta: `vault-locked` → ekran blokady, `privacy-curtain` → zasłona; pingi aktywności co ≥ 20 s; `clock_sync` przy starcie i powrocie
+- [x] i18n pl/en/uk (język systemu przed odblokowaniem, D-2), test zgodności kluczy i placeholderów
+- [x] Style: spokojna paleta, tryb ciemny, cele ≥ 48 px, `prefers-reduced-motion`, bez czerwieni w ostrzeżeniach
+- [x] E2E (Playwright, Chromium, udawany backend `e2e/fake-tauri.js`): zakładanie, blokada, złe hasło z opóźnieniem, odblokowanie, auto-blokada z Rusta, zasłona, odzyskiwanie; w CI
+- [ ] Przycisk „Plan na trudny moment / telefony” na ekranie blokady (etap 8)
+- [ ] Tłumaczenia uk do przejrzenia przez native speakera przed wydaniem
 
 ### Etap 7: UI – wpisy
 - [ ] Szybki wpis (≤ 2 stuknięcia, flaga `incomplete`)

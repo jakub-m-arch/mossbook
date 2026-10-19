@@ -1,0 +1,76 @@
+{
+	"app": { "name": "Mossbook", "tagline": "A private well-being journal" },
+	"common": {
+		"next": "Next",
+		"back": "Back",
+		"cancel": "Cancel",
+		"lock": "Lock",
+		"show": "Show",
+		"hide": "Hide",
+		"working": "One moment…",
+		"password": "Password",
+		"passwordRepeat": "Repeat password"
+	},
+	"errors": {
+		"wrong_password": "That password doesn't match. Try again.",
+		"wrong_recovery_key": "This recovery key belongs to a different journal.",
+		"invalid_recovery_phrase": "Check the key: it should be 24 words from the list, in the same order.",
+		"password_too_short": "The password needs at least 8 characters.",
+		"recovery_mismatch": "The words don't match. Check your written key and try again.",
+		"throttled": "Wait a moment before trying again.",
+		"vault_corrupted": "The journal file is damaged.",
+		"unsupported_format": "This journal was saved by a newer version of the app.",
+		"generic": "Something went wrong. Please try again."
+	},
+	"strength": {
+		"label": "Password strength",
+		"0": "too short",
+		"1": "weak",
+		"2": "okay",
+		"3": "strong"
+	},
+	"setup": {
+		"welcome": {
+			"title": "Welcome to Mossbook",
+			"body": "A place for your notes: how you feel, what happened, fears and sleep. Everything stays on this device, encrypted. No account, no server, nothing is sent anywhere.",
+			"disclaimer": "Mossbook is not a substitute for professional help. If you are in danger, call 112.",
+			"start": "Get started"
+		},
+		"password": {
+			"title": "Set a password",
+			"body": "The password opens your journal. Pick one you don't use anywhere else. A few ordinary words are easiest to remember.",
+			"mismatch": "The passwords differ."
+		},
+		"phrase": {
+			"title": "Your recovery key",
+			"body": "These 24 words open the journal if you forget your password. Write them on paper and keep it somewhere safe.",
+			"warning": "If you lose both your password and this key, nobody (not even us) can recover your entries.",
+			"saved": "I have stored the key somewhere safe"
+		},
+		"confirm": {
+			"title": "Let's check the key",
+			"body": "Type the words at these positions, copying them from your paper.",
+			"word": "Word {n}",
+			"submit": "Create journal"
+		}
+	},
+	"lock": {
+		"title": "Your journal is locked",
+		"unlock": "Open",
+		"wait": "Next attempt in {seconds} s",
+		"forgot": "I forgot my password"
+	},
+	"recover": {
+		"title": "Recover access",
+		"body": "Enter the 24 words of your recovery key and set a new password. The key stays the same.",
+		"phrase": "Recovery key",
+		"newPassword": "New password",
+		"submit": "Recover and set password"
+	},
+	"timeline": {
+		"title": "Your journal",
+		"empty": "Your entries will appear here.",
+		"unreadable": "Some saved data could not be read ({count}). Your other entries are safe."
+	},
+	"curtain": { "text": "Mossbook" }
+}
