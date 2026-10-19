@@ -1,4 +1,7 @@
 <script lang="ts">
+	import Eye from '@lucide/svelte/icons/eye';
+	import EyeOff from '@lucide/svelte/icons/eye-off';
+
 	import { t } from '#lib/i18n/index.svelte.js';
 
 	interface Props {
@@ -23,7 +26,7 @@
 
 <div>
 	<label for={id}>{label}</label>
-	<div class="row">
+	<div class="field">
 		<!-- svelte-ignore a11y_autofocus -->
 		<input
 			{id}
@@ -37,22 +40,29 @@
 		/>
 		<button
 			type="button"
-			class="secondary"
+			class="icon"
 			aria-pressed={visible}
 			aria-controls={id}
+			aria-label={visible ? t('common.hide') : t('common.show')}
 			onclick={() => (visible = !visible)}
 		>
-			{visible ? t('common.hide') : t('common.show')}
+			{#if visible}<EyeOff size={20} />{:else}<Eye size={20} />{/if}
 		</button>
 	</div>
 </div>
 
 <style>
-	.row {
-		display: flex;
-		gap: 0.5rem;
+	.field {
+		position: relative;
 	}
-	.row input {
-		flex: 1;
+	.field input {
+		padding-right: 3.25rem;
+	}
+	.field button {
+		position: absolute;
+		right: 2px;
+		top: 50%;
+		transform: translateY(-50%);
+		color: var(--text-muted);
 	}
 </style>

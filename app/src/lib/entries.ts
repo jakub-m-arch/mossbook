@@ -109,3 +109,40 @@ export function preview(entry: Entry, max = 120): string {
 export function chipKey(item: Emotion | Symptom): { key: string } | { custom: string } {
 	return typeof item === 'string' ? { key: item } : { custom: item.custom };
 }
+
+export interface DayGroup<T> {
+	/** Local `YYYY-MM-DD`. */
+	key: string;
+	/** `today`, `yesterday`, or `null` for older days (format `key` instead). */
+	relative: 'today' | 'yesterday' | null;
+	items: T[];
+}
+
+const localDay = (d: Date) =>
+	`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/** Groups entries (already sorted newest first) by local calendar day. */
+export function groupByDay<T extends { occurred_at: string }>(
+	entries: T[],
+	now = new Date()
+): DayGroup<T>[] {
+	const today = localDay(now);
+	const yesterdayDate = new Date(now);
+	yesterdayDate.setDate(now.getDate() - 1);
+	const yesterday = localDay(yesterdayDate);
+	const groups: DayGroup<T>[] = [];
+	for (const entry of entries) {
+		const key = localDay(new Date(entry.occurred_at));
+		let group = groups.at(-1);
+		if (!group || group.key !== key) {
+			group = {
+				key,
+				relative: key === today ? 'today' : key === yesterday ? 'yesterday' : null,
+				items: []
+			};
+			groups.push(group);
+		}
+		group.items.push(entry);
+	}
+	return groups;
+}

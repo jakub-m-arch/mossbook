@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Entry } from './api/index.js';
-import { draftFromEntry, emptyKind, kindTag, newDraft, preview } from './entries';
+import { draftFromEntry, emptyKind, groupByDay, kindTag, newDraft, preview } from './entries';
 
 function entry(overrides: Partial<Entry> = {}): Entry {
 	return {
@@ -62,5 +62,19 @@ describe('entries helpers', () => {
 		expect(p.startsWith('crowded tram · breathing · xxx')).toBe(true);
 		expect([...p]).toHaveLength(40);
 		expect(preview(entry({ kind: 'note', note: '' }))).toBe('');
+	});
+});
+
+describe('groupByDay', () => {
+	it('groups by local day with relative labels', () => {
+		const now = new Date(2026, 9, 19, 21, 0);
+		const at = (d: number, h: number) => ({ occurred_at: new Date(2026, 9, d, h).toISOString() });
+		const groups = groupByDay([at(19, 20), at(19, 8), at(18, 23), at(15, 12)], now);
+		expect(groups.map((g) => [g.key, g.relative, g.items.length])).toEqual([
+			['2026-10-19', 'today', 2],
+			['2026-10-18', 'yesterday', 1],
+			['2026-10-15', null, 1]
+		]);
+		expect(groupByDay([], now)).toEqual([]);
 	});
 });

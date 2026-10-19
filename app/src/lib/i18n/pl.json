@@ -12,7 +12,8 @@
 		"hide": "Ukryj",
 		"working": "Chwileczkę…",
 		"password": "Hasło",
-		"passwordRepeat": "Powtórz hasło"
+		"passwordRepeat": "Powtórz hasło",
+		"close": "Zamknij"
 	},
 	"errors": {
 		"wrong_password": "To hasło nie pasuje. Spróbuj jeszcze raz.",
@@ -62,13 +63,15 @@
 			"body": "Wpisz słowa z podanych miejsc, przepisując je z kartki.",
 			"word": "Słowo nr {n}",
 			"submit": "Załóż dziennik"
-		}
+		},
+		"step": "Krok {n} z {total}"
 	},
 	"lock": {
 		"title": "Dziennik jest zablokowany",
 		"unlock": "Otwórz",
 		"wait": "Następna próba za {seconds} s",
-		"forgot": "Nie pamiętam hasła"
+		"forgot": "Nie pamiętam hasła",
+		"subtitle": "Wpisz hasło, żeby otworzyć dziennik."
 	},
 	"recover": {
 		"title": "Odzyskaj dostęp",
@@ -80,7 +83,9 @@
 	"timeline": {
 		"title": "Twój dziennik",
 		"empty": "Tu pojawią się twoje wpisy.",
-		"unreadable": "Nie udało się odczytać części zapisanych danych ({count}). Pozostałe wpisy są bezpieczne."
+		"unreadable": "Nie udało się odczytać części zapisanych danych ({count}). Pozostałe wpisy są bezpieczne.",
+		"emptyTitle": "Zacznij od jednego wpisu",
+		"emptyHint": "Stuknij +, żeby zapisać, jak się masz. To zajmie kilka sekund."
 	},
 	"curtain": {
 		"text": "Mossbook"
@@ -189,7 +194,10 @@
 		"incomplete": "Tylko do uzupełnienia",
 		"more": "Więcej filtrów",
 		"clear": "Wyczyść filtry",
-		"none": "Nic nie pasuje do filtrów."
+		"none": "Nic nie pasuje do filtrów.",
+		"button": "Filtry",
+		"active": "Filtry ({count})",
+		"apply": "Pokaż wpisy"
 	},
 	"tags": {
 		"title": "Tagi",
@@ -270,7 +278,10 @@
 		"after1_min": "Po 1 minucie bez aktywności",
 		"after5_min": "Po 5 minutach bez aktywności",
 		"after15_min": "Po 15 minutach bez aktywności",
-		"saved": "Zapisano."
+		"saved": "Zapisano.",
+		"tags": "Tagi",
+		"security": "Bezpieczeństwo",
+		"data": "Dane"
 	},
 	"backup": {
 		"title": "Kopia zapasowa",
@@ -312,5 +323,15 @@
 		"confirmLabel": "Wpisz hasło, żeby potwierdzić",
 		"submit": "Usuń wszystko",
 		"question": "Na pewno usunąć wszystkie dane? Tego nie da się cofnąć."
+	},
+	"nav": {
+		"label": "Nawigacja",
+		"journal": "Dziennik",
+		"plan": "Plan",
+		"settings": "Ustawienia"
+	},
+	"day": {
+		"today": "Dziś",
+		"yesterday": "Wczoraj"
 	}
 }

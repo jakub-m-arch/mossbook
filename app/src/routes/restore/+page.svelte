@@ -6,8 +6,8 @@
 	import { t } from '#lib/i18n/index.svelte.js';
 </script>
 
-<main class="stack">
-	<a class="button secondary back" href={resolve('/setup')}>← {t('common.back')}</a>
+<main class="auth">
+	<a class="button link back" href={resolve('/setup')}>← {t('common.back')}</a>
 	<h1>{t('backup.restoreTitle')}</h1>
 	<p>{t('backup.restoreIntro')}</p>
 	<BackupImport unlocked={false} ondone={() => goto(resolve('/timeline'), { replace: true })} />

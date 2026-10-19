@@ -12,7 +12,8 @@
 		"hide": "Hide",
 		"working": "One moment…",
 		"password": "Password",
-		"passwordRepeat": "Repeat password"
+		"passwordRepeat": "Repeat password",
+		"close": "Close"
 	},
 	"errors": {
 		"wrong_password": "That password doesn't match. Try again.",
@@ -62,13 +63,15 @@
 			"body": "Type the words at these positions, copying them from your paper.",
 			"word": "Word {n}",
 			"submit": "Create journal"
-		}
+		},
+		"step": "Step {n} of {total}"
 	},
 	"lock": {
 		"title": "Your journal is locked",
 		"unlock": "Open",
 		"wait": "Next attempt in {seconds} s",
-		"forgot": "I forgot my password"
+		"forgot": "I forgot my password",
+		"subtitle": "Enter your password to open the journal."
 	},
 	"recover": {
 		"title": "Recover access",
@@ -80,7 +83,9 @@
 	"timeline": {
 		"title": "Your journal",
 		"empty": "Your entries will appear here.",
-		"unreadable": "Some saved data could not be read ({count}). Your other entries are safe."
+		"unreadable": "Some saved data could not be read ({count}). Your other entries are safe.",
+		"emptyTitle": "Start with one entry",
+		"emptyHint": "Tap + to note how you are. It takes a few seconds."
 	},
 	"curtain": {
 		"text": "Mossbook"
@@ -189,7 +194,10 @@
 		"incomplete": "Only to complete",
 		"more": "More filters",
 		"clear": "Clear filters",
-		"none": "Nothing matches the filters."
+		"none": "Nothing matches the filters.",
+		"button": "Filters",
+		"active": "Filters ({count})",
+		"apply": "Show entries"
 	},
 	"tags": {
 		"title": "Tags",
@@ -270,7 +278,10 @@
 		"after1_min": "After 1 minute without activity",
 		"after5_min": "After 5 minutes without activity",
 		"after15_min": "After 15 minutes without activity",
-		"saved": "Saved."
+		"saved": "Saved.",
+		"tags": "Tags",
+		"security": "Security",
+		"data": "Data"
 	},
 	"backup": {
 		"title": "Backup",
@@ -312,5 +323,15 @@
 		"confirmLabel": "Type your password to confirm",
 		"submit": "Delete everything",
 		"question": "Delete all data for good? This cannot be undone."
+	},
+	"nav": {
+		"label": "Navigation",
+		"journal": "Journal",
+		"plan": "Plan",
+		"settings": "Settings"
+	},
+	"day": {
+		"today": "Today",
+		"yesterday": "Yesterday"
 	}
 }

@@ -1,9 +1,11 @@
 <script lang="ts">
+	import LifeBuoy from '@lucide/svelte/icons/life-buoy';
 	import { onDestroy, onMount } from 'svelte';
 
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { isAppError, vaultStatus, vaultUnlock } from '#lib/api/index.js';
+	import Logo from '#lib/components/Logo.svelte';
 	import PasswordField from '#lib/components/PasswordField.svelte';
 	import { t } from '#lib/i18n/index.svelte.js';
 	import { errorText } from '#lib/session.svelte.js';
@@ -57,8 +59,12 @@
 	}
 </script>
 
-<main class="stack">
-	<h1>{t('lock.title')}</h1>
+<main class="auth">
+	<div class="brand">
+		<Logo />
+		<h1>{t('lock.title')}</h1>
+		<p class="muted">{t('lock.subtitle')}</p>
+	</div>
 	<form class="stack" onsubmit={unlock}>
 		<PasswordField
 			id="password"
@@ -68,20 +74,32 @@
 			autofocus
 			describedby="lock-status"
 		/>
-		<div id="lock-status" aria-live="polite">
+		<div id="lock-status" aria-live="polite" class="stack status">
 			{#if error}<p class="notice">{error}</p>{/if}
-			{#if waitSeconds > 0}<p class="muted">{t('lock.wait', { seconds: waitSeconds })}</p>{/if}
+			{#if waitSeconds > 0}<p class="muted small">
+					{t('lock.wait', { seconds: waitSeconds })}
+				</p>{/if}
 		</div>
 		<button type="submit" disabled={busy || waitSeconds > 0 || password.length === 0}>
 			{busy ? t('common.working') : t('lock.unlock')}
 		</button>
 	</form>
-	<a class="button secondary" href={resolve('/recover')}>{t('lock.forgot')}</a>
+	<a class="button link forgot" href={resolve('/recover')}>{t('lock.forgot')}</a>
 	<!-- P-3/P-4: crisis numbers and exercises without unlocking. -->
-	<a class="button secondary help" href={resolve('/help')}>{t('help.open')}</a>
+	<a class="button secondary help" href={resolve('/help')}><LifeBuoy size={18} />{t('help.open')}</a
+	>
 </main>
 
 <style>
+	.status:empty {
+		display: none;
+	}
+	.status p {
+		margin: 0;
+	}
+	.forgot {
+		align-self: center;
+	}
 	.help {
 		margin-top: 1.5rem;
 	}

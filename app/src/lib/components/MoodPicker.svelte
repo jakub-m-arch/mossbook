@@ -34,8 +34,9 @@
 		padding: 0;
 	}
 	legend {
+		font-size: 0.9rem;
 		font-weight: 600;
-		margin-bottom: 0.4rem;
+		margin-bottom: 0.5rem;
 	}
 	.options {
 		display: grid;
@@ -46,20 +47,28 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		justify-content: center;
 		gap: 0.2rem;
-		min-height: 4.5rem;
+		min-height: 4.75rem;
 		padding: 0.4rem 0.2rem;
 		font-size: 0.8rem;
-		font-weight: 500;
+		font-weight: 600;
 		text-align: center;
-		background: var(--surface);
-		border: 2px solid var(--border);
-		border-radius: var(--radius);
+		line-height: 1.2;
+		background: var(--surface-2);
+		border: 1.5px solid transparent;
+		border-radius: var(--radius-sm);
 		cursor: pointer;
+		font-variant-numeric: tabular-nums;
+		transition: background 0.15s;
+	}
+	.option:hover {
+		background: var(--surface-3);
 	}
 	.option.selected {
-		border-color: var(--accent);
+		color: var(--accent);
 		background: var(--accent-soft);
+		border-color: var(--accent);
 	}
 	.option:focus-within {
 		outline: 3px solid var(--focus);

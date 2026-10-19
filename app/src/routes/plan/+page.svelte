@@ -1,5 +1,6 @@
 <script lang="ts">
 	// Plan for a hard moment, after the Stanley–Brown safety plan (P-1).
+	import Phone from '@lucide/svelte/icons/phone';
 	import { onMount } from 'svelte';
 
 	import { resolve } from '$app/paths';
@@ -58,15 +59,15 @@
 	}
 </script>
 
-<UnlockedShell title={t('plan.title')} back>
+<UnlockedShell title={t('plan.title')}>
 	<div class="stack">
 		<p>{t('plan.intro')}</p>
-		<a class="button" href={resolve('/help')}>{t('help.open')}</a>
+		<a class="button secondary" href={resolve('/help')}><Phone size={18} />{t('help.open')}</a>
 
 		{#if plan}
 			<form class="stack" onsubmit={save}>
 				{#each SECTIONS as section (section.key)}
-					<fieldset class="card stack">
+					<fieldset class="card stack section">
 						<legend>{t(`plan.${section.key}`)}</legend>
 						{#if section.contacts}
 							{@const list = plan[section.key as ContactKey]}
@@ -139,10 +140,13 @@
 <style>
 	fieldset {
 		margin: 0;
+		border: 0;
 	}
 	legend {
-		font-weight: 600;
-		padding: 0 0.25rem;
+		float: left;
+		width: 100%;
+		margin-bottom: 0.25rem;
+		font-weight: 650;
 	}
 	.row {
 		display: flex;

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import Tag from '@lucide/svelte/icons/tag';
 	import { onMount } from 'svelte';
 
 	import { goto } from '$app/navigation';
@@ -83,8 +85,14 @@
 	}
 </script>
 
-<UnlockedShell title={t('settings.title')} back>
+<UnlockedShell title={t('settings.title')}>
 	<div class="stack">
+		<a class="card link-row" href={resolve('/tags')}>
+			<Tag size={20} />
+			<span>{t('settings.tags')}</span>
+			<ChevronRight size={20} />
+		</a>
+
 		<section class="card stack" aria-labelledby="autolock">
 			<h2 id="autolock">{t('settings.autolock')}</h2>
 			{#if settings}
@@ -177,6 +185,18 @@
 </UnlockedShell>
 
 <style>
+	.link-row {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		min-height: 56px;
+		color: inherit;
+		font-weight: 600;
+		text-decoration: none;
+	}
+	.link-row span {
+		flex: 1;
+	}
 	h2 {
 		margin: 0;
 		font-size: 1.15rem;

@@ -48,7 +48,7 @@
 	}
 </script>
 
-<UnlockedShell title={t('tags.title')} back>
+<UnlockedShell title={t('tags.title')} back="/settings">
 	<div class="stack">
 		{#if error}<p class="notice" aria-live="polite">{error}</p>{/if}
 

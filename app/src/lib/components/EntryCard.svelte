@@ -4,74 +4,107 @@
 	import { kindTag, preview } from '#lib/entries.js';
 	import { locale, t } from '#lib/i18n/index.svelte.js';
 
+	import KindIcon from './KindIcon.svelte';
 	import MoodIcon from './MoodIcon.svelte';
 
 	let { entry, tags }: { entry: Entry; tags: Map<string, Tag> } = $props();
 
-	let when = $derived(
-		new Intl.DateTimeFormat(locale(), { dateStyle: 'medium', timeStyle: 'short' }).format(
-			new Date(entry.occurred_at)
-		)
+	let kind = $derived(kindTag(entry.kind));
+	let time = $derived(
+		new Intl.DateTimeFormat(locale(), { timeStyle: 'short' }).format(new Date(entry.occurred_at))
 	);
-	let text = $derived(preview(entry));
+	let text = $derived(preview(entry, 160));
 </script>
 
-<a class="card entry" href={resolve('/entry/[id]', { id: entry.id })}>
-	<div class="top">
-		{#if entry.mood}<MoodIcon value={entry.mood} size={28} />{/if}
-		<strong>{t(`kind.${kindTag(entry.kind)}`)}</strong>
-		{#if entry.intensity !== null}<span class="badge">{entry.intensity}/10</span>{/if}
-		{#if entry.incomplete}<span class="badge notice-badge">{t('entry.incomplete')}</span>{/if}
-		<time class="muted" datetime={entry.occurred_at}>{when}</time>
-	</div>
-	{#if text}<p>{text}</p>{/if}
-	{#if entry.tags.length > 0}
-		<div class="tags">
-			{#each entry.tags as id (id)}
-				{@const tag = tags.get(id)}
-				{#if tag}<span class="tag"
-						><span class="dot" style:background={tag.color}></span>{tag.name}</span
-					>{/if}
-			{/each}
+<a class="row card" href={resolve('/entry/[id]', { id: entry.id })}>
+	<KindIcon {kind} />
+	<div class="body">
+		<div class="top">
+			<span class="title">{t(`kind.${kind}`)}</span>
+			{#if entry.mood}<MoodIcon value={entry.mood} size={20} />{/if}
+			{#if entry.intensity !== null}<span class="pill">{entry.intensity}/10</span>{/if}
+			<time datetime={entry.occurred_at}>{time}</time>
 		</div>
-	{/if}
+		{#if text}<p class="text">{text}</p>{/if}
+		{#if entry.incomplete || entry.tags.length > 0}
+			<div class="meta">
+				{#if entry.incomplete}<span class="pill notice-pill">{t('entry.incomplete')}</span>{/if}
+				{#each entry.tags as id (id)}
+					{@const tag = tags.get(id)}
+					{#if tag}<span class="tag"
+							><span class="dot" style:background={tag.color}></span>{tag.name}</span
+						>{/if}
+				{/each}
+			</div>
+		{/if}
+	</div>
 </a>
 
 <style>
-	.entry {
-		display: block;
+	.row {
+		display: flex;
+		gap: 0.85rem;
+		align-items: flex-start;
 		color: inherit;
 		text-decoration: none;
+		transition:
+			transform 0.1s,
+			box-shadow 0.15s;
+	}
+	.row:hover {
+		box-shadow: var(--shadow-raised);
+	}
+	.row:active {
+		transform: scale(0.99);
+	}
+	.body {
+		flex: 1;
+		min-width: 0;
 	}
 	.top {
 		display: flex;
 		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.5rem;
+		gap: 0.45rem;
+		min-height: 40px;
+	}
+	.title {
+		font-weight: 650;
 	}
 	time {
 		margin-left: auto;
 		font-size: 0.85rem;
+		color: var(--text-muted);
+		font-variant-numeric: tabular-nums;
 	}
-	p {
-		margin: 0.5rem 0 0;
+	.text {
+		margin: 0;
+		color: var(--text-muted);
 		overflow-wrap: anywhere;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
 	}
-	.badge {
-		padding: 0.05rem 0.5rem;
+	.meta {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.5rem;
+		margin-top: 0.5rem;
 		font-size: 0.8rem;
+		color: var(--text-muted);
+	}
+	.pill {
+		padding: 0.1rem 0.55rem;
+		font-size: 0.78rem;
+		font-weight: 600;
 		background: var(--surface-2);
 		border-radius: 999px;
 	}
-	.notice-badge {
+	.notice-pill {
+		color: var(--notice);
 		background: var(--notice-soft);
-	}
-	.tags {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.4rem;
-		margin-top: 0.5rem;
-		font-size: 0.85rem;
 	}
 	.tag {
 		display: inline-flex;
@@ -79,8 +112,8 @@
 		gap: 0.3rem;
 	}
 	.dot {
-		width: 0.6rem;
-		height: 0.6rem;
+		width: 0.55rem;
+		height: 0.55rem;
 		border-radius: 50%;
 	}
 </style>

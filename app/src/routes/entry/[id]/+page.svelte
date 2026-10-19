@@ -47,7 +47,7 @@
 	}
 </script>
 
-<UnlockedShell title={entry ? t(`kind.${kindTag(entry.kind)}`) : t('entry.edit')} back>
+<UnlockedShell title={entry ? t(`kind.${kindTag(entry.kind)}`) : t('entry.edit')} back="/timeline">
 	{#if missing}<p class="muted">{t('entry.notFound')}</p>{/if}
 	{#if error}<p class="notice" aria-live="polite">{error}</p>{/if}
 	{#if entry}

@@ -42,7 +42,8 @@ test('crisis numbers and exercises are reachable from the lock screen', async ({
 
 test('safety plan: edit, save, call a contact', async ({ page }) => {
 	await createVault(page);
-	await page.getByRole('link', { name: 'Plan na trudny moment' }).click();
+	// P-2: the plan is a tab, one tap from the journal.
+	await page.getByRole('link', { name: 'Plan', exact: true }).click();
 	await expect(page.getByRole('heading', { name: 'Plan na trudny moment' })).toBeVisible();
 
 	const signs = page.getByRole('group', { name: 'Moje sygnały ostrzegawcze' });
@@ -64,8 +65,8 @@ test('safety plan: edit, save, call a contact', async ({ page }) => {
 	await page.screenshot({ path: `${SHOTS}/15-plan.png`, fullPage: true });
 
 	// Leave and come back through the app: the saved plan is loaded again.
-	await page.getByRole('link', { name: 'Wstecz' }).click();
-	await page.getByRole('link', { name: 'Plan na trudny moment' }).click();
+	await page.getByRole('link', { name: 'Dziennik' }).click();
+	await page.getByRole('link', { name: 'Plan', exact: true }).click();
 	await expect(
 		page.getByRole('group', { name: 'Moje sygnały ostrzegawcze' }).getByLabel('Punkt 1')
 	).toHaveValue('nie mogę zasnąć');

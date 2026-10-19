@@ -33,7 +33,7 @@
 	}
 </script>
 
-<UnlockedShell title={t(`kind.${kind}`)} back>
+<UnlockedShell title={t(`kind.${kind}`)} back="/timeline">
 	{#if error}<p class="notice" aria-live="polite">{error}</p>{/if}
 	{#if tags}
 		<EntryForm initial={newDraft(kind)} {tags} onsave={save} />

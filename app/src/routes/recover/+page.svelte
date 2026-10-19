@@ -38,7 +38,7 @@
 	}
 </script>
 
-<main class="stack">
+<main class="auth">
 	<h1>{t('recover.title')}</h1>
 	<p>{t('recover.body')}</p>
 	<form class="stack" onsubmit={submit}>
@@ -75,5 +75,5 @@
 			{busy ? t('common.working') : t('recover.submit')}
 		</button>
 	</form>
-	<a class="button secondary" href={resolve('/lock')}>{t('common.back')}</a>
+	<a class="button link" href={resolve('/lock')}>{t('common.back')}</a>
 </main>

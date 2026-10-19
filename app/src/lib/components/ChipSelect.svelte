@@ -1,4 +1,6 @@
 <script lang="ts" generics="Key extends string">
+	import Plus from '@lucide/svelte/icons/plus';
+
 	import { t } from '#lib/i18n/index.svelte.js';
 
 	type Item = Key | { custom: string };
@@ -67,7 +69,14 @@
 				}
 			}}
 		/>
-		<button type="button" class="secondary" onclick={addCustom}>{t('custom.add')}</button>
+		<button
+			type="button"
+			class="secondary add-button"
+			onclick={addCustom}
+			aria-label={t('custom.add')}
+		>
+			<Plus size={20} />
+		</button>
 	</div>
 </fieldset>
 
@@ -78,26 +87,14 @@
 		padding: 0;
 	}
 	legend {
+		font-size: 0.9rem;
 		font-weight: 600;
-		margin-bottom: 0.4rem;
+		margin-bottom: 0.5rem;
 	}
-	.chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.4rem;
-	}
-	.chip {
-		min-height: 40px;
-		padding: 0.3rem 0.8rem;
-		font-weight: 500;
-		color: var(--text);
-		background: var(--surface);
-		border: 2px solid var(--border);
-		border-radius: 999px;
-	}
-	.chip[aria-pressed='true'] {
-		border-color: var(--accent);
-		background: var(--accent-soft);
+	.add-button {
+		width: var(--tap);
+		padding: 0;
+		flex: none;
 	}
 	.add {
 		display: flex;

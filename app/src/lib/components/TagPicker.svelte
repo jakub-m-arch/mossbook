@@ -34,27 +34,9 @@
 		padding: 0;
 	}
 	legend {
+		font-size: 0.9rem;
 		font-weight: 600;
-		margin-bottom: 0.4rem;
-	}
-	.chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.4rem;
-	}
-	.chip {
-		gap: 0.4rem;
-		min-height: 40px;
-		padding: 0.3rem 0.8rem;
-		font-weight: 500;
-		color: var(--text);
-		background: var(--surface);
-		border: 2px solid var(--border);
-		border-radius: 999px;
-	}
-	.chip[aria-pressed='true'] {
-		border-color: var(--accent);
-		background: var(--accent-soft);
+		margin-bottom: 0.5rem;
 	}
 	.dot {
 		width: 0.7rem;

@@ -10,6 +10,7 @@
 		vaultStatus
 	} from '#lib/api/index.js';
 	import type { RecoverySetup } from '#lib/api/index.js';
+	import Logo from '#lib/components/Logo.svelte';
 	import PasswordField from '#lib/components/PasswordField.svelte';
 	import StrengthMeter from '#lib/components/StrengthMeter.svelte';
 	import { t } from '#lib/i18n/index.svelte.js';
@@ -84,14 +85,18 @@
 	}
 </script>
 
-<main class="stack">
+<main class="auth">
 	{#if step === 'welcome'}
-		<h1>{t('setup.welcome.title')}</h1>
-		<p>{t('setup.welcome.body')}</p>
+		<div class="brand">
+			<Logo size={72} />
+			<h1>{t('setup.welcome.title')}</h1>
+			<p class="muted">{t('setup.welcome.body')}</p>
+		</div>
 		<p class="notice">{t('setup.welcome.disclaimer')}</p>
 		<button type="button" onclick={() => (step = 'password')}>{t('setup.welcome.start')}</button>
 		<a class="button secondary" href={resolve('/restore')}>{t('backup.haveBackup')}</a>
 	{:else if step === 'password'}
+		<p class="eyebrow">{t('setup.step', { n: 1, total: 3 })}</p>
 		<h1>{t('setup.password.title')}</h1>
 		<p>{t('setup.password.body')}</p>
 		<form class="stack" onsubmit={createVault}>
@@ -120,10 +125,11 @@
 				{busy ? t('common.working') : t('common.next')}
 			</button>
 		</form>
-		<button type="button" class="secondary" onclick={() => (step = 'welcome')}>
+		<button type="button" class="link" onclick={() => (step = 'welcome')}>
 			{t('common.back')}
 		</button>
 	{:else if step === 'phrase' && setup}
+		<p class="eyebrow">{t('setup.step', { n: 2, total: 3 })}</p>
 		<h1>{t('setup.phrase.title')}</h1>
 		<p>{t('setup.phrase.body')}</p>
 		<p class="notice">{t('setup.phrase.warning')}</p>
@@ -139,8 +145,9 @@
 		<button type="button" disabled={!saved} onclick={() => (step = 'confirm')}>
 			{t('common.next')}
 		</button>
-		<button type="button" class="secondary" onclick={backToPassword}>{t('common.back')}</button>
+		<button type="button" class="link" onclick={backToPassword}>{t('common.back')}</button>
 	{:else if step === 'confirm' && setup}
+		<p class="eyebrow">{t('setup.step', { n: 3, total: 3 })}</p>
 		<h1>{t('setup.confirm.title')}</h1>
 		<p>{t('setup.confirm.body')}</p>
 		<form class="stack" onsubmit={confirm}>
@@ -165,13 +172,19 @@
 				{busy ? t('common.working') : t('setup.confirm.submit')}
 			</button>
 		</form>
-		<button type="button" class="secondary" onclick={() => (step = 'phrase')}>
+		<button type="button" class="link" onclick={() => (step = 'phrase')}>
 			{t('common.back')}
 		</button>
 	{/if}
 </main>
 
 <style>
+	main :global(h1) {
+		margin: 0;
+	}
+	.eyebrow {
+		margin-bottom: -0.5rem;
+	}
 	.words {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
@@ -179,6 +192,9 @@
 		margin: 0;
 		padding: 1rem;
 		list-style: none;
+		background: var(--surface);
+		border-radius: var(--radius);
+		box-shadow: var(--shadow);
 		font-family: ui-monospace, 'SF Mono', Menlo, monospace;
 		font-size: 1.05rem;
 	}

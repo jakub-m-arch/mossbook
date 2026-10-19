@@ -12,6 +12,7 @@ const dialog = (page: Page) => page.getByRole('dialog');
 test('quick entry takes at most two taps', async ({ page }) => {
 	await page.getByRole('button', { name: 'Szybki wpis' }).click();
 	await expect(dialog(page)).toBeVisible();
+	await page.waitForTimeout(300); // let the sheet finish sliding in before the screenshot
 	await page.screenshot({ path: `${SHOTS}/8-quick-kind.png` });
 	await dialog(page).getByRole('button', { name: 'Lęk / wyzwalacz' }).click(); // tap 1
 	await page.screenshot({ path: `${SHOTS}/9-quick-value.png` });
@@ -80,6 +81,7 @@ test('full fear form, edit and delete', async ({ page }) => {
 });
 
 test('tags, tag filter and diacritic-insensitive search', async ({ page }) => {
+	await page.getByRole('link', { name: 'Ustawienia' }).click();
 	await page.getByRole('link', { name: 'Tagi' }).click();
 	await page.getByLabel('Nazwa').fill('Praca');
 	await page.getByRole('button', { name: 'Dodaj tag' }).click();
@@ -88,6 +90,7 @@ test('tags, tag filter and diacritic-insensitive search', async ({ page }) => {
 	await expect(page.getByText('Tag o tej nazwie już istnieje.')).toBeVisible();
 	await page.screenshot({ path: `${SHOTS}/12-tags.png`, fullPage: true });
 	await page.getByRole('link', { name: 'Wstecz' }).click();
+	await page.getByRole('link', { name: 'Dziennik' }).click();
 
 	// A note in Łódź with the tag, and one without.
 	for (const [note, tagged] of [
@@ -103,9 +106,14 @@ test('tags, tag filter and diacritic-insensitive search', async ({ page }) => {
 		await expect(card(page, note)).toBeVisible();
 	}
 
+	// Filters live in a sheet; the button shows how many are active.
+	await page.getByRole('button', { name: 'Filtry' }).click();
 	await page.getByRole('group', { name: 'Tagi' }).getByRole('button', { name: 'Praca' }).click();
+	await page.getByRole('button', { name: 'Pokaż wpisy' }).click();
 	await expect(page.getByRole('listitem')).toHaveCount(1);
+	await page.getByRole('button', { name: 'Filtry (1)' }).click();
 	await page.getByRole('button', { name: 'Wyczyść filtry' }).click();
+	await page.getByRole('button', { name: 'Pokaż wpisy' }).click();
 	await expect(page.getByRole('listitem')).toHaveCount(2);
 
 	await page.getByPlaceholder('Szukaj').fill('lodzi');
