@@ -38,7 +38,7 @@ export function curtainCovered(): boolean {
 
 /** Sends the user to the lock screen. */
 export function toLockScreen(): Promise<void> {
-	return goto(resolve('/lock'), { replaceState: true });
+	return goto(resolve('/lock'), { replace: true });
 }
 
 /** Translated, user-facing text for a failed command. */

@@ -35,8 +35,8 @@
 
 	onMount(async () => {
 		const status = await vaultStatus().catch(() => null);
-		if (status?.state === 'locked') await goto(resolve('/lock'), { replaceState: true });
-		if (status?.state === 'unlocked') await goto(resolve('/timeline'), { replaceState: true });
+		if (status?.state === 'locked') await goto(resolve('/lock'), { replace: true });
+		if (status?.state === 'unlocked') await goto(resolve('/timeline'), { replace: true });
 	});
 
 	async function createVault(event: SubmitEvent) {
@@ -75,7 +75,7 @@
 			);
 			setup = null;
 			answers = ['', '', ''];
-			await goto(resolve('/timeline'), { replaceState: true });
+			await goto(resolve('/timeline'), { replace: true });
 		} catch (e) {
 			error = errorText(e);
 		} finally {

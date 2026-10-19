@@ -10,10 +10,7 @@
 	<a class="button secondary back" href={resolve('/setup')}>← {t('common.back')}</a>
 	<h1>{t('backup.restoreTitle')}</h1>
 	<p>{t('backup.restoreIntro')}</p>
-	<BackupImport
-		unlocked={false}
-		ondone={() => goto(resolve('/timeline'), { replaceState: true })}
-	/>
+	<BackupImport unlocked={false} ondone={() => goto(resolve('/timeline'), { replace: true })} />
 </main>
 
 <style>

@@ -9,7 +9,7 @@ mod session;
 
 use std::time::{Duration, Instant};
 
-use tauri::{AppHandle, Emitter, Manager, Window, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, RunEvent, Window, WindowEvent};
 
 use commands::{AppState, emit_locked};
 use session::Session;
@@ -70,8 +70,15 @@ pub fn run() {
             commands::backup_pick,
             commands::backup_import,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Mossbook");
+        .build(tauri::generate_context!())
+        .expect("error while building Mossbook")
+        .run(|app, event| {
+            // Closing the app locks the vault: the WAL is checkpointed into the
+            // database and the DEK and decrypted content are zeroed.
+            if let RunEvent::Exit = event {
+                let _ = app.state::<AppState>().session().lock();
+            }
+        });
 }
 
 /// Background lock and privacy curtain, decided in Rust (SPEC §8.3).

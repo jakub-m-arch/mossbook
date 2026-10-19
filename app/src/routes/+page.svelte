@@ -16,7 +16,7 @@
 				: status?.state === 'locked'
 					? resolve('/lock')
 					: resolve('/setup');
-		await goto(target, { replaceState: true });
+		await goto(target, { replace: true });
 	});
 </script>
 

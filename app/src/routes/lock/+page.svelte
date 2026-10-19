@@ -30,9 +30,9 @@
 
 	onMount(async () => {
 		const status = await vaultStatus().catch(() => null);
-		if (status?.state === 'unlocked') return goto(resolve('/timeline'), { replaceState: true });
+		if (status?.state === 'unlocked') return goto(resolve('/timeline'), { replace: true });
 		if (status?.state === 'no_vault' || status?.state === 'creating') {
-			return goto(resolve('/setup'), { replaceState: true });
+			return goto(resolve('/setup'), { replace: true });
 		}
 		startWait(status?.retry_after_ms);
 	});
@@ -47,7 +47,7 @@
 		try {
 			await vaultUnlock(password);
 			password = '';
-			await goto(resolve('/timeline'), { replaceState: true });
+			await goto(resolve('/timeline'), { replace: true });
 		} catch (e) {
 			error = errorText(e);
 			if (isAppError(e)) startWait(e.retry_after_ms);

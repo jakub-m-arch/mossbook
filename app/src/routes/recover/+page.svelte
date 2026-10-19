@@ -29,7 +29,7 @@
 		try {
 			await vaultUnlockRecovery(phrase, password);
 			phrase = password = repeat = '';
-			await goto(resolve('/timeline'), { replaceState: true });
+			await goto(resolve('/timeline'), { replace: true });
 		} catch (e) {
 			error = errorText(e);
 		} finally {

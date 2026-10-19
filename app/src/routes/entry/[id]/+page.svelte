@@ -40,7 +40,7 @@
 		if (!entry) return;
 		try {
 			await entryDelete(entry.id);
-			await goto(resolve('/timeline'), { replaceState: true });
+			await goto(resolve('/timeline'), { replace: true });
 		} catch (e) {
 			if (!(await handleLocked(e))) error = errorText(e);
 		}

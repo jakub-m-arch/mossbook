@@ -78,7 +78,7 @@
 		return attempt('destroy', async () => {
 			await vaultDestroy(destroyPassword);
 			destroyPassword = '';
-			await goto(resolve('/setup'), { replaceState: true });
+			await goto(resolve('/setup'), { replace: true });
 		});
 	}
 </script>
