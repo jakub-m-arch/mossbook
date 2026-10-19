@@ -55,11 +55,12 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Za
 - [x] `docs/crypto.md`: sekcja *Vault file*
 
 ### Etap 4: Core – domena i zapytania
-- [ ] `domain/`: `Entry`, `EntryKind`, `Tag`, `SafetyPlan`, `Settings`, `Emotion`/`Symptom` z `Custom(String)`; walidacja zakresów (1..=5, 0..=10); UUIDv7; CBOR (`ciborium`); ręczny `Debug` z redakcją
-- [ ] CRUD przez `UnlockedVault` (zapis = szyfrowanie + upsert w jednej transakcji)
-- [ ] Tagi: zmiana nazwy, łączenie (przepisanie referencji we wpisach), kolor
-- [ ] `query/`: filtr (typ, tagi, zakres dat), wyszukiwanie pełnotekstowe w pamięci (case/diacritics-insensitive), `stats` dla A-1
-- [ ] Proptest: dowolny `Entry` → CBOR → szyfrowanie → z powrotem
+- [x] `domain/`: `Entry` (+`EntryKind` ×6), `Tag`, `SafetyPlan`, `Settings`, `Emotion`/`Symptom` z `Custom(String)`; walidacja zakresów; UUIDv7; CBOR; znaczniki czasu RFC 3339 z offsetem; `ZeroizeOnDrop` i `Debug` z redakcją
+- [x] `Journal`: CRUD wpisów (zachowuje `created_at`, odrzuca nieznane tagi), szybki wpis, tagi (tworzenie, zmiana nazwy/koloru, usuwanie i łączenie w jednej transakcji), plan i ustawienia jako singletony
+- [x] `UnlockedVault` oddaje odszyfrowane rekordy raz (`take_loaded`), więc treść jest w pamięci tylko jako obiekty domenowe; zapis wsadowy `write_batch`
+- [x] `query/`: filtr (typ, tagi, zakres dat, tylko do uzupełnienia), wyszukiwanie bez wielkości liter i znaków diakrytycznych (także `ł`, tagi), `mood_by_day` dla A-1
+- [x] Testy: jednostkowe domeny i zapytań, integracyjne dziennika (8), proptest: dowolne `Entry` → zapis → blokada → odczyt
+- [x] `docs/crypto.md`: sekcja *Record contents*
 
 ### Etap 5: Tauri – komendy i stan
 - [ ] `AppState { vault: Mutex<VaultState> }`, komendy z SPEC §8.3, `AppError { code, message }` bez danych użytkownika

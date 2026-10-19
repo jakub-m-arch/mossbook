@@ -1,6 +1,5 @@
 //! Unlocking with the password (V-2) or the recovery key (V-6).
 
-use std::collections::HashMap;
 use std::path::Path;
 
 use crate::crypto::aead::{RecordType, open_record};
@@ -10,7 +9,7 @@ use crate::crypto::wrap::unwrap_dek;
 use crate::crypto::{CryptoError, Dek};
 use crate::store::Store;
 
-use super::{Record, UnlockedVault, VaultError, VaultHeader, exists, validate_new_password};
+use super::{LoadedRecord, UnlockedVault, VaultError, VaultHeader, exists, validate_new_password};
 
 /// Opens the vault with the password.
 pub fn unlock(path: &Path, password: &str) -> Result<UnlockedVault, VaultError> {
@@ -76,22 +75,18 @@ pub(super) fn load(
     dek: Dek,
 ) -> Result<UnlockedVault, VaultError> {
     let scan = store.records_all()?;
-    let mut records = HashMap::with_capacity(scan.records.len());
+    let mut loaded = Vec::with_capacity(scan.records.len());
     let mut unreadable = scan.malformed;
     for raw in scan.records {
         let opened = RecordType::from_code(raw.type_code).map(|rt| {
             open_record(&dek, &header.vault_id, &raw.id, rt, &raw.blob).map(|pt| (rt, pt))
         });
         match opened {
-            Some(Ok((record_type, plaintext))) => {
-                records.insert(
-                    raw.id,
-                    Record {
-                        record_type,
-                        plaintext,
-                    },
-                );
-            }
+            Some(Ok((record_type, plaintext))) => loaded.push(LoadedRecord {
+                id: raw.id,
+                record_type,
+                plaintext,
+            }),
             _ => unreadable += 1,
         }
     }
@@ -100,7 +95,7 @@ pub(super) fn load(
         store,
         header,
         dek,
-        records,
+        loaded,
         unreadable,
     })
 }

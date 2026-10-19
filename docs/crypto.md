@@ -115,6 +115,30 @@ Behaviour that matters for independent readers and for the threat model:
   password. The files are not overwritten, since that does not help on flash storage
   and the content is ciphertext anyway.
 
+## Record contents
+
+The plaintext of every record is CBOR (RFC 8949), produced by `serde` + `ciborium` from the
+types in `core/src/domain/`:
+
+| `records.type` | content                         | row id                                   |
+|----------------|---------------------------------|------------------------------------------|
+| 1 `entry`      | `Entry` (with `schema` = 1)     | the entry's UUIDv7, equal to its `id`    |
+| 2 `tag`        | `Tag`                           | the tag's UUIDv7, equal to its `id`      |
+| 3 `plan`       | `SafetyPlan`                    | fixed `00000000-0000-0000-0000-000000000003` |
+| 4 `settings`   | `Settings`                      | fixed `00000000-0000-0000-0000-000000000004` |
+
+- Structs are CBOR maps keyed by snake_case field names; enums use serde's external
+  tagging with snake_case variant names (`{"fear": {...}}`, `"note"`).
+- Timestamps are RFC 3339 strings with the original UTC offset
+  (`2026-10-19T21:30:00+02:00`), so the local time of an entry survives travel.
+- Missing optional fields decode to their defaults; unknown fields are ignored.
+  Adding a field with a default is therefore not a format change.
+- A record whose decoded `id` differs from its row id, or that does not decode, is
+  counted as unreadable on unlock, like a record that fails authentication.
+
+Domain types that hold user text are zeroed on drop (`ZeroizeOnDrop`) and have a
+redacted `Debug`, so content is wiped when the vault locks and never reaches logs.
+
 ## Secrets in memory
 
 - DEK, KEKs and recovery entropy live in `secrecy::SecretBox` and are zeroed on drop.

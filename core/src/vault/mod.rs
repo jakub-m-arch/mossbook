@@ -11,7 +11,6 @@ mod throttle;
 mod unlock;
 
 use core::fmt;
-use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -129,29 +128,40 @@ pub fn validate_new_password(password: &str) -> Result<(), VaultError> {
     Ok(())
 }
 
-/// A decrypted record held in memory.
-struct Record {
-    record_type: RecordType,
-    plaintext: Zeroizing<Vec<u8>>,
+/// A record decrypted on unlock. The plaintext is zeroed on drop.
+pub struct LoadedRecord {
+    pub id: RecordId,
+    pub record_type: RecordType,
+    pub plaintext: Zeroizing<Vec<u8>>,
 }
 
-/// An open vault: the DEK and every decrypted record live in memory.
+impl fmt::Debug for LoadedRecord {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("LoadedRecord")
+            .field("record_type", &self.record_type)
+            .field("len", &self.plaintext.len())
+            .finish_non_exhaustive()
+    }
+}
+
+/// An open vault: holds the DEK and encrypts/stores records.
 ///
-/// Dropping it zeroes the DEK and all plaintext. Records are opaque bytes here;
-/// the domain layer (stage 4) serializes its types into them.
+/// Records decrypted on unlock are handed out once via [`Self::take_loaded`];
+/// the vault keeps no plaintext afterwards, so the domain layer is the only
+/// in-memory copy. Dropping the vault zeroes the DEK.
 pub struct UnlockedVault {
     path: PathBuf,
     store: Store,
     header: VaultHeader,
     dek: Dek,
-    records: HashMap<RecordId, Record>,
+    loaded: Vec<LoadedRecord>,
     unreadable: usize,
 }
 
 impl fmt::Debug for UnlockedVault {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("UnlockedVault")
-            .field("records", &self.records.len())
+            .field("loaded", &self.loaded.len())
             .field("unreadable", &self.unreadable)
             .finish_non_exhaustive()
     }
@@ -168,19 +178,15 @@ impl UnlockedVault {
         self.unreadable
     }
 
-    /// Plaintext of a record, if present.
-    pub fn get(&self, id: &RecordId) -> Option<(RecordType, &[u8])> {
-        self.records
-            .get(id)
-            .map(|r| (r.record_type, r.plaintext.as_slice()))
+    /// Hands out the records decrypted on unlock. Returns an empty list on later calls.
+    pub fn take_loaded(&mut self) -> Vec<LoadedRecord> {
+        std::mem::take(&mut self.loaded)
     }
 
-    /// All records of the given type.
-    pub fn iter(&self, record_type: RecordType) -> impl Iterator<Item = (&RecordId, &[u8])> {
-        self.records
-            .iter()
-            .filter(move |(_, r)| r.record_type == record_type)
-            .map(|(id, r)| (id, r.plaintext.as_slice()))
+    /// Records the caller could not decode (e.g. invalid CBOR), so
+    /// [`Self::unreadable_records`] reports them together with undecryptable ones.
+    pub fn add_unreadable(&mut self, count: usize) {
+        self.unreadable += count;
     }
 
     /// Encrypts and stores a record, replacing any record with the same id.
@@ -188,35 +194,52 @@ impl UnlockedVault {
         &mut self,
         id: RecordId,
         record_type: RecordType,
-        plaintext: Vec<u8>,
+        plaintext: &[u8],
     ) -> Result<(), VaultError> {
-        let plaintext = Zeroizing::new(plaintext);
         let blob = seal_record(
             &self.dek,
             &self.header.vault_id,
             &id,
             record_type,
-            &plaintext,
+            plaintext,
         )?;
         self.store.record_put(&RawRecord {
             id,
             type_code: record_type.code(),
             blob,
         })?;
-        self.records.insert(
-            id,
-            Record {
-                record_type,
-                plaintext,
-            },
-        );
         Ok(())
+    }
+
+    /// Encrypts and stores `puts` and deletes `deletes` in one transaction.
+    pub fn write_batch(
+        &mut self,
+        puts: &[(RecordId, RecordType, &[u8])],
+        deletes: &[RecordId],
+    ) -> Result<(), VaultError> {
+        let raw = puts
+            .iter()
+            .map(|&(id, record_type, plaintext)| {
+                let blob = seal_record(
+                    &self.dek,
+                    &self.header.vault_id,
+                    &id,
+                    record_type,
+                    plaintext,
+                )?;
+                Ok(RawRecord {
+                    id,
+                    type_code: record_type.code(),
+                    blob,
+                })
+            })
+            .collect::<Result<Vec<_>, VaultError>>()?;
+        Ok(self.store.apply(&raw, deletes)?)
     }
 
     /// Deletes a record. Returns whether it existed.
     pub fn delete(&mut self, id: &RecordId) -> Result<bool, VaultError> {
         let existed = self.store.record_delete(id)?;
-        self.records.remove(id);
         Ok(existed)
     }
 

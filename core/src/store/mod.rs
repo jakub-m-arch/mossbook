@@ -148,6 +148,26 @@ impl Store {
         Ok(())
     }
 
+    /// Upserts `puts` and deletes `deletes` in one transaction.
+    pub fn apply(&mut self, puts: &[RawRecord], deletes: &[[u8; 16]]) -> Result<(), StoreError> {
+        let tx = self.conn.transaction()?;
+        {
+            let mut put = tx.prepare(
+                "INSERT INTO records (id, type, blob) VALUES (?1, ?2, ?3)
+                 ON CONFLICT(id) DO UPDATE SET type = excluded.type, blob = excluded.blob",
+            )?;
+            for r in puts {
+                put.execute(params![r.id.as_slice(), r.type_code, r.blob])?;
+            }
+            let mut delete = tx.prepare("DELETE FROM records WHERE id = ?1")?;
+            for id in deletes {
+                delete.execute([id.as_slice()])?;
+            }
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
     /// Deletes a record. Returns whether it existed.
     pub fn record_delete(&mut self, id: &[u8; 16]) -> Result<bool, StoreError> {
         Ok(self
@@ -294,6 +314,30 @@ mod tests {
         assert!(!store.record_delete(&[1; 16]).unwrap());
         store.vacuum().unwrap();
         assert_eq!(store.records_all().unwrap().records.len(), 1);
+    }
+
+    #[test]
+    fn apply_is_atomic() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut store = Store::create(&dir.path().join("vault.db")).unwrap();
+        store.record_put(&record(1, 1, b"a")).unwrap();
+        store.apply(&[record(2, 1, b"b")], &[[1; 16]]).unwrap();
+        assert_eq!(
+            store.records_all().unwrap().records,
+            vec![record(2, 1, b"b")]
+        );
+        // A failure halfway through (forced by a trigger) rolls back the whole batch.
+        store
+            .conn()
+            .execute_batch(
+                "CREATE TRIGGER fail BEFORE DELETE ON records BEGIN SELECT RAISE(ABORT, 'x'); END;",
+            )
+            .unwrap();
+        assert!(store.apply(&[record(3, 1, b"c")], &[[2; 16]]).is_err());
+        assert_eq!(
+            store.records_all().unwrap().records,
+            vec![record(2, 1, b"b")]
+        );
     }
 
     #[test]

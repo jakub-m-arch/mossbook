@@ -1,6 +1,7 @@
 //! Integration tests for the vault lifecycle on a real SQLite file.
 //! All data is synthetic.
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use mossbook_core::crypto::aead::RecordType;
@@ -48,6 +49,14 @@ fn confirm(pending: &mut PendingVault, phrase: &str) {
         .map(|&i| (i, words[i]))
         .collect();
     assert!(pending.confirm(&answers));
+}
+
+/// Decrypted records of a freshly unlocked vault, by id.
+fn loaded(v: &mut UnlockedVault) -> HashMap<[u8; 16], (RecordType, Vec<u8>)> {
+    v.take_loaded()
+        .into_iter()
+        .map(|r| (r.id, (r.record_type, r.plaintext.to_vec())))
+        .collect()
 }
 
 fn raw_file_bytes(path: &Path) -> Vec<u8> {
@@ -105,27 +114,27 @@ fn short_password_is_rejected() {
 #[test]
 fn records_survive_lock_and_unlock() {
     let (fx, mut v) = create_vault();
-    v.put([1; 16], RecordType::Entry, b"first entry".to_vec())
+    v.put([1; 16], RecordType::Entry, b"first entry").unwrap();
+    v.put([2; 16], RecordType::Tag, b"tag").unwrap();
+    v.put([1; 16], RecordType::Entry, b"first entry, edited")
         .unwrap();
-    v.put([2; 16], RecordType::Tag, b"tag".to_vec()).unwrap();
-    v.put([1; 16], RecordType::Entry, b"first entry, edited".to_vec())
-        .unwrap();
-    v.put([3; 16], RecordType::Entry, b"to delete".to_vec())
-        .unwrap();
+    v.put([3; 16], RecordType::Entry, b"to delete").unwrap();
     assert!(v.delete(&[3; 16]).unwrap());
     let vault_id = *v.vault_id();
     v.lock().unwrap();
 
-    let v = vault::unlock(&fx.path, PASSWORD).unwrap();
+    let mut v = vault::unlock(&fx.path, PASSWORD).unwrap();
     assert_eq!(v.vault_id(), &vault_id);
+    let records = loaded(&mut v);
+    assert_eq!(records.len(), 2);
     assert_eq!(
-        v.get(&[1; 16]),
-        Some((RecordType::Entry, &b"first entry, edited"[..]))
+        records[&[1; 16]],
+        (RecordType::Entry, b"first entry, edited".to_vec())
     );
-    assert_eq!(v.get(&[2; 16]), Some((RecordType::Tag, &b"tag"[..])));
-    assert_eq!(v.get(&[3; 16]), None);
-    assert_eq!(v.iter(RecordType::Entry).count(), 1);
+    assert_eq!(records[&[2; 16]], (RecordType::Tag, b"tag".to_vec()));
     assert_eq!(v.unreadable_records(), 0);
+    // Plaintext is handed out once; the vault keeps no copy.
+    assert!(v.take_loaded().is_empty());
 }
 
 #[test]
@@ -182,7 +191,7 @@ fn stale_temp_file_is_replaced() {
 #[test]
 fn change_password_keeps_data_and_recovery() {
     let (fx, mut v) = create_vault();
-    v.put([1; 16], RecordType::Entry, b"kept".to_vec()).unwrap();
+    v.put([1; 16], RecordType::Entry, b"kept").unwrap();
     assert_eq!(
         v.change_password("not the password", "new password 1")
             .unwrap_err(),
@@ -199,24 +208,24 @@ fn change_password_keeps_data_and_recovery() {
         vault::unlock(&fx.path, PASSWORD).unwrap_err(),
         VaultError::WrongPassword
     );
-    let v = vault::unlock(&fx.path, "new password 1").unwrap();
-    assert_eq!(v.get(&[1; 16]).unwrap().1, b"kept");
+    let mut v = vault::unlock(&fx.path, "new password 1").unwrap();
+    assert_eq!(loaded(&mut v)[&[1; 16]].1, b"kept");
     v.lock().unwrap();
 
     // The recovery key still works after a password change.
-    let v = vault::unlock_with_recovery(&fx.path, &fx.phrase, "after recovery").unwrap();
-    assert_eq!(v.get(&[1; 16]).unwrap().1, b"kept");
+    let mut v = vault::unlock_with_recovery(&fx.path, &fx.phrase, "after recovery").unwrap();
+    assert_eq!(loaded(&mut v)[&[1; 16]].1, b"kept");
 }
 
 #[test]
 fn recovery_sets_new_password() {
     let (fx, mut v) = create_vault();
-    v.put([1; 16], RecordType::Entry, b"kept".to_vec()).unwrap();
+    v.put([1; 16], RecordType::Entry, b"kept").unwrap();
     v.lock().unwrap();
 
     let messy = format!("  {}  ", fx.phrase.to_uppercase().replace(' ', "\n"));
-    let v = vault::unlock_with_recovery(&fx.path, &messy, "brand new password").unwrap();
-    assert_eq!(v.get(&[1; 16]).unwrap().1, b"kept");
+    let mut v = vault::unlock_with_recovery(&fx.path, &messy, "brand new password").unwrap();
+    assert_eq!(loaded(&mut v)[&[1; 16]].1, b"kept");
     v.lock().unwrap();
 
     assert_eq!(
@@ -271,7 +280,7 @@ fn destroy_requires_password_and_removes_files() {
 #[test]
 fn no_plaintext_on_disk() {
     let (fx, mut v) = create_vault();
-    v.put([1; 16], RecordType::Entry, MARKER.to_vec()).unwrap();
+    v.put([1; 16], RecordType::Entry, MARKER).unwrap();
     // Checked while open (WAL in use) and after lock (checkpointed).
     assert!(!contains(&raw_file_bytes(&fx.path), MARKER));
     assert!(!contains(&raw_file_bytes(&fx.path), PASSWORD.as_bytes()));
@@ -288,7 +297,7 @@ fn no_plaintext_on_disk() {
 fn tampered_records_are_isolated() {
     let (fx, mut v) = create_vault();
     for i in 1..=4u8 {
-        v.put([i; 16], RecordType::Entry, vec![i; 8]).unwrap();
+        v.put([i; 16], RecordType::Entry, &[i; 8]).unwrap();
     }
     v.lock().unwrap();
     {
@@ -336,9 +345,9 @@ fn tampered_records_are_isolated() {
         )
         .unwrap();
     }
-    let v = vault::unlock(&fx.path, PASSWORD).unwrap();
+    let mut v = vault::unlock(&fx.path, PASSWORD).unwrap();
     assert_eq!(v.unreadable_records(), 5);
-    assert!((1..=5u8).all(|i| v.get(&[i; 16]).is_none()));
+    assert!(loaded(&mut v).is_empty());
 }
 
 #[test]
@@ -390,15 +399,16 @@ fn opens_format_v1_fixture() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("vault.db");
     std::fs::copy(FIXTURE_V1, &path).unwrap();
-    let v = vault::unlock(&path, FIXTURE_PASSWORD).unwrap();
+    let mut v = vault::unlock(&path, FIXTURE_PASSWORD).unwrap();
     assert_eq!(v.unreadable_records(), 0);
+    let records = loaded(&mut v);
     assert_eq!(
-        v.get(&[1; 16]),
-        Some((RecordType::Entry, &b"fixture entry"[..]))
+        records[&[1; 16]],
+        (RecordType::Entry, b"fixture entry".to_vec())
     );
     assert_eq!(
-        v.get(&[2; 16]),
-        Some((RecordType::Settings, &b"fixture settings"[..]))
+        records[&[2; 16]],
+        (RecordType::Settings, b"fixture settings".to_vec())
     );
 }
 
@@ -411,9 +421,8 @@ fn generate_v1_fixture() {
     let phrase = pending.recovery_phrase().to_string();
     confirm(&mut pending, &phrase);
     let mut v = pending.write(&path).unwrap();
-    v.put([1; 16], RecordType::Entry, b"fixture entry".to_vec())
-        .unwrap();
-    v.put([2; 16], RecordType::Settings, b"fixture settings".to_vec())
+    v.put([1; 16], RecordType::Entry, b"fixture entry").unwrap();
+    v.put([2; 16], RecordType::Settings, b"fixture settings")
         .unwrap();
     v.lock().unwrap();
     std::fs::create_dir_all(Path::new(FIXTURE_V1).parent().unwrap()).unwrap();
