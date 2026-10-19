@@ -1,0 +1,76 @@
+name: Release
+
+# Builds desktop installers for a version tag and attaches them, with SHA256SUMS,
+# to a *draft* GitHub release. Nothing is published until a maintainer reviews the
+# draft and publishes it by hand (see docs/release.md).
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x86_64
+            os: ubuntu-22.04 # older glibc: the AppImage and .deb run on more distributions
+          - name: windows-x86_64
+            os: windows-latest
+          - name: macos-aarch64
+            os: macos-latest
+          - name: macos-x86_64
+            os: macos-13
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tauri system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+        working-directory: app
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: tauri-cli
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: app
+          tauriScript: cargo tauri
+          tagName: ${{ github.ref_name }}
+          releaseName: Mossbook ${{ github.ref_name }}
+          releaseBody: See CHANGELOG.md. Verify downloads against SHA256SUMS.
+          releaseDraft: true
+          prerelease: true
+
+  checksums:
+    name: SHA256SUMS
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release download "${{ github.ref_name }}" --repo "${{ github.repository }}" --dir dist
+      - name: Compute and upload checksums
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: dist
+        run: |
+          rm -f SHA256SUMS
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
+          gh release upload "${{ github.ref_name }}" SHA256SUMS --repo "${{ github.repository }}" --clobber

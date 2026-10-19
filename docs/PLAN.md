@@ -115,15 +115,17 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Za
 - [x] Teksty z liczbami przeformułowane tak, żeby nie wymagały odmiany liczebników
 - [ ] Tłumaczenia uk do przejrzenia przez native speakera przed wydaniem
 
-### Etap 11: Android
-- [ ] `cargo tauri android init`, commit `gen/android`
-- [ ] Manifest release bez `INTERNET` (`tools:node="remove"`), `allowBackup=false`, `dataExtractionRules`, `FLAG_SECURE` w `MainActivity`
-- [ ] Test CI na zbudowanym manifeście (`aapt dump permissions`)
-- [ ] Sprawdzić, czy zmiany przetrwają ponowny `init` (SPEC §8.4)
+### Etap 11: Android — odłożony
+Świadomie odłożony (decyzja z 2026-10-19): brak narzędzi (JDK, SDK, NDK), a dystrybucja w sklepach jest niepewna. Do zrobienia przy powrocie: `cargo tauri android init`, manifest wydania bez `INTERNET`, `allowBackup=false` + `dataExtractionRules`, `FLAG_SECURE`, test manifestu i sprawdzenie, że release `.so` nie zawiera `reqwest`/`hyper`.
 
-### Etap 12: Wydanie 0.1.0
-- [ ] `SECURITY.md`, `docs/threat-model.md`, README, `CONTRIBUTING.md` (DCO, zasady z CLAUDE.md)
-- [ ] Release z sumami kontrolnymi; weryfikacja numerów kryzysowych
+### Etap 12: Wydanie 0.1.0 (desktop)
+- [x] `SECURITY.md`, `docs/threat-model.md` (zagrożenie → ochrona → miejsce w kodzie, akceptowane wycieki, ograniczenia), `CONTRIBUTING.md` (DCO, zasady), `CHANGELOG.md`
+- [x] Workflow `Release`: tag `v*` → instalatory Linux / Windows / macOS (arm i x86) + `SHA256SUMS` jako **szkic** wydania
+- [x] `docs/release.md`: lista kontrolna (weryfikacja numerów kryzysowych, niezależne narzędzia, wersje, ręczny test)
+- [x] Test spójności wersji (Cargo, `tauri.conf.json`, `package.json`)
+- [x] Poprawka przed wydaniem: losowe UUIDv4 zamiast v7 (D-13)
+- [ ] Włączyć prywatne zgłaszanie podatności w ustawieniach repozytorium
+- [ ] Ręczny test wersji release i utworzenie tagu `v0.1.0`
 
 ### Etap 13 (v1)
 Biometria, szybki wpis bez odblokowania (sealed box), IRT, PDF, A-2–A-4, przypomnienia, iOS, kalendarz, „treść trudna”.

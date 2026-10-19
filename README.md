@@ -22,29 +22,35 @@ encrypted on your device, and can be shared with a therapist only if you choose 
 
 ## Status
 
-**Pre-alpha, not ready for real data yet.** The encrypted core is complete and
-heavily tested; journaling, tags, the safety plan and crisis lines work in the
-interface, and so do encrypted backups. There are no releases yet.
+**Version 0.1 is being prepared: the first desktop release** (Linux, Windows, macOS).
+All MVP features for desktop are in place and tested; it is still early software, so
+keep a backup (Settings → Backup). Android and iOS builds are postponed.
 
 | Stage | Scope | State |
 |---|---|---|
-| 1 | Workspace, Tauri 2 + SvelteKit skeleton, CI | done |
-| 2 | Cryptography (Argon2id, XChaCha20-Poly1305, recovery key) | done |
-| 3 | Vault file and SQLite storage | done |
-| 4 | Domain model, journal, search, mood statistics | done |
-| 5 | Tauri commands, session state, auto-lock | done |
-| 6 | Setup, lock and recovery screens | done |
-| 7 | Quick entry, entry forms, timeline | done |
-| 8 | Plan for a hard moment, crisis lines, grounding exercises | done |
-| 9 | Encrypted `.mossbook` backup: export and import | done |
-| 10 | Mood chart, full translations (pl / en / uk) | done |
-| 11 | Android build | next |
-| 12 | Release 0.1.0 | planned |
+| 1–5 | Skeleton, cryptography, vault, domain, Tauri commands and auto-lock | done |
+| 6–8 | Setup, lock, journal, timeline, tags, safety plan, crisis lines, exercises | done |
+| 9 | Encrypted `.mossbook` backups | done |
+| 10 | Mood chart, language setting (pl / en / uk) | done |
+| 11 | Android build | postponed |
+| 12 | Release 0.1.0 (desktop) | in progress |
 
 The detailed checklist lives in [`docs/PLAN.md`](docs/PLAN.md) and the full
 specification in [`SPEC.md`](SPEC.md) (both in Polish).
 
-## What it will do
+## Install
+
+Download the installer for your system from
+[Releases](https://github.com/jakub-m-arch/mossbook/releases) and check it against
+`SHA256SUMS` (see [`SECURITY.md`](SECURITY.md#verifying-a-release)).
+
+- **Linux:** `.AppImage` (make it executable) or `.deb`.
+- **Windows:** `.msi` or `-setup.exe`. SmartScreen may warn because the installer is
+  not code-signed yet: *More info → Run anyway*.
+- **macOS:** `.dmg` (Apple Silicon `aarch64`, Intel `x64`). The app is not notarized
+  yet: right-click the app → *Open* the first time.
+
+## What it does
 
 - **Entry types**: mood (1–5 with emotions), event, fear or trigger (intensity before
   and after a coping strategy), sleep, nightmare with a rescripted version (IRT), free note.
@@ -54,8 +60,8 @@ specification in [`SPEC.md`](SPEC.md) (both in Polish).
 - **Plan for a hard moment** based on the Stanley–Brown safety plan, with crisis
   phone numbers and grounding exercises available **without unlocking**.
 - **Patterns**: mood over time, shown as plain observations, never clinical conclusions.
-- **Encrypted backup** to a single `.mossbook` file, and later a PDF report for your
-  therapist (you choose the period, types and tags).
+- **Encrypted backup** to a single `.mossbook` file; restore on a new device or merge.
+  A PDF report for your therapist is planned.
 - **Languages**: Polish, English and Ukrainian from the first release.
 - **Calm by design**: no streaks, points, badges or guilt-inducing notifications.
 
@@ -81,8 +87,11 @@ write an independent reader. The test vectors are cross-checked against libsodiu
 argon2-cffi by [`tools/verify-vectors.py`](tools/verify-vectors.py), and
 [`tools/read-backup.py`](tools/read-backup.py) opens backups without any Mossbook code.
 
-**Found a security issue?** Please do not open a public issue. Use GitHub's
-[private vulnerability reporting](https://github.com/jakub-m-arch/mossbook/security/advisories/new).
+What Mossbook does and does not protect against, including known limitations, is in
+[`docs/threat-model.md`](docs/threat-model.md).
+
+**Found a security issue?** Please do not open a public issue; see
+[`SECURITY.md`](SECURITY.md).
 
 ## Architecture
 
@@ -116,7 +125,7 @@ mossbook/
 │   ├── src-tauri/    Tauri commands, session, capabilities
 │   ├── src/          Svelte UI (routes/, lib/api, lib/i18n, lib/components)
 │   └── e2e/          Playwright scenarios against a fake backend
-├── docs/             crypto.md, backup-format.md, PLAN.md
+├── docs/             crypto.md, backup-format.md, threat-model.md, release.md, PLAN.md
 ├── tools/            verify-vectors.py, read-backup.py (independent readers)
 └── SPEC.md           full specification (Polish)
 ```
@@ -185,6 +194,7 @@ All test data is synthetic.
 ## Contributing
 
 Contributions are welcome, especially translations and reviews of the security design.
+Please read [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 - Read the rules in [`CLAUDE.md`](CLAUDE.md); they apply to human contributors too:
   no network code, no plaintext on disk, no logging of user data, no home-grown crypto,

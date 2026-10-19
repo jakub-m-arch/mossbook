@@ -153,6 +153,17 @@ mod tests {
         );
     }
 
+    /// The release version is the same in Cargo, the Tauri config and package.json.
+    #[test]
+    fn versions_match() {
+        let conf: serde_json::Value =
+            serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        let npm: serde_json::Value =
+            serde_json::from_str(include_str!("../../package.json")).unwrap();
+        assert_eq!(conf["version"], env!("CARGO_PKG_VERSION"));
+        assert_eq!(npm["version"], env!("CARGO_PKG_VERSION"));
+    }
+
     /// Every command in the list is registered in `generate_handler!`.
     #[test]
     fn handler_registers_every_command() {
