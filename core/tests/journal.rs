@@ -112,11 +112,11 @@ fn quick_entry_and_delete() {
 #[test]
 fn tags_rename_delete_and_merge() {
     let (fx, mut j) = create();
-    let work = j.create_tag("Praca", "#336699", NOW).unwrap().id;
-    let job = j.create_tag("robota", "#336699", NOW).unwrap().id;
-    let sleep = j.create_tag("sen", "#224466", NOW).unwrap().id;
+    let work = j.create_tag("Praca", "#336699").unwrap().id;
+    let job = j.create_tag("robota", "#336699").unwrap().id;
+    let sleep = j.create_tag("sen", "#224466").unwrap().id;
     assert_eq!(
-        j.create_tag(" praca ", "#000000", NOW).unwrap_err(),
+        j.create_tag(" praca ", "#000000").unwrap_err(),
         JournalError::DuplicateTagName
     );
 

@@ -198,8 +198,7 @@ pub fn tags_list(state: State<'_, AppState>) -> AppResult<Vec<Tag>> {
 #[tauri::command(async)]
 pub fn tag_create(state: State<'_, AppState>, name: String, color: String) -> AppResult<Tag> {
     with_session(&state, |s| {
-        let now = s.now();
-        Ok(s.journal_mut()?.create_tag(&name, &color, now)?.clone())
+        Ok(s.journal_mut()?.create_tag(&name, &color)?.clone())
     })
 }
 

@@ -43,7 +43,7 @@ impl Entry {
     /// A new, empty entry of the given kind, happening at `now`.
     pub fn new(kind: EntryKind, now: OffsetDateTime) -> Result<Self, DomainError> {
         Ok(Self {
-            id: Id::new_v7(now)?,
+            id: Id::new_random()?,
             schema: ENTRY_SCHEMA,
             created_at: now.into(),
             updated_at: now.into(),
@@ -524,10 +524,17 @@ mod tests {
     }
 
     #[test]
-    fn ids_are_v7_and_time_ordered() {
+    fn ids_are_random_and_carry_no_time() {
+        // Two entries created at the same instant get unrelated v4 ids: nothing
+        // in the plain-text row key reveals when an entry was written (D-13).
         let a = Entry::new(EntryKind::Note, NOW).unwrap();
-        let b = Entry::new(EntryKind::Note, NOW + time::Duration::milliseconds(5)).unwrap();
-        assert_eq!(a.id.0.get_version_num(), 7);
-        assert!(a.id < b.id);
+        let b = Entry::new(EntryKind::Note, NOW).unwrap();
+        assert_eq!(a.id.0.get_version_num(), 4);
+        assert_ne!(a.id, b.id);
+        assert_ne!(
+            a.id.as_bytes()[..6],
+            b.id.as_bytes()[..6],
+            "no shared timestamp prefix"
+        );
     }
 }

@@ -122,14 +122,17 @@ types in `core/src/domain/`:
 
 | `records.type` | content                         | row id                                   |
 |----------------|---------------------------------|------------------------------------------|
-| 1 `entry`      | `Entry` (with `schema` = 1)     | the entry's UUIDv7, equal to its `id`    |
-| 2 `tag`        | `Tag`                           | the tag's UUIDv7, equal to its `id`      |
+| 1 `entry`      | `Entry` (with `schema` = 1)     | the entry's UUID, equal to its `id`      |
+| 2 `tag`        | `Tag`                           | the tag's UUID, equal to its `id`        |
 | 3 `plan`       | `SafetyPlan`                    | fixed `00000000-0000-0000-0000-000000000003` |
 | 4 `settings`   | `Settings`                      | fixed `00000000-0000-0000-0000-000000000004` |
 
 - Structs are CBOR maps keyed by snake_case field names; enums use serde's external
   tagging with snake_case variant names (`{"fear": {...}}`, `"note"`).
-- Ids (UUIDs) are 16-byte CBOR byte strings. (Over IPC to the UI, which uses JSON,
+- Ids are random UUIDs (v4) and are the only plain-text value per record, so they
+  must not carry time: UUIDv7, as SPEC §5 suggests, would reveal when each entry was
+  written (decision D-13). Some early pre-release vaults contain v7 ids; they are
+  read normally. Ids are 16-byte CBOR byte strings. (Over IPC to the UI, which uses JSON,
   they are hyphenated UUID strings.)
 - Timestamps are RFC 3339 strings with the original UTC offset
   (`2026-10-19T21:30:00+02:00`), so the local time of an entry survives travel.

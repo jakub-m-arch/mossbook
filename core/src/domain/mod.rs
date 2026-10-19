@@ -109,14 +109,12 @@ impl Default for Timestamp {
 pub struct Id(pub Uuid);
 
 impl Id {
-    /// New UUIDv7: time-ordered, so ids sort roughly by creation time.
-    pub fn new_v7(now: OffsetDateTime) -> Result<Self, DomainError> {
-        let mut random = [0u8; 10];
-        random_bytes(&mut random)?;
-        let millis = u64::try_from(now.unix_timestamp_nanos() / 1_000_000).unwrap_or(0);
-        Ok(Self(
-            uuid::Builder::from_unix_timestamp_millis(millis, &random).into_uuid(),
-        ))
+    /// New random id (UUID v4). Ids are stored in plain text as row keys, so
+    /// they must not carry a creation time as UUIDv7 would (decision D-13).
+    pub fn new_random() -> Result<Self, DomainError> {
+        let mut bytes = [0u8; 16];
+        random_bytes(&mut bytes)?;
+        Ok(Self(uuid::Builder::from_random_bytes(bytes).into_uuid()))
     }
 
     pub const fn from_bytes(bytes: [u8; 16]) -> Self {
@@ -130,8 +128,7 @@ impl Id {
 
 impl fmt::Debug for Id {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Ids are random and carry no content; v7 ids do reveal creation time,
-        // which is why they never leave the encrypted blobs except as row keys.
+        // Ids are random and carry no content or time.
         write!(f, "Id({})", self.0)
     }
 }

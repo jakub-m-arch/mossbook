@@ -51,7 +51,7 @@ fn create(password: &str) -> (Fixture, Journal) {
 /// A journal with two entries, a tag, a plan and settings.
 fn populated() -> (Fixture, Journal) {
     let (fx, mut j) = create(PASSWORD);
-    let tag = j.create_tag("Praca", "#4f6b47", NOW).unwrap().id;
+    let tag = j.create_tag("Praca", "#4f6b47").unwrap().id;
     let mut e = Entry::new(EntryKind::empty(EntryKindTag::Fear), NOW).unwrap();
     e.note = MARKER.into();
     e.intensity = Some(7);
@@ -144,7 +144,7 @@ fn replace_import_into_another_vault() {
     let before = snapshot(&j);
     let (other_fx, mut other) = create("another password");
     other.quick_entry(EntryKindTag::Note, None, NOW).unwrap();
-    other.create_tag("Sen", "#5b7f95", NOW).unwrap();
+    other.create_tag("Sen", "#5b7f95").unwrap();
 
     let records = Backup::from_bytes(&export(&j))
         .unwrap()
@@ -177,8 +177,8 @@ fn merge_keeps_newer_edits_and_maps_tags_by_name() {
     let (target_fx, mut target) = create("target password");
 
     // Same tag name, different ids.
-    let src_tag = source.create_tag("praca", "#4f6b47", NOW).unwrap().id;
-    let our_tag = target.create_tag("Praca", "#8a6a2f", NOW).unwrap().id;
+    let src_tag = source.create_tag("praca", "#4f6b47").unwrap().id;
+    let our_tag = target.create_tag("Praca", "#8a6a2f").unwrap().id;
 
     // Entry A exists in both (copied via a first merge), then edited in the source later.
     let mut a = Entry::new(EntryKind::Note, NOW).unwrap();
@@ -394,7 +394,7 @@ fn imports_format_v1_fixture() {
 #[ignore = "writes tests/fixtures/backup-v1.mossbook"]
 fn generate_backup_v1_fixture() {
     let (_fx, mut j) = create(FIXTURE_PASSWORD);
-    let tag = j.create_tag("fixture tag", "#4f6b47", NOW).unwrap().id;
+    let tag = j.create_tag("fixture tag", "#4f6b47").unwrap().id;
     let mut e = Entry::new(EntryKind::Note, NOW).unwrap();
     e.note = "fixture entry".into();
     e.tags = vec![tag];

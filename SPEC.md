@@ -147,7 +147,7 @@ Wszystkie poniższe struktury istnieją **tylko** w pamięci po odblokowaniu lub
 
 ```rust
 pub struct Entry {
-    pub id: Uuid,                    // UUIDv7
+    pub id: Uuid,                    // UUIDv4 (losowy; v7 ujawniałby czas utworzenia, PLAN D-13)
     pub schema: u16,                 // wersja schematu rekordu
     pub created_at: OffsetDateTime,
     pub updated_at: OffsetDateTime,

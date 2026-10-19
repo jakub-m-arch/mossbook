@@ -264,14 +264,9 @@ impl Journal {
         tags
     }
 
-    pub fn create_tag(
-        &mut self,
-        name: &str,
-        color: &str,
-        now: OffsetDateTime,
-    ) -> Result<&Tag, JournalError> {
+    pub fn create_tag(&mut self, name: &str, color: &str) -> Result<&Tag, JournalError> {
         let tag = Tag {
-            id: Id::new_v7(now)?,
+            id: Id::new_random()?,
             name: name.to_owned(),
             color: color.to_owned(),
         };
