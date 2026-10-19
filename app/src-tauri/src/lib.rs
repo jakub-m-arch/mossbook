@@ -158,20 +158,37 @@ mod ipc_shapes {
 
     #[test]
     fn json_shapes_match_typescript_types() {
-        let mut e = Entry::new(EntryKind::empty(EntryKindTag::Fear), datetime!(2026-10-19 21:30 +02:00)).unwrap();
+        let mut e = Entry::new(
+            EntryKind::empty(EntryKindTag::Fear),
+            datetime!(2026-10-19 21:30 +02:00),
+        )
+        .unwrap();
         e.mood = Some(3);
         let v = serde_json::to_value(&e).unwrap();
         assert!(v["id"].is_string());
         assert_eq!(v["occurred_at"], json!("2026-10-19T21:30:00+02:00"));
         assert_eq!(v["kind"]["fear"]["intensity_after"], json!(null));
         assert_eq!(v["kind"]["fear"]["symptoms"], json!([]));
-        assert_eq!(serde_json::to_value(EntryKind::Note).unwrap(), json!("note"));
+        assert_eq!(
+            serde_json::to_value(EntryKind::Note).unwrap(),
+            json!("note")
+        );
 
         let s = serde_json::to_value(Settings::default()).unwrap();
         assert_eq!(s["autolock"], json!("immediately"));
-        assert_eq!(serde_json::to_value(AutoLock::After1Min).unwrap(), json!("after1_min"));
+        assert_eq!(
+            serde_json::to_value(AutoLock::After1Min).unwrap(),
+            json!("after1_min")
+        );
 
-        let p = MoodPoint { date: date!(2026 - 10 - 18), average: 3.5, count: 2 };
-        assert_eq!(serde_json::to_value(p).unwrap(), json!({ "date": "2026-10-18", "average": 3.5, "count": 2 }));
+        let p = MoodPoint {
+            date: date!(2026 - 10 - 18),
+            average: 3.5,
+            count: 2,
+        };
+        assert_eq!(
+            serde_json::to_value(p).unwrap(),
+            json!({ "date": "2026-10-18", "average": 3.5, "count": 2 })
+        );
     }
 }

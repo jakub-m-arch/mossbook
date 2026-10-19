@@ -39,7 +39,12 @@ pub struct MoodPoint {
 
 /// `YYYY-MM-DD`; `time`'s default serde form is a `(year, ordinal)` tuple.
 fn serialize_date<S: serde::Serializer>(date: &Date, s: S) -> Result<S::Ok, S::Error> {
-    s.collect_str(&format_args!("{:04}-{:02}-{:02}", date.year(), u8::from(date.month()), date.day()))
+    s.collect_str(&format_args!(
+        "{:04}-{:02}-{:02}",
+        date.year(),
+        u8::from(date.month()),
+        date.day()
+    ))
 }
 
 /// Daily average of `mood` (1..=5) over entries in `[from, to]`, oldest first.
