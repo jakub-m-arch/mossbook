@@ -92,9 +92,14 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Za
 - [ ] Język z ustawień po odblokowaniu: razem z ekranem ustawień (etap 10), bo domyślne `locale = "pl"` nadpisałoby język systemu
 
 ### Etap 8: Plan na trudny moment
-- [ ] Edytor planu Stanley–Brown (P-1), dostęp z ekranu głównego (P-2)
-- [ ] `core/data/crisis/pl.json` (+ `source`, `verified_at`), widok bez odblokowania (P-3)
-- [ ] Ćwiczenia 4-7-8, pudełkowy, 5-4-3-2-1 z obsługą `prefers-reduced-motion` (P-4)
+- [x] Edytor planu Stanley–Brown (P-1), sześć sekcji, kontakty z przyciskiem połączenia; dostęp jednym przyciskiem z osi czasu (P-2)
+- [x] `core/data/crisis/pl.json` (+ `sources`, `verified_at`), moduł `core::crisis` z walidacją plików w testach; numery zweryfikowane 2026-10-19 ze stroną MZ (gov.pl) i stronami operatorów
+- [x] Ekran pomocy bez odblokowania (P-3): numery z przyciskiem „Zadzwoń”, kraj z regionu języka systemu (D-2), komunikat dla krajów bez danych
+- [x] `dial`: tylko numery kryzysowe i zapisane kontakty z planu (po odblokowaniu); `tauri-plugin-opener` używany wyłącznie z Rusta
+- [x] Ćwiczenia offline (P-4): oddech 4-7-8 i pudełkowy z animacją (bez animacji przy `prefers-reduced-motion`), 5-4-3-2-1
+- [x] Przycisk „Plan na trudny moment / telefony” na ekranie blokady
+- [x] E2E: pomoc z ekranu blokady (numery, połączenie, ćwiczenia), plan (zapis, połączenie tylko z zapisanym kontaktem)
+- [ ] Teksty ćwiczeń do konsultacji z psychoterapeutą przed v1 (SPEC §9); numery do ponownej weryfikacji przed każdym wydaniem
 
 ### Etap 9: Kopia `.mossbook`
 - [ ] `backup/format.rs` + `docs/backup-format.md` (magic, wersja, vault_id, KDF, opakowane DEK, rekordy)

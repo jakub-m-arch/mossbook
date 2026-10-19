@@ -30,7 +30,15 @@
 		failures: 0,
 		blockedUntil: 0,
 		entries: [],
-		tags: []
+		tags: [],
+		plan: {
+			warning_signs: [],
+			self_coping: [],
+			calming_people_places: [],
+			contacts: [],
+			professionals: [],
+			safe_environment: []
+		}
 	};
 	const save = () => window.localStorage.setItem('fake-vault', state.vault);
 	const fail = (code, extra = {}) => Promise.reject({ code, message: code, ...extra });
@@ -191,6 +199,41 @@
 			return null;
 		},
 		clipboard_clear_if: () => false,
+		plan_get: () => (state.vault === 'unlocked' ? state.plan : fail('locked')),
+		plan_save: ({ plan }) => {
+			if (state.vault !== 'unlocked') return fail('locked');
+			const clean = (list) => list.filter((item) => item.trim() !== '');
+			const people = (list) => list.filter((c) => c.name.trim() || c.phone.trim());
+			state.plan = {
+				warning_signs: clean(plan.warning_signs),
+				self_coping: clean(plan.self_coping),
+				calming_people_places: clean(plan.calming_people_places),
+				contacts: people(plan.contacts),
+				professionals: people(plan.professionals),
+				safe_environment: clean(plan.safe_environment)
+			};
+			return state.plan;
+		},
+		crisis_lines: ({ country }) => {
+			const data = window.__crisisData;
+			return {
+				countries: [data.country],
+				directory: country.toUpperCase() === data.country ? data : null
+			};
+		},
+		dial: ({ number }) => {
+			const digits = (n) => (n.trim().startsWith('+') ? '+' : '') + n.replace(/\D/g, '');
+			const wanted = digits(number);
+			const known = window.__crisisData.lines.some((l) => digits(l.number) === wanted);
+			const contact =
+				state.vault === 'unlocked' &&
+				[...state.plan.contacts, ...state.plan.professionals].some(
+					(c) => digits(c.phone) === wanted
+				);
+			if (!wanted || !(known || contact)) return fail('invalid_field');
+			window.__fake.calls.push(wanted);
+			return null;
+		},
 		'plugin:event|listen': ({ event, handler }) => {
 			listeners.set(event, [...(listeners.get(event) ?? []), handler]);
 			return handler;
@@ -223,6 +266,7 @@
 
 	/** Test hooks: simulate Rust-side events (auto-lock, focus loss). */
 	window.__fake = {
+		calls: [],
 		emit,
 		lockFromRust(reason) {
 			state.vault = 'locked';

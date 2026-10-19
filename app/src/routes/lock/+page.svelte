@@ -77,4 +77,12 @@
 		</button>
 	</form>
 	<a class="button secondary" href={resolve('/recover')}>{t('lock.forgot')}</a>
+	<!-- P-3/P-4: crisis numbers and exercises without unlocking. -->
+	<a class="button secondary help" href={resolve('/help')}>{t('help.open')}</a>
 </main>
+
+<style>
+	.help {
+		margin-top: 1.5rem;
+	}
+</style>

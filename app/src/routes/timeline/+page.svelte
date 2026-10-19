@@ -94,6 +94,8 @@
 <UnlockedShell title={t('timeline.title')}>
 	<div class="stack">
 		<button type="button" class="quick" onclick={() => quick.open()}>{t('quick.open')}</button>
+		<!-- P-2: the plan is one tap away from the home screen. -->
+		<a class="button secondary" href={resolve('/plan')}>{t('plan.title')}</a>
 		{#if saved}<p class="notice" role="status">{t('quick.done')}</p>{/if}
 
 		<div class="filters stack">

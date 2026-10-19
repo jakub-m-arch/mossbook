@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crisis-lines"
+description = "Enables the crisis_lines command without any pre-configured scope."
+commands.allow = ["crisis_lines"]
+
+[[permission]]
+identifier = "deny-crisis-lines"
+description = "Denies the crisis_lines command without any pre-configured scope."
+commands.deny = ["crisis_lines"]

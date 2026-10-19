@@ -288,8 +288,15 @@ fn no_plaintext_on_disk() {
     let bytes = raw_file_bytes(&fx.path);
     assert!(!contains(&bytes, MARKER));
     assert!(!contains(&bytes, PASSWORD.as_bytes()));
-    for word in fx.phrase.split(' ').filter(|w| w.len() >= 5) {
-        assert!(!contains(&bytes, word.as_bytes()), "recovery word on disk");
+    // Single BIP-39 words also occur in the plain SQLite schema ("table",
+    // "value"…), so look for the phrase and every run of three words instead.
+    let words: Vec<&str> = fx.phrase.split(' ').collect();
+    assert!(!contains(&bytes, fx.phrase.as_bytes()));
+    for run in words.windows(3) {
+        assert!(
+            !contains(&bytes, run.join(" ").as_bytes()),
+            "recovery phrase on disk"
+        );
     }
 }
 

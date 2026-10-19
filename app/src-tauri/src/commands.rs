@@ -8,10 +8,12 @@
 use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::Instant;
 
+use mossbook_core::crisis::{self, CrisisDirectory};
 use mossbook_core::domain::{Entry, EntryDraft, EntryKindTag, Id, SafetyPlan, Settings, Tag};
 use mossbook_core::query::{EntryFilter, MoodPoint, StatsRange};
 use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_clipboard_manager::ClipboardExt;
+use tauri_plugin_opener::OpenerExt;
 use zeroize::Zeroizing;
 
 use crate::error::{AppError, AppResult};
@@ -281,9 +283,71 @@ fn same_clipboard_text(copied: &str, current: &str) -> bool {
     !copied.is_empty() && *copied == *normalize(current)
 }
 
+// ---- crisis lines (available without unlocking, P-3) ----
+
+#[derive(serde::Serialize)]
+pub struct CrisisInfo {
+    /// Countries with crisis data, for the country picker.
+    countries: Vec<&'static str>,
+    /// Numbers for the requested country, if there is data for it.
+    directory: Option<CrisisDirectory>,
+}
+
+/// Static crisis numbers. Needs no unlock and touches no user data.
+#[tauri::command(async)]
+pub fn crisis_lines(country: String) -> CrisisInfo {
+    CrisisInfo {
+        countries: crisis::countries(),
+        directory: crisis::directory(&country),
+    }
+}
+
+/// Starts a phone call. Only crisis numbers and, when unlocked, the user's own
+/// safety-plan contacts can be dialed, so a compromised web view cannot call
+/// arbitrary numbers.
+#[tauri::command(async)]
+pub fn dial(app: AppHandle, state: State<'_, AppState>, number: String) -> AppResult<()> {
+    let wanted = phone_digits(&number);
+    let allowed = crisis::is_known_number(&wanted)
+        || state.session().journal().is_ok_and(|j| {
+            let plan = j.plan();
+            plan.contacts
+                .iter()
+                .chain(&plan.professionals)
+                .any(|c| phone_digits(&c.phone) == wanted)
+        });
+    if wanted.is_empty() || !allowed {
+        return Err(AppError::new("invalid_field", "number"));
+    }
+    app.opener()
+        .open_url(format!("tel:{wanted}"), None::<&str>)
+        .map_err(|_| AppError::new("internal", "cannot start a call"))
+}
+
+/// Keeps a leading `+` and the digits: `+48 600-000-000` → `+48600000000`.
+fn phone_digits(number: &str) -> String {
+    let trimmed = number.trim();
+    let plus = if trimmed.starts_with('+') { "+" } else { "" };
+    format!(
+        "{plus}{}",
+        trimmed
+            .chars()
+            .filter(char::is_ascii_digit)
+            .collect::<String>()
+    )
+}
+
 #[cfg(test)]
 mod tests {
-    use super::same_clipboard_text;
+    use super::{phone_digits, same_clipboard_text};
+
+    #[test]
+    fn phone_numbers_are_normalized() {
+        assert_eq!(phone_digits(" +48 600-000-000 "), "+48600000000");
+        assert_eq!(phone_digits("800 70 2222"), "800702222");
+        assert_eq!(phone_digits("tel:112"), "112");
+        assert_eq!(phone_digits("abc"), "");
+    }
 
     #[test]
     fn clipboard_comparison() {

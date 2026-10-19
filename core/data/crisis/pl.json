@@ -1,0 +1,76 @@
+{
+  "country": "PL",
+  "verified_at": "2026-10-19",
+  "sources": [
+    "https://www.gov.pl/web/zdrowie/gdzie-uzyskac-pomoc-psychologiczna-i-psychiatryczna",
+    "https://centrumwsparcia.pl",
+    "https://116111.pl",
+    "https://116sos.pl"
+  ],
+  "lines": [
+    {
+      "number": "112",
+      "emergency": true,
+      "hours": "24/7",
+      "free": true,
+      "name": {
+        "pl": "Numer alarmowy",
+        "en": "Emergency number",
+        "uk": "Номер екстреної допомоги"
+      },
+      "description": {
+        "pl": "Gdy grozi ci bezpośrednie niebezpieczeństwo.",
+        "en": "When you are in immediate danger.",
+        "uk": "Коли вам загрожує безпосередня небезпека."
+      }
+    },
+    {
+      "number": "116 123",
+      "emergency": false,
+      "hours": "24/7",
+      "free": true,
+      "name": {
+        "pl": "Telefon zaufania dla dorosłych",
+        "en": "Helpline for adults",
+        "uk": "Телефон довіри для дорослих"
+      },
+      "description": {
+        "pl": "Wsparcie dla osób w kryzysie emocjonalnym.",
+        "en": "Support for people in emotional crisis.",
+        "uk": "Підтримка для людей в емоційній кризі."
+      }
+    },
+    {
+      "number": "800 70 2222",
+      "emergency": false,
+      "hours": "24/7",
+      "free": true,
+      "name": {
+        "pl": "Centrum Wsparcia dla Osób Dorosłych w Kryzysie Psychicznym",
+        "en": "Support Centre for Adults in Mental Health Crisis",
+        "uk": "Центр підтримки для дорослих у психічній кризі"
+      },
+      "description": {
+        "pl": "Rozmowa z psychologiem, całą dobę.",
+        "en": "Talk to a psychologist, day and night.",
+        "uk": "Розмова з психологом цілодобово."
+      }
+    },
+    {
+      "number": "116 111",
+      "emergency": false,
+      "hours": "24/7",
+      "free": true,
+      "name": {
+        "pl": "Telefon zaufania dla dzieci i młodzieży",
+        "en": "Helpline for children and young people",
+        "uk": "Телефон довіри для дітей і молоді"
+      },
+      "description": {
+        "pl": "Anonimowo, dla osób poniżej 18 lat.",
+        "en": "Anonymous, for people under 18.",
+        "uk": "Анонімно, для осіб до 18 років."
+      }
+    }
+  ]
+}

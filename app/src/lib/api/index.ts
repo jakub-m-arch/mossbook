@@ -6,6 +6,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 import type {
 	AppError,
+	CrisisInfo,
 	Entry,
 	EntryDraft,
 	EntryFilter,
@@ -97,3 +98,9 @@ export const statsMood = (range: StatsRange) => invoke<MoodPoint[]>('stats_mood'
 
 /** Clears the clipboard if it still holds `text` (copied from the app earlier). */
 export const clipboardClearIf = (text: string) => invoke<boolean>('clipboard_clear_if', { text });
+
+// ---- crisis lines and calls (work without unlocking) ----
+
+export const crisisLines = (country: string) => invoke<CrisisInfo>('crisis_lines', { country });
+/** Starts a call. Only crisis numbers and safety-plan contacts are allowed. */
+export const dial = (number: string) => invoke<void>('dial', { number });

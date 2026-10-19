@@ -23,7 +23,8 @@ encrypted on your device, and can be shared with a therapist only if you choose 
 ## Status
 
 **Pre-alpha, not ready for real data yet.** The encrypted core is complete and
-heavily tested; the user interface is being built. There are no releases yet.
+heavily tested; journaling, tags, the safety plan and crisis lines work in the
+interface. Backups are not done yet. There are no releases yet.
 
 | Stage | Scope | State |
 |---|---|---|
@@ -33,9 +34,9 @@ heavily tested; the user interface is being built. There are no releases yet.
 | 4 | Domain model, journal, search, mood statistics | done |
 | 5 | Tauri commands, session state, auto-lock | done |
 | 6 | Setup, lock and recovery screens | done |
-| 7 | Quick entry, entry forms, timeline | next |
-| 8 | Plan for a hard moment, crisis lines, grounding exercises | planned |
-| 9 | Encrypted `.mossbook` backup: export and import | planned |
+| 7 | Quick entry, entry forms, timeline | done |
+| 8 | Plan for a hard moment, crisis lines, grounding exercises | done |
+| 9 | Encrypted `.mossbook` backup: export and import | next |
 | 10 | Mood chart, full translations (pl / en / uk) | planned |
 | 11 | Android build | planned |
 | 12 | Release 0.1.0 | planned |
@@ -105,7 +106,8 @@ against libsodium and argon2-cffi by [`tools/verify-vectors.py`](tools/verify-ve
 
 ```
 mossbook/
-├── core/             mossbook-core: crypto/, store/, vault/, domain/, query/, journal.rs
+├── core/             mossbook-core: crypto/, store/, vault/, domain/, query/, journal.rs, crisis.rs
+│   ├── data/crisis/  crisis phone numbers per country, with sources and check date
 │   ├── migrations/   SQL schema
 │   └── tests/        integration tests and the format-v1 fixture
 ├── app/

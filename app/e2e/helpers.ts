@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import { test as base, expect, type Page } from '@playwright/test';
 
 export const PASSWORD = 'correct horse battery';
@@ -14,6 +16,11 @@ export const test = base.extend({
 		page.on('console', (msg) => {
 			if (msg.type() === 'error') errors.push(msg.text());
 		});
+		// The real crisis data from core, so the e2e tests check what ships.
+		const crisis = JSON.parse(readFileSync('../core/data/crisis/pl.json', 'utf8'));
+		await page.addInitScript((data) => {
+			(window as Window & { __crisisData?: unknown }).__crisisData = data;
+		}, crisis);
 		await page.addInitScript({ path: 'e2e/fake-tauri.js' });
 		await use(page);
 		expect(errors, 'errors in the page').toEqual([]);

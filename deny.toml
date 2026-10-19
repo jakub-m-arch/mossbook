@@ -8,6 +8,11 @@ yanked = "deny"
 ignore = [
   # proc-macro-error (unmaintained) comes in via gtk-rs 0.18 (Linux, a Tauri dependency). Nothing to replace on our side.
   { id = "RUSTSEC-2024-0370", reason = "transitive via tauri -> gtk 0.18 (Linux)" },
+  # zbus_names / zvariant* (unmaintained, merged into zbus 6) come in via
+  # tauri-plugin-opener -> zbus 5 on Linux (local D-Bus, not network). Informational only.
+  { id = "RUSTSEC-2026-0370", reason = "transitive via tauri-plugin-opener -> zbus 5 (Linux)" },
+  { id = "RUSTSEC-2026-0371", reason = "transitive via tauri-plugin-opener -> zbus 5 (Linux)" },
+  { id = "RUSTSEC-2026-0372", reason = "transitive via tauri-plugin-opener -> zbus 5 (Linux)" },
 ]
 
 [licenses]

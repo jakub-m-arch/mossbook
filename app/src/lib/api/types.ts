@@ -203,3 +203,29 @@ export interface MoodPoint {
 	average: number;
 	count: number;
 }
+
+// ---- crisis lines (static, available without unlocking) ----
+
+export interface CrisisLine {
+	/** As displayed, e.g. `800 70 2222`. */
+	number: string;
+	emergency: boolean;
+	hours: string;
+	free: boolean;
+	/** By UI locale: `pl`, `en`, `uk`. */
+	name: Record<string, string>;
+	description: Record<string, string>;
+}
+
+export interface CrisisDirectory {
+	country: string;
+	/** `YYYY-MM-DD` */
+	verified_at: string;
+	sources: string[];
+	lines: CrisisLine[];
+}
+
+export interface CrisisInfo {
+	countries: string[];
+	directory: CrisisDirectory | null;
+}
