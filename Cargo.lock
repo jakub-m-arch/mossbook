@@ -2159,8 +2159,13 @@ name = "mossbook"
 version = "0.1.0"
 dependencies = [
  "mossbook-core",
+ "serde",
+ "serde_json",
  "tauri",
  "tauri-build",
+ "tempfile",
+ "time",
+ "zeroize",
 ]
 
 [[package]]

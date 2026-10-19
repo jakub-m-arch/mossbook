@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-stats-mood"
+description = "Enables the stats_mood command without any pre-configured scope."
+commands.allow = ["stats_mood"]
+
+[[permission]]
+identifier = "deny-stats-mood"
+description = "Denies the stats_mood command without any pre-configured scope."
+commands.deny = ["stats_mood"]

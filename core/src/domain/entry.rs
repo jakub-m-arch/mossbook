@@ -81,6 +81,56 @@ impl fmt::Debug for Entry {
     }
 }
 
+/// An entry as submitted by the UI. The journal owns `id` (for new entries),
+/// `schema`, `created_at` and `updated_at`; the UI cannot set them.
+#[derive(Clone, Deserialize, Zeroize, ZeroizeOnDrop)]
+pub struct EntryDraft {
+    /// `None` creates a new entry; `Some` edits an existing one.
+    #[serde(default)]
+    pub id: Option<Id>,
+    pub kind: EntryKind,
+    /// Defaults to "now" for new entries and is kept for edits.
+    #[serde(default)]
+    pub occurred_at: Option<Timestamp>,
+    #[serde(default)]
+    pub mood: Option<u8>,
+    #[serde(default)]
+    pub intensity: Option<u8>,
+    #[serde(default)]
+    pub tags: Vec<Id>,
+    #[serde(default)]
+    pub note: String,
+    #[serde(default)]
+    pub incomplete: bool,
+    #[serde(default)]
+    pub sensitive: bool,
+}
+
+impl EntryDraft {
+    /// Applies the draft onto `entry` (a new or an existing one).
+    pub fn apply_to(&self, entry: &mut Entry) {
+        entry.kind = self.kind.clone();
+        if let Some(at) = self.occurred_at {
+            entry.occurred_at = at;
+        }
+        entry.mood = self.mood;
+        entry.intensity = self.intensity;
+        entry.tags = self.tags.clone();
+        entry.note = self.note.clone();
+        entry.incomplete = self.incomplete;
+        entry.sensitive = self.sensitive;
+    }
+}
+
+impl fmt::Debug for EntryDraft {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("EntryDraft")
+            .field("id", &self.id)
+            .field("kind", &self.kind.tag())
+            .finish_non_exhaustive()
+    }
+}
+
 /// Entry type with its specific fields.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Zeroize)]
 #[serde(rename_all = "snake_case")]

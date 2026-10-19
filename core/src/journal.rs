@@ -11,7 +11,8 @@ use time::OffsetDateTime;
 use crate::crypto::aead::RecordType;
 use crate::domain::entry::ENTRY_SCHEMA;
 use crate::domain::{
-    DomainError, Entry, EntryKind, EntryKindTag, Id, SafetyPlan, Settings, Tag, decode, encode,
+    DomainError, Entry, EntryDraft, EntryKind, EntryKindTag, Id, SafetyPlan, Settings, Tag, decode,
+    encode,
 };
 use crate::query::stats::{MoodPoint, mood_by_day};
 use crate::query::{EntryFilter, StatsRange};
@@ -170,6 +171,25 @@ impl Journal {
         let id = entry.id;
         self.entries.insert(id, entry);
         Ok(&self.entries[&id])
+    }
+
+    /// Saves an entry submitted by the UI: creates it if `draft.id` is `None`,
+    /// otherwise edits the existing entry (unknown ids are rejected).
+    pub fn save_draft(
+        &mut self,
+        draft: &EntryDraft,
+        now: OffsetDateTime,
+    ) -> Result<&Entry, JournalError> {
+        let mut entry = match draft.id {
+            Some(id) => self
+                .entries
+                .get(&id)
+                .cloned()
+                .ok_or(DomainError::NotFound)?,
+            None => Entry::new(draft.kind.clone(), now)?,
+        };
+        draft.apply_to(&mut entry);
+        self.save_entry(entry, now)
     }
 
     /// Quick entry (E-10): type plus one value, marked as incomplete.

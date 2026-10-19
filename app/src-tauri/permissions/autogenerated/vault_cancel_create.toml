@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-vault-cancel-create"
+description = "Enables the vault_cancel_create command without any pre-configured scope."
+commands.allow = ["vault_cancel_create"]
+
+[[permission]]
+identifier = "deny-vault-cancel-create"
+description = "Denies the vault_cancel_create command without any pre-configured scope."
+commands.deny = ["vault_cancel_create"]

@@ -383,3 +383,44 @@ proptest! {
         }
     }
 }
+
+#[test]
+fn drafts_create_and_edit_but_cannot_forge_metadata() {
+    use mossbook_core::domain::EntryDraft;
+    let (fx, mut j) = create();
+    let json = r#"{ "kind": { "mood": { "energy": 3, "emotions": ["calm", { "custom": "synthetic" }] } },
+                    "mood": 4, "note": "draft note",
+                    "created_at": "2000-01-01T00:00:00Z", "schema": 99 }"#;
+    let draft: EntryDraft = serde_json::from_str(json).unwrap();
+    let created = j.save_draft(&draft, NOW).unwrap().clone();
+    assert_eq!(created.created_at, Timestamp(NOW));
+    assert_eq!(created.occurred_at, Timestamp(NOW));
+    assert_eq!(created.schema, 1);
+
+    let later = NOW + Duration::hours(2);
+    let edit = format!(
+        r#"{{ "id": "{}", "kind": "note", "note": "edited" }}"#,
+        created.id
+    );
+    let draft: EntryDraft = serde_json::from_str(&edit).unwrap();
+    let edited = j.save_draft(&draft, later).unwrap().clone();
+    assert_eq!(edited.id, created.id);
+    assert_eq!(edited.created_at, Timestamp(NOW));
+    assert_eq!(
+        edited.occurred_at,
+        Timestamp(NOW),
+        "kept when the draft has none"
+    );
+    assert_eq!(edited.kind, EntryKind::Note);
+    assert_eq!(edited.mood, None);
+
+    let unknown: EntryDraft =
+        serde_json::from_str(r#"{ "id": "01890000-0000-7000-8000-000000000000", "kind": "note" }"#)
+            .unwrap();
+    assert_eq!(
+        j.save_draft(&unknown, NOW).unwrap_err(),
+        JournalError::Domain(DomainError::NotFound)
+    );
+    let j = reopen(&fx, j);
+    assert_eq!(j.entries(&EntryFilter::default()).len(), 1);
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-vault-destroy"
+description = "Enables the vault_destroy command without any pre-configured scope."
+commands.allow = ["vault_destroy"]
+
+[[permission]]
+identifier = "deny-vault-destroy"
+description = "Denies the vault_destroy command without any pre-configured scope."
+commands.deny = ["vault_destroy"]

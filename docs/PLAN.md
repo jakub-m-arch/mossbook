@@ -63,10 +63,13 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Za
 - [x] `docs/crypto.md`: sekcja *Record contents*
 
 ### Etap 5: Tauri – komendy i stan
-- [ ] `AppState { vault: Mutex<VaultState> }`, komendy z SPEC §8.3, `AppError { code, message }` bez danych użytkownika
-- [ ] DTO dla frontendu (`EntryView` itd.); generowanie typów TS (`specta`/`tauri-specta` albo ręcznie – D-7)
-- [ ] Auto-blokada: zdarzenia okna/cyklu życia + timer bezczynności w Ruście, `activity_ping` z frontendu; wstrzymanie na czas systemowych okien dialogowych (D-6)
-- [ ] Capabilities: tylko własne komendy + `dialog` (zapis/otwarcie pliku)
+- [x] `Session` (czysty Rust, testowalny): stany `no_vault` / `creating` / `locked` / `unlocked`, opóźnienie po błędnych próbach, zmiana hasła, usuwanie (przy złym haśle dziennik zostaje nietknięty)
+- [x] 26 komend z SPEC §8.3 (bez kopii i PDF), wszystkie `async` (Argon2 nie blokuje UI); hasła od razu w `Zeroizing`; `AppError { code, message, retry_after_ms }`
+- [x] Auto-blokada w Ruście: `Suspended` (mobile) i minimalizacja (desktop) → blokada przy polityce „natychmiast”; utrata fokusu → tylko zdarzenie `privacy-curtain` (D-11); timer bezczynności co 5 s, frontend tylko go resetuje (`activity_ping`); okna systemowe wstrzymują blokadę w tle, ale nie timer (D-6)
+- [x] Czas lokalny: UI podaje offset (`clock_sync`), bo `now_local()` jest niewiarygodne w procesie wielowątkowym
+- [x] Uprawnienia: `AppManifest` generuje `allow-<komenda>`, capability nadaje dokładnie te + `core:event:allow-(un)listen`; test pilnuje zgodności listy komend, capability i `generate_handler!`
+- [x] `app/src/lib/api/`: typy TS i wrappery `invoke()` (D-7: ręcznie + test kształtów JSON w Ruście + test Vitest porównujący wrappery z listą komend w Ruście)
+- [x] Aplikacja startuje lokalnie (macOS)
 
 ### Etap 6: UI – zakładanie skarbca i blokada
 - [ ] `setup`: hasło + wskaźnik siły (lokalnie, np. `zxcvbn-ts` bez słowników z sieci), wyświetlenie 24 słów, potwierdzenie 3 losowych, komunikat z kryteriów V-1
@@ -120,7 +123,7 @@ Status: **przyjęte** (2026-10-18) albo **otwarte**. Przyjęte decyzje wiążą 
 | D-4 | przyjęte | **Import z innego skarbca**: AAD zawiera `vault_id`, więc rekordów z kopii innego skarbca nie da się po prostu skopiować | Import zawsze odszyfrowuje kluczem z kopii i szyfruje ponownie DEK bieżącego skarbca. Konflikt ID przy scalaniu: wygrywa nowsze `updated_at` |
 | D-5 | otwarte | **Licznik błędnych prób (V-8)**: trwały licznik na dysku to jawna metadana, a atakujący offline i tak go omija | Licznik tylko w pamięci procesu. Prawdziwą ochroną jest Argon2id, co opisujemy w threat-model |
 | D-6 | przyjęte | **Auto-blokada a okna systemowe**: okno zapisu kopii albo picker na Androidzie powoduje utratę fokusu lub przejście w tło, co zablokowałoby skarbiec w trakcie eksportu | Flaga „operacja systemowa w toku” w Ruście wstrzymuje blokadę „natychmiast”, ale nie timer bezczynności |
-| D-7 | otwarte | **Typy TS**: ręczne utrzymywanie typów to ryzyko rozjazdu | `specta` + `tauri-specta` (generowanie `bindings.ts`), jeśli wersja zgodna z Tauri 2 jest stabilna; inaczej ręcznie + test snapshot |
+| D-7 | przyjęte | **Typy TS**: ręczne utrzymywanie typów to ryzyko rozjazdu | `specta` + `tauri-specta` (generowanie `bindings.ts`), jeśli wersja zgodna z Tauri 2 jest stabilna; inaczej ręcznie + test snapshot |
 | D-8 | otwarte | **Kolumna `type` jawna** ujawnia liczbę wpisów w odróżnieniu od tagów | Akceptujemy i dopisujemy do listy wycieków w SPEC §2 (albo jeden typ „record” z typem tylko w AAD/treści) |
 | D-9 | otwarte | **Stara kopia po zmianie hasła** otwiera się starym hasłem (zawiera DEK opakowany starym KEK) | Udokumentować w UI zmiany hasła i w `docs/backup-format.md` |
 | D-10 | otwarte | **Router frontendu**: SPEC wymienia `routes/` | SvelteKit + `adapter-static` (oficjalny szablon Tauri) |

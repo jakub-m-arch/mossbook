@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-clock-sync"
+description = "Enables the clock_sync command without any pre-configured scope."
+commands.allow = ["clock_sync"]
+
+[[permission]]
+identifier = "deny-clock-sync"
+description = "Denies the clock_sync command without any pre-configured scope."
+commands.deny = ["clock_sync"]

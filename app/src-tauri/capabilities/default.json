@@ -1,7 +1,38 @@
 {
-	"$schema": "../gen/schemas/desktop-schema.json",
-	"identifier": "default",
-	"description": "Minimal permission set. Every new permission must be justified in its PR (SPEC §8.4).",
-	"windows": ["main"],
-	"permissions": []
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Minimal permission set. Every new permission must be justified in its PR (SPEC §8.4).",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "allow-clock-sync",
+    "allow-activity-ping",
+    "allow-vault-status",
+    "allow-vault-create",
+    "allow-vault-cancel-create",
+    "allow-vault-confirm-recovery",
+    "allow-vault-unlock",
+    "allow-vault-unlock-recovery",
+    "allow-vault-lock",
+    "allow-vault-change-password",
+    "allow-vault-destroy",
+    "allow-entries-list",
+    "allow-entry-get",
+    "allow-entry-save",
+    "allow-entry-delete",
+    "allow-quick-entry",
+    "allow-tags-list",
+    "allow-tag-create",
+    "allow-tag-save",
+    "allow-tag-delete",
+    "allow-tag-merge",
+    "allow-plan-get",
+    "allow-plan-save",
+    "allow-settings-get",
+    "allow-settings-save",
+    "allow-stats-mood"
+  ]
 }

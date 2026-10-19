@@ -1,0 +1,94 @@
+// Typed wrappers around Tauri `invoke()`. Components talk to the backend only
+// through this module (CLAUDE.md). Every call rejects with an `AppError`.
+
+import { invoke } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+
+import type {
+	AppError,
+	Entry,
+	EntryDraft,
+	EntryFilter,
+	EntryKindTag,
+	Id,
+	LockReason,
+	MoodPoint,
+	RecoveryAnswer,
+	RecoverySetup,
+	SafetyPlan,
+	Settings,
+	StatsRange,
+	Status,
+	Tag
+} from './types';
+
+export type * from './types';
+
+/** Narrows an unknown rejection to an `AppError`. */
+export function isAppError(e: unknown): e is AppError {
+	return typeof e === 'object' && e !== null && 'code' in e && 'message' in e;
+}
+
+// ---- clock and activity ----
+
+/** Reports the local UTC offset; call on start and when the app comes back. */
+export const clockSync = () =>
+	invoke<void>('clock_sync', { offsetMinutes: -new Date().getTimezoneOffset() });
+
+/** Resets the idle auto-lock timer (V-3). */
+export const activityPing = () => invoke<void>('activity_ping');
+
+// ---- vault ----
+
+export const vaultStatus = () => invoke<Status>('vault_status');
+export const vaultCreate = (password: string) =>
+	invoke<RecoverySetup>('vault_create', { password });
+export const vaultCancelCreate = () => invoke<void>('vault_cancel_create');
+export const vaultConfirmRecovery = (answers: RecoveryAnswer[]) =>
+	invoke<void>('vault_confirm_recovery', { answers });
+export const vaultUnlock = (password: string) => invoke<void>('vault_unlock', { password });
+export const vaultUnlockRecovery = (phrase: string, newPassword: string) =>
+	invoke<void>('vault_unlock_recovery', { phrase, newPassword });
+export const vaultLock = () => invoke<void>('vault_lock');
+export const vaultChangePassword = (old: string, next: string) =>
+	invoke<void>('vault_change_password', { old, new: next });
+export const vaultDestroy = (password: string) => invoke<void>('vault_destroy', { password });
+
+/** Fires whenever the vault locks (manually, in the background or when idle). */
+export const onVaultLocked = (handler: (reason: LockReason) => void): Promise<UnlistenFn> =>
+	listen<LockReason>('vault-locked', (event) => handler(event.payload));
+
+/** Desktop focus changes: `true` = cover the content (decision D-11). */
+export const onPrivacyCurtain = (handler: (covered: boolean) => void): Promise<UnlistenFn> =>
+	listen<boolean>('privacy-curtain', (event) => handler(event.payload));
+
+// ---- entries ----
+
+export const entriesList = (filter: EntryFilter = {}) =>
+	invoke<Entry[]>('entries_list', { filter });
+export const entryGet = (id: Id) => invoke<Entry>('entry_get', { id });
+export const entrySave = (draft: EntryDraft) => invoke<Entry>('entry_save', { draft });
+export const entryDelete = (id: Id) => invoke<boolean>('entry_delete', { id });
+/** Quick entry (E-10): mood rating 1–5 for `mood`, intensity 0–10 otherwise. */
+export const quickEntry = (kind: EntryKindTag, value: number | null) =>
+	invoke<Entry>('quick_entry', { kind, value });
+
+// ---- tags ----
+
+export const tagsList = () => invoke<Tag[]>('tags_list');
+export const tagCreate = (name: string, color: string) =>
+	invoke<Tag>('tag_create', { name, color });
+export const tagSave = (tag: Tag) => invoke<Tag>('tag_save', { tag });
+export const tagDelete = (id: Id) => invoke<boolean>('tag_delete', { id });
+export const tagMerge = (from: Id, into: Id) => invoke<void>('tag_merge', { from, into });
+
+// ---- plan and settings ----
+
+export const planGet = () => invoke<SafetyPlan>('plan_get');
+export const planSave = (plan: SafetyPlan) => invoke<SafetyPlan>('plan_save', { plan });
+export const settingsGet = () => invoke<Settings>('settings_get');
+export const settingsSave = (settings: Settings) => invoke<Settings>('settings_save', { settings });
+
+// ---- patterns ----
+
+export const statsMood = (range: StatsRange) => invoke<MoodPoint[]>('stats_mood', { range });

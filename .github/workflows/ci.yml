@@ -34,7 +34,7 @@ jobs:
       - run: cargo test --workspace
 
   deny:
-    name: cargo deny (licencje, bany sieciowe, advisories)
+    name: cargo deny (licenses, network bans, advisories)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4

@@ -19,7 +19,7 @@ use zeroize::Zeroizing;
 
 use crate::crypto::{CryptoError, random_bytes};
 
-pub use entry::{Emotion, Entry, EntryKind, EntryKindTag, Symptom};
+pub use entry::{Emotion, Entry, EntryDraft, EntryKind, EntryKindTag, Symptom};
 pub use plan::{Contact, SafetyPlan};
 pub use settings::{AutoLock, Reminder, Settings};
 pub use tag::Tag;

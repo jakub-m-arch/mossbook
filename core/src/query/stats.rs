@@ -31,9 +31,15 @@ impl StatsRange {
 /// Average mood of one calendar day.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MoodPoint {
+    #[serde(serialize_with = "serialize_date")]
     pub date: Date,
     pub average: f32,
     pub count: u32,
+}
+
+/// `YYYY-MM-DD`; `time`'s default serde form is a `(year, ordinal)` tuple.
+fn serialize_date<S: serde::Serializer>(date: &Date, s: S) -> Result<S::Ok, S::Error> {
+    s.collect_str(&format_args!("{:04}-{:02}-{:02}", date.year(), u8::from(date.month()), date.day()))
 }
 
 /// Daily average of `mood` (1..=5) over entries in `[from, to]`, oldest first.
