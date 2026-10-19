@@ -11,6 +11,7 @@ use std::time::Instant;
 use mossbook_core::domain::{Entry, EntryDraft, EntryKindTag, Id, SafetyPlan, Settings, Tag};
 use mossbook_core::query::{EntryFilter, MoodPoint, StatsRange};
 use tauri::{AppHandle, Emitter, State};
+use tauri_plugin_clipboard_manager::ClipboardExt;
 use zeroize::Zeroizing;
 
 use crate::error::{AppError, AppResult};
@@ -252,4 +253,46 @@ pub fn stats_mood(state: State<'_, AppState>, range: StatsRange) -> AppResult<Ve
         let now = s.now();
         Ok(s.journal()?.mood_series(range, now))
     })
+}
+
+// ---- clipboard ----
+
+/// Clears the clipboard if it still holds `text`, copied from the app earlier
+/// (SPEC §2: copied fragments must not linger). Returns whether it cleared.
+/// Anything the user copied elsewhere in the meantime is left alone.
+#[tauri::command(async)]
+pub fn clipboard_clear_if(app: AppHandle, text: String) -> AppResult<bool> {
+    let text = Zeroizing::new(text);
+    let current = Zeroizing::new(app.clipboard().read_text().unwrap_or_default());
+    if !same_clipboard_text(&text, &current) {
+        return Ok(false);
+    }
+    app.clipboard()
+        .clear()
+        .map_err(|_| AppError::new("internal", "clipboard unavailable"))?;
+    Ok(true)
+}
+
+/// Compares ignoring line-ending style and surrounding whitespace, which
+/// platforms change when text goes through the clipboard.
+fn same_clipboard_text(copied: &str, current: &str) -> bool {
+    let normalize = |s: &str| Zeroizing::new(s.replace("\r\n", "\n").trim().to_owned());
+    let copied = normalize(copied);
+    !copied.is_empty() && *copied == *normalize(current)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::same_clipboard_text;
+
+    #[test]
+    fn clipboard_comparison() {
+        assert!(same_clipboard_text(
+            "line one\nline two",
+            "line one\r\nline two\n"
+        ));
+        assert!(!same_clipboard_text("from the app", "something else"));
+        assert!(!same_clipboard_text("", ""));
+        assert!(!same_clipboard_text("  ", "  "));
+    }
 }

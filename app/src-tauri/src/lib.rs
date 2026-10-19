@@ -23,6 +23,8 @@ const TICK: Duration = Duration::from_secs(5);
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // Used from Rust only; its JS commands are not granted in the capability.
+        .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
@@ -58,6 +60,7 @@ pub fn run() {
             commands::settings_get,
             commands::settings_save,
             commands::stats_mood,
+            commands::clipboard_clear_if,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Mossbook");

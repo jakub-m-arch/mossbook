@@ -33,6 +33,7 @@
     "allow-plan-save",
     "allow-settings-get",
     "allow-settings-save",
-    "allow-stats-mood"
+    "allow-stats-mood",
+    "allow-clipboard-clear-if"
   ]
 }

@@ -27,4 +27,5 @@ pub const COMMANDS: &[&str] = &[
     "settings_get",
     "settings_save",
     "stats_mood",
+    "clipboard_clear_if",
 ];

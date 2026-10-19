@@ -1,5 +1,8 @@
 {
-	"app": { "name": "Mossbook", "tagline": "A private well-being journal" },
+	"app": {
+		"name": "Mossbook",
+		"tagline": "A private well-being journal"
+	},
 	"common": {
 		"next": "Next",
 		"back": "Back",
@@ -20,7 +23,8 @@
 		"throttled": "Wait a moment before trying again.",
 		"vault_corrupted": "The journal file is damaged.",
 		"unsupported_format": "This journal was saved by a newer version of the app.",
-		"generic": "Something went wrong. Please try again."
+		"generic": "Something went wrong. Please try again.",
+		"duplicate_tag_name": "A tag with this name already exists."
 	},
 	"strength": {
 		"label": "Password strength",
@@ -72,5 +76,127 @@
 		"empty": "Your entries will appear here.",
 		"unreadable": "Some saved data could not be read ({count}). Your other entries are safe."
 	},
-	"curtain": { "text": "Mossbook" }
+	"curtain": {
+		"text": "Mossbook"
+	},
+	"kind": {
+		"mood": "Mood",
+		"event": "Event",
+		"fear": "Fear / trigger",
+		"sleep": "Sleep",
+		"nightmare": "Nightmare",
+		"note": "Note"
+	},
+	"mood": {
+		"label": "How do you feel",
+		"1": "very hard",
+		"2": "hard",
+		"3": "so-so",
+		"4": "good",
+		"5": "very good"
+	},
+	"scale": {
+		"intensity": "Intensity (0–10)",
+		"energy": "Energy (1–5)",
+		"quality": "Sleep quality (1–5)",
+		"after": "Intensity after (0–10)",
+		"clear": "Clear"
+	},
+	"emotion": {
+		"label": "Emotions",
+		"anxiety": "anxiety",
+		"sadness": "sadness",
+		"anger": "anger",
+		"shame": "shame",
+		"guilt": "guilt",
+		"relief": "relief",
+		"calm": "calm",
+		"joy": "joy",
+		"loneliness": "loneliness",
+		"numbness": "numbness",
+		"overwhelm": "overwhelm"
+	},
+	"symptom": {
+		"label": "Body symptoms",
+		"racing_heart": "racing heart",
+		"shortness_of_breath": "shortness of breath",
+		"chest_tightness": "tight chest",
+		"sweating": "sweating",
+		"trembling": "trembling",
+		"nausea": "nausea",
+		"dizziness": "dizziness",
+		"muscle_tension": "muscle tension",
+		"hot_or_cold_flushes": "hot or cold flushes",
+		"tingling": "tingling",
+		"unreality": "feeling unreal"
+	},
+	"custom": {
+		"add": "Add your own",
+		"placeholder": "Type and add"
+	},
+	"field": {
+		"occurredAt": "When",
+		"note": "Note",
+		"tags": "Tags",
+		"what": "What happened",
+		"place": "Where",
+		"body": "Body reaction",
+		"thoughts": "Thoughts",
+		"helped": "What helped",
+		"trigger": "What set it off",
+		"avoidance": "Did you avoid something",
+		"yes": "yes",
+		"no": "no",
+		"strategy": "What I tried",
+		"bedtime": "Bedtime",
+		"wake": "Woke up",
+		"awakenings": "Times woken up",
+		"nightmare": "Had a nightmare",
+		"content": "The nightmare",
+		"rescripted": "New version"
+	},
+	"entry": {
+		"new": "New entry",
+		"edit": "Edit entry",
+		"save": "Save",
+		"saved": "Saved",
+		"delete": "Delete entry",
+		"deleteConfirm": "Delete this entry? This cannot be undone.",
+		"incomplete": "to complete",
+		"notFound": "This entry does not exist."
+	},
+	"quick": {
+		"open": "Quick entry",
+		"title": "Quick entry",
+		"chooseKind": "What do you want to note?",
+		"chooseValue": "How much?",
+		"saveWithout": "Save without a rating",
+		"more": "More details",
+		"done": "Saved. You can complete it later."
+	},
+	"filter": {
+		"search": "Search",
+		"kinds": "Type",
+		"tags": "Tags",
+		"from": "From",
+		"to": "To",
+		"incomplete": "Only to complete",
+		"more": "More filters",
+		"clear": "Clear filters",
+		"none": "Nothing matches the filters."
+	},
+	"tags": {
+		"title": "Tags",
+		"manage": "Tags",
+		"name": "Name",
+		"color": "Color",
+		"create": "Add tag",
+		"save": "Save",
+		"delete": "Delete",
+		"deleteConfirm": "Delete this tag? It will be removed from all entries.",
+		"merge": "Merge into…",
+		"mergeConfirm": "Merge? Entries with this tag will get the chosen tag.",
+		"duplicate": "A tag with this name already exists.",
+		"empty": "You have no tags yet."
+	}
 }

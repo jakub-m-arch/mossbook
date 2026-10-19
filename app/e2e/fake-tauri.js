@@ -6,11 +6,31 @@
 	const WORDS = Array.from({ length: 24 }, (_, i) => `word${i + 1}`);
 	const POSITIONS = [2, 10, 20];
 
+	const kindTag = (kind) => (typeof kind === 'string' ? kind : Object.keys(kind)[0]);
+	const texts = (kind) =>
+		typeof kind === 'string'
+			? []
+			: Object.values(Object.values(kind)[0]).filter((v) => typeof v === 'string');
+	const tagName = (id) => state.tags.find((t) => t.id === id)?.name;
+	const emptyKind = (tag) =>
+		({
+			mood: { mood: { energy: null, emotions: [] } },
+			event: { event: { what: '', place: '', body: '', thoughts: '', helped: '' } },
+			fear: {
+				fear: { trigger: '', symptoms: [], avoidance: null, strategy: null, intensity_after: null }
+			},
+			sleep: {
+				sleep: { bedtime: null, wake: null, quality: null, awakenings: null, nightmare: false }
+			},
+			note: 'note'
+		})[tag];
+
 	const state = {
 		vault: window.localStorage.getItem('fake-vault') ?? 'no_vault',
 		failures: 0,
 		blockedUntil: 0,
-		entries: []
+		entries: [],
+		tags: []
 	};
 	const save = () => window.localStorage.setItem('fake-vault', state.vault);
 	const fail = (code, extra = {}) => Promise.reject({ code, message: code, ...extra });
@@ -80,7 +100,97 @@
 			}
 			return null;
 		},
-		entries_list: () => (state.vault === 'unlocked' ? state.entries : fail('locked')),
+		entries_list: ({ filter = {} }) => {
+			if (state.vault !== 'unlocked') return fail('locked');
+			const fold = (t) =>
+				t.normalize('NFKD').replace(/\p{M}/gu, '').replace(/ł/gi, 'l').toLowerCase();
+			const terms = fold(filter.text ?? '')
+				.split(/\s+/)
+				.filter(Boolean);
+			return state.entries
+				.filter((e) => !filter.kinds?.length || filter.kinds.includes(kindTag(e.kind)))
+				.filter((e) => !filter.tags?.length || e.tags.some((t) => filter.tags.includes(t)))
+				.filter((e) => !filter.incomplete_only || e.incomplete)
+				.filter((e) => !filter.from || Date.parse(e.occurred_at) >= Date.parse(filter.from))
+				.filter((e) => !filter.to || Date.parse(e.occurred_at) < Date.parse(filter.to))
+				.filter((e) => {
+					const hay = fold(
+						[e.note, ...texts(e.kind), ...e.tags.map((id) => tagName(id))].join(' ')
+					);
+					return terms.every((term) => hay.includes(term));
+				})
+				.sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at));
+		},
+		entry_get: ({ id }) => state.entries.find((e) => e.id === id) ?? fail('not_found'),
+		entry_save: ({ draft }) => {
+			const existing = draft.id && state.entries.find((e) => e.id === draft.id);
+			if (draft.id && !existing) return fail('not_found');
+			const now = new Date().toISOString();
+			const entry = {
+				id: existing?.id ?? `entry-${nextId++}`,
+				schema: 1,
+				created_at: existing?.created_at ?? now,
+				updated_at: now,
+				occurred_at: draft.occurred_at ?? existing?.occurred_at ?? now,
+				kind: draft.kind,
+				mood: draft.mood ?? null,
+				intensity: draft.intensity ?? null,
+				tags: [...new Set(draft.tags ?? [])],
+				note: draft.note ?? '',
+				incomplete: draft.incomplete ?? false,
+				sensitive: draft.sensitive ?? false
+			};
+			if (
+				(entry.mood !== null && (entry.mood < 1 || entry.mood > 5)) ||
+				entry.tags.some((t) => !tagName(t))
+			)
+				return fail('invalid_field');
+			state.entries = [...state.entries.filter((e) => e.id !== entry.id), entry];
+			return entry;
+		},
+		entry_delete: ({ id }) => {
+			const before = state.entries.length;
+			state.entries = state.entries.filter((e) => e.id !== id);
+			return before !== state.entries.length;
+		},
+		quick_entry: ({ kind, value }) =>
+			commands.entry_save({
+				draft: {
+					kind: emptyKind(kind),
+					mood: kind === 'mood' ? value : null,
+					intensity: kind === 'mood' ? null : value,
+					incomplete: true
+				}
+			}),
+		tags_list: () => [...state.tags].sort((a, b) => a.name.localeCompare(b.name)),
+		tag_create: ({ name, color }) =>
+			commands.tag_save({ tag: { id: `tag-${nextId++}`, name, color }, create: true }),
+		tag_save: ({ tag, create }) => {
+			const name = tag.name.trim();
+			if (!name) return fail('invalid_field');
+			if (state.tags.some((t) => t.id !== tag.id && t.name.toLowerCase() === name.toLowerCase()))
+				return fail('duplicate_tag_name');
+			if (!create && !state.tags.some((t) => t.id === tag.id)) return fail('not_found');
+			const saved = { ...tag, name };
+			state.tags = [...state.tags.filter((t) => t.id !== tag.id), saved];
+			return saved;
+		},
+		tag_delete: ({ id }) => {
+			state.entries = state.entries.map((e) => ({ ...e, tags: e.tags.filter((t) => t !== id) }));
+			const before = state.tags.length;
+			state.tags = state.tags.filter((t) => t.id !== id);
+			return before !== state.tags.length;
+		},
+		tag_merge: ({ from, into }) => {
+			state.entries = state.entries.map((e) =>
+				e.tags.includes(from)
+					? { ...e, tags: [...new Set(e.tags.map((t) => (t === from ? into : t)))] }
+					: e
+			);
+			state.tags = state.tags.filter((t) => t.id !== from);
+			return null;
+		},
+		clipboard_clear_if: () => false,
 		'plugin:event|listen': ({ event, handler }) => {
 			listeners.set(event, [...(listeners.get(event) ?? []), handler]);
 			return handler;

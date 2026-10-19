@@ -83,10 +83,13 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Za
 - [ ] Tłumaczenia uk do przejrzenia przez native speakera przed wydaniem
 
 ### Etap 7: UI – wpisy
-- [ ] Szybki wpis (≤ 2 stuknięcia, flaga `incomplete`)
-- [ ] Formularze E-1, E-2, E-3, E-4, E-6; zapis po wypełnieniu jednego pola
-- [ ] Oś czasu z filtrami i wyszukiwaniem; edycja, usuwanie z potwierdzeniem; tagi
-- [ ] Czyszczenie schowka po 60 s (tylko jeśli schowek nadal zawiera nasz tekst)
+- [x] Szybki wpis (E-10): rodzaj + ocena/intensywność = 2 stuknięcia; sen i notatka 1 stuknięcie; zapis jako „do uzupełnienia”, link „Więcej szczegółów”
+- [x] Formularze E-1 (piktogramy pogody 1–5, nie emoji), E-2, E-3 (objawy + własne, unikanie, strategia, intensywność po), E-4, E-6; koszmar (E-5) tylko przy edycji istniejących (tworzenie w v1); zapis po jednym polu; pełny zapis kończy „do uzupełnienia”
+- [x] Oś czasu z filtrami (rodzaj, tagi, zakres dat, tylko do uzupełnienia) i wyszukiwaniem w Ruście; edycja; usuwanie z potwierdzeniem w miejscu (bez `confirm()`)
+- [x] Tagi (E-12): tworzenie, zmiana nazwy, kolor z palety, usuwanie, łączenie
+- [x] Schowek: po `copy` Rust czyści schowek po 60 s, jeśli nadal zawiera skopiowany tekst (`tauri-plugin-clipboard-manager`, używany tylko z Rusta; BSL-1.0 dopuszczona w `deny.toml`)
+- [x] E2E: szybki wpis, pełny formularz + edycja + usunięcie, tagi + filtr + wyszukiwanie bez diakrytyków; każdy test pada na błędzie w konsoli
+- [ ] Język z ustawień po odblokowaniu: razem z ekranem ustawień (etap 10), bo domyślne `locale = "pl"` nadpisałoby język systemu
 
 ### Etap 8: Plan na trudny moment
 - [ ] Edytor planu Stanley–Brown (P-1), dostęp z ekranu głównego (P-2)

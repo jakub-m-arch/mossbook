@@ -4,11 +4,30 @@
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 
-import { activityPing, clockSync, isAppError, onPrivacyCurtain, onVaultLocked } from './api';
-import { t } from './i18n/index.svelte';
+import {
+	activityPing,
+	clipboardClearIf,
+	clockSync,
+	isAppError,
+	onPrivacyCurtain,
+	onVaultLocked
+} from './api/index.js';
+import { t } from './i18n/index.svelte.js';
 
 /** Minimum gap between activity pings. */
 const PING_INTERVAL_MS = 20_000;
+
+/** Copied text is cleared from the clipboard after this long (SPEC §2). */
+export const CLIPBOARD_CLEAR_MS = 60_000;
+
+/** The text a `copy` event puts on the clipboard, including from inputs. */
+export function copiedText(target: EventTarget | null): string {
+	if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+		const { selectionStart: start, selectionEnd: end, value } = target;
+		if (start !== null && end !== null && end > start) return value.slice(start, end);
+	}
+	return window.getSelection()?.toString() ?? '';
+}
 
 let covered = $state(false);
 
@@ -56,6 +75,15 @@ export function installSessionHooks(): () => void {
 	const onVisible = () => {
 		if (document.visibilityState === 'visible') clockSync().catch(() => {});
 	};
+
+	const onCopy = (event: ClipboardEvent) => {
+		const text = copiedText(event.target);
+		if (!text.trim()) return;
+		const timer = setTimeout(() => clipboardClearIf(text).catch(() => {}), CLIPBOARD_CLEAR_MS);
+		cleanups.push(() => clearTimeout(timer));
+	};
+	document.addEventListener('copy', onCopy);
+	cleanups.push(() => document.removeEventListener('copy', onCopy));
 
 	clockSync().catch(() => {});
 	for (const type of ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const) {

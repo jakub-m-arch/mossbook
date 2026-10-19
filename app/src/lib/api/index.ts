@@ -92,3 +92,8 @@ export const settingsSave = (settings: Settings) => invoke<Settings>('settings_s
 // ---- patterns ----
 
 export const statsMood = (range: StatsRange) => invoke<MoodPoint[]>('stats_mood', { range });
+
+// ---- clipboard ----
+
+/** Clears the clipboard if it still holds `text` (copied from the app earlier). */
+export const clipboardClearIf = (text: string) => invoke<boolean>('clipboard_clear_if', { text });

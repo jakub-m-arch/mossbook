@@ -1,11 +1,17 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
 
+	import { resolve } from '$app/paths';
 	import { vaultLock, vaultStatus } from '#lib/api/index.js';
 	import { t } from '#lib/i18n/index.svelte.js';
 	import { toLockScreen } from '#lib/session.svelte.js';
 
-	let { title, children }: { title: string; children: Snippet } = $props();
+	let {
+		title,
+		back,
+		children
+	}: { title: string; /** Show a back link to the timeline. */ back?: boolean; children: Snippet } =
+		$props();
 	let unreadable = $state(0);
 
 	onMount(() => {
@@ -25,6 +31,11 @@
 </script>
 
 <header>
+	{#if back}<a
+			class="button secondary back"
+			href={resolve('/timeline')}
+			aria-label={t('common.back')}>←</a
+		>{/if}
 	<h1>{title}</h1>
 	<!-- V-4: one tap, always visible while unlocked. -->
 	<button type="button" class="secondary" onclick={lock}>{t('common.lock')}</button>
@@ -52,7 +63,11 @@
 		background: var(--bg);
 	}
 	header h1 {
+		flex: 1;
 		margin: 0;
 		font-size: 1.25rem;
+	}
+	.back {
+		padding-inline: 0.8rem;
 	}
 </style>

@@ -1,5 +1,8 @@
 {
-	"app": { "name": "Mossbook", "tagline": "Prywatny dziennik samopoczucia" },
+	"app": {
+		"name": "Mossbook",
+		"tagline": "Prywatny dziennik samopoczucia"
+	},
 	"common": {
 		"next": "Dalej",
 		"back": "Wstecz",
@@ -20,7 +23,8 @@
 		"throttled": "Odczekaj chwilę przed kolejną próbą.",
 		"vault_corrupted": "Plik dziennika jest uszkodzony.",
 		"unsupported_format": "Ten dziennik został zapisany w nowszej wersji aplikacji.",
-		"generic": "Coś poszło nie tak. Spróbuj jeszcze raz."
+		"generic": "Coś poszło nie tak. Spróbuj jeszcze raz.",
+		"duplicate_tag_name": "Tag o tej nazwie już istnieje."
 	},
 	"strength": {
 		"label": "Siła hasła",
@@ -72,5 +76,127 @@
 		"empty": "Tu pojawią się twoje wpisy.",
 		"unreadable": "Nie udało się odczytać części zapisanych danych ({count}). Pozostałe wpisy są bezpieczne."
 	},
-	"curtain": { "text": "Mossbook" }
+	"curtain": {
+		"text": "Mossbook"
+	},
+	"kind": {
+		"mood": "Samopoczucie",
+		"event": "Zdarzenie",
+		"fear": "Lęk / wyzwalacz",
+		"sleep": "Sen",
+		"nightmare": "Koszmar",
+		"note": "Notatka"
+	},
+	"mood": {
+		"label": "Jak się czujesz",
+		"1": "bardzo ciężko",
+		"2": "ciężko",
+		"3": "tak sobie",
+		"4": "dobrze",
+		"5": "bardzo dobrze"
+	},
+	"scale": {
+		"intensity": "Intensywność (0–10)",
+		"energy": "Energia (1–5)",
+		"quality": "Jakość snu (1–5)",
+		"after": "Intensywność po (0–10)",
+		"clear": "Wyczyść"
+	},
+	"emotion": {
+		"label": "Emocje",
+		"anxiety": "lęk",
+		"sadness": "smutek",
+		"anger": "złość",
+		"shame": "wstyd",
+		"guilt": "poczucie winy",
+		"relief": "ulga",
+		"calm": "spokój",
+		"joy": "radość",
+		"loneliness": "samotność",
+		"numbness": "odrętwienie",
+		"overwhelm": "przytłoczenie"
+	},
+	"symptom": {
+		"label": "Objawy w ciele",
+		"racing_heart": "kołatanie serca",
+		"shortness_of_breath": "duszność",
+		"chest_tightness": "ucisk w klatce",
+		"sweating": "pocenie się",
+		"trembling": "drżenie",
+		"nausea": "mdłości",
+		"dizziness": "zawroty głowy",
+		"muscle_tension": "napięcie mięśni",
+		"hot_or_cold_flushes": "uderzenia gorąca lub zimna",
+		"tingling": "mrowienie",
+		"unreality": "poczucie nierealności"
+	},
+	"custom": {
+		"add": "Dodaj własne",
+		"placeholder": "Wpisz i dodaj"
+	},
+	"field": {
+		"occurredAt": "Kiedy",
+		"note": "Notatka",
+		"tags": "Tagi",
+		"what": "Co się stało",
+		"place": "Gdzie",
+		"body": "Reakcja ciała",
+		"thoughts": "Myśli",
+		"helped": "Co pomogło",
+		"trigger": "Co to wywołało",
+		"avoidance": "Czy było unikanie",
+		"yes": "tak",
+		"no": "nie",
+		"strategy": "Co zastosowałem/zastosowałam",
+		"bedtime": "Pora snu",
+		"wake": "Pobudka",
+		"awakenings": "Liczba wybudzeń",
+		"nightmare": "Był koszmar",
+		"content": "Treść koszmaru",
+		"rescripted": "Nowa wersja"
+	},
+	"entry": {
+		"new": "Nowy wpis",
+		"edit": "Edytuj wpis",
+		"save": "Zapisz",
+		"saved": "Zapisano",
+		"delete": "Usuń wpis",
+		"deleteConfirm": "Usunąć ten wpis? Tego nie da się cofnąć.",
+		"incomplete": "do uzupełnienia",
+		"notFound": "Nie ma takiego wpisu."
+	},
+	"quick": {
+		"open": "Szybki wpis",
+		"title": "Szybki wpis",
+		"chooseKind": "Co chcesz zapisać?",
+		"chooseValue": "Jak bardzo?",
+		"saveWithout": "Zapisz bez oceny",
+		"more": "Więcej szczegółów",
+		"done": "Zapisano. Możesz uzupełnić później."
+	},
+	"filter": {
+		"search": "Szukaj",
+		"kinds": "Rodzaj",
+		"tags": "Tagi",
+		"from": "Od",
+		"to": "Do",
+		"incomplete": "Tylko do uzupełnienia",
+		"more": "Więcej filtrów",
+		"clear": "Wyczyść filtry",
+		"none": "Nic nie pasuje do filtrów."
+	},
+	"tags": {
+		"title": "Tagi",
+		"manage": "Tagi",
+		"name": "Nazwa",
+		"color": "Kolor",
+		"create": "Dodaj tag",
+		"save": "Zapisz",
+		"delete": "Usuń",
+		"deleteConfirm": "Usunąć tag? Zniknie ze wszystkich wpisów.",
+		"merge": "Połącz z…",
+		"mergeConfirm": "Połączyć? Wpisy z tym tagiem dostaną wybrany tag.",
+		"duplicate": "Tag o tej nazwie już istnieje.",
+		"empty": "Nie masz jeszcze tagów."
+	}
 }

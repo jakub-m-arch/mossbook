@@ -62,7 +62,8 @@ async function invokedCommands(): Promise<string[]> {
 				crisis_country: 'PL',
 				reminders: []
 			}),
-		() => api.statsMood('week')
+		() => api.statsMood('week'),
+		() => api.clipboardClearIf('copied')
 	];
 	for (const call of calls) await call();
 	return invoke.mock.calls.map((c) => c[0]);
