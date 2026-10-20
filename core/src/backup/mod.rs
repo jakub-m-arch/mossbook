@@ -7,6 +7,7 @@
 //!   re-encrypts with the current vault's key (decision D-4); merge rules live in
 //!   [`crate::journal::Journal::import`].
 
+pub mod auto;
 pub mod format;
 
 use core::fmt;

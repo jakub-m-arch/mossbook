@@ -2,6 +2,7 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import FileText from '@lucide/svelte/icons/file-text';
+	import FolderOpen from '@lucide/svelte/icons/folder-open';
 	import Tag from '@lucide/svelte/icons/tag';
 	import { onMount } from 'svelte';
 
@@ -10,13 +11,18 @@
 	import {
 		appInfo,
 		backupExport,
+		backupInfo,
+		backupReveal,
+		exportJson,
+		isAppError,
 		openReleases,
 		settingsGet,
 		settingsSave,
 		vaultChangePassword,
-		vaultDestroy
+		vaultDestroy,
+		vaultVerifyRecovery
 	} from '#lib/api/index.js';
-	import type { AppInfo, AutoLock, ImportOutcome, Settings } from '#lib/api/index.js';
+	import type { AppInfo, AutoLock, BackupInfo, ImportOutcome, Settings } from '#lib/api/index.js';
 	import BackupImport from '#lib/components/BackupImport.svelte';
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import PasswordField from '#lib/components/PasswordField.svelte';
@@ -37,6 +43,8 @@
 
 	let settings = $state<Settings | null>(null);
 	let info = $state<AppInfo | null>(null);
+	let backups = $state<BackupInfo | null>(null);
+	let recoveryPhrase = $state('');
 	/** Offline nudge: no network, just the age of this build (D-15). */
 	const OLD_AFTER_DAYS = 90;
 	let isOld = $derived(!!info && Date.now() / 1000 - info.built_at > OLD_AFTER_DAYS * 86_400);
@@ -63,12 +71,57 @@
 		}
 	}
 
+	function formatTime(timestamp: string) {
+		return new Intl.DateTimeFormat(locale(), { dateStyle: 'long', timeStyle: 'short' }).format(
+			new Date(timestamp)
+		);
+	}
+
+	async function refreshBackups() {
+		backups = await backupInfo();
+	}
+
 	onMount(() => {
 		appInfo()
 			.then((i) => (info = i))
 			.catch(() => {});
-		return void attempt('settings', async () => void (settings = await settingsGet()));
+		return void attempt('settings', async () => {
+			settings = await settingsGet();
+			await refreshBackups();
+		});
 	});
+
+	function saveAutoBackup(value: boolean) {
+		if (!settings) return;
+		const next = { ...$state.snapshot(settings), auto_backup: value } as Settings;
+		void attempt('auto', async () => {
+			settings = await settingsSave(next);
+			await refreshBackups();
+		});
+	}
+
+	function exportBackup() {
+		return attempt('export', async () => {
+			if (!(await backupExport())) return '';
+			await refreshBackups();
+			return t('backup.exported');
+		});
+	}
+
+	function checkRecovery(e: SubmitEvent) {
+		e.preventDefault();
+		if (!recoveryPhrase.trim()) return;
+		void attempt('recovery', async () => {
+			try {
+				await vaultVerifyRecovery(recoveryPhrase);
+			} catch (err) {
+				if (isAppError(err) && err.code === 'wrong_recovery_key') return t('recoveryCheck.wrong');
+				throw err;
+			}
+			recoveryPhrase = '';
+			return t('recoveryCheck.ok');
+		});
+	}
 
 	function saveAutolock(value: AutoLock) {
 		if (!settings) return;
@@ -101,7 +154,9 @@
 		void attempt('password', async () => {
 			await vaultChangePassword(oldPassword, newPassword);
 			oldPassword = newPassword = repeat = '';
-			return `${t('password.changed')} ${t('password.oldBackups')}`;
+			await refreshBackups();
+			const auto = settings?.auto_backup ? ` ${t('password.autoReplaced')}` : '';
+			return `${t('password.changed')} ${t('password.oldBackups')}${auto}`;
 		});
 	}
 
@@ -174,16 +229,61 @@
 		<section class="card stack" aria-labelledby="backup">
 			<h2 id="backup">{t('backup.title')}</h2>
 			<p class="muted">{t('backup.intro')}</p>
-			<button
-				type="button"
-				onclick={() =>
-					attempt('export', async () => ((await backupExport()) ? t('backup.exported') : ''))}
-			>
-				{t('backup.export')}
-			</button>
+			<button type="button" onclick={exportBackup}>{t('backup.export')}</button>
+			{#if backups}
+				<p class="muted small" data-testid="last-export">
+					{backups.last_export
+						? t('backup.lastExport', { date: formatTime(backups.last_export) })
+						: t('backup.lastExportNever')}
+				</p>
+			{/if}
 			{#if messages.export}<p class="muted" aria-live="polite">{messages.export}</p>{/if}
 			<BackupImport unlocked={true} ondone={onImported} />
 			{#if messages.import}<p class="notice" aria-live="polite">{messages.import}</p>{/if}
+
+			<h3>{t('backup.autoTitle')}</h3>
+			{#if settings}
+				<label class="toggle">
+					<input
+						type="checkbox"
+						checked={settings.auto_backup}
+						onchange={(e) => saveAutoBackup(e.currentTarget.checked)}
+					/>
+					{t('backup.autoToggle')}
+				</label>
+			{/if}
+			{#if backups?.auto_enabled}
+				<p class="muted" data-testid="auto-latest">
+					{backups.auto_latest
+						? t('backup.autoLatest', { date: formatTime(backups.auto_latest) })
+						: t('backup.autoNone')}
+				</p>
+				{#if backups.auto_failed}<p class="notice">{t('backup.autoFailed')}</p>{/if}
+				{#if backups.auto_latest}
+					<button
+						type="button"
+						class="secondary"
+						onclick={() => attempt('auto', async () => void (await backupReveal()))}
+					>
+						<FolderOpen size={18} />{t('backup.autoShow')}
+					</button>
+				{/if}
+			{/if}
+			<p class="muted small">{t('backup.autoHint')}</p>
+			{#if messages.auto}<p class="notice" aria-live="polite">{messages.auto}</p>{/if}
+		</section>
+
+		<section class="card stack" aria-labelledby="export-json">
+			<h2 id="export-json">{t('exportJson.title')}</h2>
+			<p class="muted">{t('exportJson.intro')}</p>
+			<p class="notice">{t('exportJson.warning')}</p>
+			<ConfirmAction
+				label={t('exportJson.submit')}
+				question={t('exportJson.question')}
+				onconfirm={() =>
+					attempt('json', async () => ((await exportJson()) ? t('exportJson.saved') : ''))}
+			/>
+			{#if messages.json}<p class="muted" aria-live="polite">{messages.json}</p>{/if}
 		</section>
 
 		<section class="card stack" aria-labelledby="password">
@@ -216,6 +316,25 @@
 					</p>{/if}
 				<button type="submit" disabled={!passwordReady}>{t('password.submit')}</button>
 				{#if messages.password}<p class="notice" aria-live="polite">{messages.password}</p>{/if}
+			</form>
+		</section>
+
+		<section class="card stack" aria-labelledby="recovery-check">
+			<h2 id="recovery-check">{t('recoveryCheck.title')}</h2>
+			<p class="muted">{t('recoveryCheck.intro')}</p>
+			<form class="stack" onsubmit={checkRecovery}>
+				<label for="recovery-phrase">{t('recoveryCheck.label')}</label>
+				<textarea
+					id="recovery-phrase"
+					rows="4"
+					bind:value={recoveryPhrase}
+					autocomplete="off"
+					autocapitalize="off"
+					spellcheck="false"></textarea>
+				<button type="submit" class="secondary" disabled={!recoveryPhrase.trim()}>
+					{t('recoveryCheck.submit')}
+				</button>
+				{#if messages.recovery}<p class="notice" aria-live="polite">{messages.recovery}</p>{/if}
 			</form>
 		</section>
 
@@ -280,6 +399,22 @@
 	h2 {
 		margin: 0;
 		font-size: 1.15rem;
+	}
+	h3 {
+		margin: 0.75rem 0 0;
+		font-size: 1rem;
+	}
+	.toggle {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		min-height: var(--tap);
+		font-weight: 500;
+	}
+	.toggle input {
+		width: 1.3rem;
+		min-height: 1.3rem;
+		flex: none;
 	}
 	.choices {
 		display: flex;

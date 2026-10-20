@@ -6,7 +6,7 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-use super::DomainError;
+use super::{DomainError, Timestamp};
 
 /// Supported UI languages (SPEC §4.7).
 pub const LOCALES: [&str; 3] = ["pl", "en", "uk"];
@@ -26,6 +26,18 @@ pub struct Settings {
     pub crisis_country: String,
     #[serde(default)]
     pub reminders: Vec<Reminder>,
+    /// Automatic local backups when the journal locks (decision D-16).
+    #[serde(default = "default_true")]
+    #[zeroize(skip)]
+    pub auto_backup: bool,
+    /// When the user last saved a backup themselves. Set by the journal, never
+    /// by the UI (see `Journal::save_settings`).
+    #[serde(default)]
+    pub last_export: Option<Timestamp>,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn default_crisis_country() -> String {
@@ -39,6 +51,8 @@ impl Default for Settings {
             locale: None,
             crisis_country: default_crisis_country(),
             reminders: Vec::new(),
+            auto_backup: true,
+            last_export: None,
         }
     }
 }
@@ -178,6 +192,9 @@ mod tests {
         assert_eq!(s.locale.as_deref(), Some("pl"));
         assert_eq!(s.autolock, AutoLock::After5Min);
         assert_eq!(Settings::default().locale, None);
+        // Fields added later get their defaults.
+        assert!(s.auto_backup);
+        assert_eq!(s.last_export, None);
     }
 
     #[test]

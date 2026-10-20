@@ -157,6 +157,8 @@ period) overviews are not shown.
 | X-3 | **Report for a therapist (PDF)**: choice of period, types and tags; preview before saving; a warning that the PDF is **not encrypted** | v1 |
 | X-4 | Plain JSON export (full portability), with a warning | v1 |
 | X-5 | Deleting all data (V-9) | MVP |
+| X-6 | **Automatic local backups** when the journal locks (daily, newest seven), plus a note in the settings of when a backup was last saved elsewhere (D-16) | v1 |
+| X-7 | **Checking the recovery key**: type the 24 words and see whether they open this journal, without changing anything | v1 |
 
 ### 4.6. Reminders
 
@@ -392,10 +394,10 @@ Main groups:
 
 | Group | Commands |
 |---|---|
-| Vault | `vault_status`, `vault_create`, `vault_cancel_create`, `vault_confirm_recovery`, `vault_unlock`, `vault_unlock_recovery`, `vault_lock`, `vault_change_password`, `vault_destroy` |
+| Vault | `vault_status`, `vault_create`, `vault_cancel_create`, `vault_confirm_recovery`, `vault_unlock`, `vault_unlock_recovery`, `vault_lock`, `vault_change_password`, `vault_verify_recovery`, `vault_destroy` |
 | Journal | `entries_list`, `entry_get`, `entry_save`, `entry_delete`, `quick_entry`, `quick_entry_locked`, `tags_list`, `tag_create`, `tag_save`, `tag_delete`, `tag_merge`, `plan_get`, `plan_save`, `settings_get`, `settings_save` |
 | Patterns | `stats_mood`, `stats_patterns` |
-| Files | `backup_export`, `backup_pick`, `backup_import`, `report_pdf` |
+| Files | `backup_export`, `backup_pick`, `backup_import`, `backup_info`, `backup_reveal`, `export_json`, `report_pdf` |
 | Help | `crisis_lines`, `dial` |
 | App | `clock_sync`, `activity_ping`, `clipboard_clear_if`, `app_info`, `open_releases` |
 

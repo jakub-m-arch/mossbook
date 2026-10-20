@@ -318,7 +318,16 @@
 		"restoreTitle": "Restore from a backup",
 		"restoreIntro": "Have a .mossbook file from another device? Choose it and open it with its password or recovery key. The journal keeps the backup's password and key.",
 		"haveBackup": "I have a backup",
-		"choose": "Choose a file"
+		"choose": "Choose a file",
+		"autoTitle": "Automatic copies on this device",
+		"autoToggle": "Make a copy when the journal locks (once a day, the last 7 are kept)",
+		"autoLatest": "Latest automatic copy: {date}",
+		"autoNone": "No automatic copy yet. The first one is made the next time the journal locks.",
+		"autoFailed": "The last automatic copy could not be saved. Your journal is unchanged.",
+		"autoShow": "Show in folder",
+		"autoHint": "These copies help if the journal file gets damaged or something is deleted by mistake. They stay on this device, so also save a copy somewhere else, such as a USB stick or another computer.",
+		"lastExport": "Last backup you saved: {date}",
+		"lastExportNever": "No backup saved by you yet."
 	},
 	"password": {
 		"title": "Change password",
@@ -326,7 +335,8 @@
 		"new": "New password",
 		"submit": "Change password",
 		"changed": "Password changed. Your recovery key stays the same.",
-		"oldBackups": "Older backups still open with the previous password."
+		"oldBackups": "Older backups still open with the previous password.",
+		"autoReplaced": "Automatic copies on this device were replaced with one that opens with the new password."
 	},
 	"destroy": {
 		"title": "Delete all data",
@@ -452,5 +462,21 @@
 		"checkHint": "Opens the releases page in your browser. The app itself never connects to the internet.",
 		"old": "This version is more than 3 months old. A newer one may be available.",
 		"watch": "You can get notified of new versions on GitHub: Watch → Custom → Releases."
+	},
+	"recoveryCheck": {
+		"title": "Check your recovery key",
+		"intro": "Type the 24 words you wrote down to make sure they open this journal. Nothing changes.",
+		"label": "Your 24 words",
+		"submit": "Check the key",
+		"ok": "These words open your journal. Keep them somewhere safe.",
+		"wrong": "These words do not open this journal. Compare each word with your note."
+	},
+	"exportJson": {
+		"title": "Readable copy (JSON)",
+		"intro": "All your entries, tags, plan and settings in one JSON file that other programs can read. Your data is yours to take anywhere.",
+		"warning": "The JSON file is not encrypted. Anyone who opens it can read your whole journal. Save it only somewhere safe and delete it when it is no longer needed.",
+		"submit": "Save JSON file",
+		"question": "Save a file that is not encrypted?",
+		"saved": "File saved."
 	}
 }

@@ -18,6 +18,7 @@
     "allow-vault-unlock-recovery",
     "allow-vault-lock",
     "allow-vault-change-password",
+    "allow-vault-verify-recovery",
     "allow-vault-destroy",
     "allow-entries-list",
     "allow-entry-get",
@@ -44,6 +45,9 @@
     "allow-backup-export",
     "allow-backup-pick",
     "allow-backup-import",
+    "allow-backup-info",
+    "allow-backup-reveal",
+    "allow-export-json",
     "allow-report-pdf"
   ]
 }

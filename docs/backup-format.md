@@ -78,6 +78,45 @@ made**. After a password change, older backups still need the old password
   - *Replace*: the journal becomes exactly the backup's content.
   - Records that do not decode or fail validation are skipped and counted.
 
+## Automatic backups
+
+When the journal locks, at most once every 20 hours, the app writes an ordinary backup
+(exactly the format above) into a `backups/` folder next to `vault.db`, and keeps the
+newest seven (decision D-16, `core/src/backup/auto.rs`).
+
+- File names are fixed slots, `auto-1.mossbook` … `auto-7.mossbook`, so no date
+  appears in plaintext. A new backup goes into a free slot, or over the oldest one,
+  through a temporary file and a rename.
+- They open like any backup: with the password or recovery key valid when they were
+  written. After a password change (or a recovery with a new password) they are
+  replaced by one backup under the new password, so old copies stop opening with the
+  old one. Deleting the journal (V-9) deletes them too.
+- They can be turned off in the settings. They protect against a damaged vault file
+  or a mistake, not against losing the device.
+
+## Plain JSON export
+
+Settings → *Readable copy (JSON)* writes the whole journal as **unencrypted** UTF-8
+JSON (X-4), after a warning. It is meant for leaving Mossbook or keeping one's own
+archive; the app does not import it.
+
+```json
+{
+  "format": "mossbook-export",
+  "version": 1,
+  "exported_at": "2026-10-20T11:00:00+02:00",
+  "entries": [ … ],
+  "tags": [ … ],
+  "plan": { … },
+  "settings": { … }
+}
+```
+
+`entries` (oldest first), `tags` (by name), `plan` and `settings` have exactly the
+shapes of the domain types in `core/src/domain/` (field names in `snake_case`,
+timestamps in RFC 3339 with the local offset, ids as UUID strings, entry kinds as
+`{"fear": {…}}` or `"note"`). A change to these shapes increments `version`.
+
 ## Versioning
 
 A change to anything above is a new backup format version, with a new fixture in

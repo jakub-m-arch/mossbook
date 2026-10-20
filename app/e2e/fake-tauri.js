@@ -33,7 +33,15 @@
 		blockedUntil: 0,
 		entries: [],
 		tags: [],
-		settings: { autolock: 'immediately', locale: null, crisis_country: 'PL', reminders: [] },
+		settings: {
+			autolock: 'immediately',
+			locale: null,
+			crisis_country: 'PL',
+			reminders: [],
+			auto_backup: true,
+			last_export: null
+		},
+		autoLatest: null,
 		pendingBackup: false,
 		inbox: [],
 		plan: {
@@ -112,6 +120,7 @@
 		vault_lock: () => {
 			if (state.vault === 'unlocked') {
 				state.vault = 'locked';
+				if (state.settings.auto_backup) state.autoLatest = new Date().toISOString();
 				save();
 				emit('vault-locked', 'manual');
 			}
@@ -290,8 +299,31 @@
 		settings_get: () => (state.vault === 'unlocked' ? state.settings : fail('locked')),
 		settings_save: ({ settings }) => {
 			if (state.vault !== 'unlocked') return fail('locked');
-			state.settings = settings;
-			return settings;
+			// Like Rust: last_export is set only by backup_export.
+			state.settings = { ...settings, last_export: state.settings.last_export };
+			return state.settings;
+		},
+		vault_verify_recovery: ({ phrase }) => {
+			if (state.vault !== 'unlocked') return fail('locked');
+			const words = phrase.trim().split(/\s+/);
+			if (words.length !== 24) return fail('invalid_recovery_phrase');
+			return words.join(' ') === WORDS.join(' ') ? null : fail('wrong_recovery_key');
+		},
+		backup_info: () =>
+			state.vault === 'unlocked'
+				? {
+						auto_enabled: state.settings.auto_backup,
+						auto_latest: state.autoLatest,
+						auto_count: state.autoLatest ? 1 : 0,
+						auto_failed: false,
+						last_export: state.settings.last_export
+					}
+				: fail('locked'),
+		backup_reveal: () => (state.autoLatest ? null : fail('not_found')),
+		export_json: () => {
+			if (state.vault !== 'unlocked') return fail('locked');
+			window.__fake.jsonExports += 1;
+			return true;
 		},
 		vault_change_password: ({ old, new: next }) => {
 			if (old !== password) return fail('wrong_password');
@@ -306,7 +338,11 @@
 			save();
 			return null;
 		},
-		backup_export: () => (state.vault === 'unlocked' ? true : fail('locked')),
+		backup_export: () => {
+			if (state.vault !== 'unlocked') return fail('locked');
+			state.settings = { ...state.settings, last_export: new Date().toISOString() };
+			return true;
+		},
 		// The fake backup holds one synthetic note and opens with BACKUP_PASSWORD.
 		backup_pick: () => {
 			state.pendingBackup = true;
@@ -416,6 +452,7 @@
 		},
 		calls: [],
 		reports: [],
+		jsonExports: 0,
 		emit,
 		lockFromRust(reason) {
 			state.vault = 'locked';

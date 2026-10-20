@@ -128,6 +128,15 @@ Postponed on purpose (2026-10-19): the tools are missing (JDK, SDK, NDK) and sto
 - [ ] Enable private vulnerability reporting in the repository settings
 - [ ] Code signing: Apple Developer ID + notarisation (macOS), SignPath or Azure Trusted Signing (Windows)
 
+### Stage 14: Trust before a wider release
+- [x] **Automatic backups (D-16)**: on lock, at most every 20 h, newest 7 in `backups/` next to the vault; fixed slot names; replaced after a password change, deleted with the journal; can be turned off; the backup picker opens in that folder
+- [x] Settings show the latest automatic backup ("Show in folder") and when the user last saved a backup themselves (`Settings.last_export`, set only by the journal)
+- [x] **Recovery key check**: type the 24 words, see whether they open this journal; nothing changes
+- [ ] Build provenance attestations and GitHub Actions pinned to commit SHAs
+- [ ] Screenshots and a plain-language privacy section in the README
+- [ ] Crisis numbers for more countries (UA, GB, DE, US at least), from official sources
+- [ ] Reviews: a psychotherapist (exercises, IRT, tone), a native Ukrainian speaker
+
 ### Stage 13 (v1)
 - [x] **PDF report for a therapist (X-3)**: period, types and tags; the frontend builds the document model (translations), the same model is the preview and goes to `core::report`, which lays out A4 with `printpdf` (word wrap by glyph widths, pagination, "not encrypted" footer + page number); Noto Sans (OFL) embedded whole (~600 KB; subsetting would need the heavy `text_layout` feature); a warning before saving; saved through the system dialog
 - [x] **Nightmare / IRT (E-5)**: creation (one-tap quick entry), an explanation of the method, the nightmare collapsed when reopened, the new version, rehearsals with dates; "difficult content" by default
@@ -135,7 +144,7 @@ Postponed on purpose (2026-10-19): the tools are missing (JDK, SDK, NDK) and sto
 - [x] **Calendar (E-14)** in Patterns: a month, each day tinted by average mood (one hue, no red), legend, month navigation; tapping a day → timeline filtered to that day
 - [x] **Overviews A-2–A-4** (`core::query::patterns`, Patterns → Overviews): from 14 entries in the period; most frequent tags and triggers (free text grouped after normalisation, ≥ 2 repeats); mood versus the previous night's sleep (poor/fair/good), time of day, day of week; strategies: average intensity drop (≥ 2 uses); bars with numbers, observations only
 - [x] **Quick entry without unlocking (E-15)**: X25519 pair in the header (`x25519_pub`, `wrapped_x25519_priv`), libsodium-compatible sealed box (tested against PyNaCl), `inbox` table, minimal `InboxEntry` (type, value, time), moved into the journal on unlock; older vaults get the keys on their next unlock; button on the lock screen
-- [ ] Plain JSON export (X-4)
+- [x] **Plain JSON export (X-4)**: Settings → readable copy, after a warning; `format`/`version` envelope with the domain types, documented in `docs/backup-format.md`
 - [ ] Reminders (R-1–R-3): **postponed to the mobile versions** (D-14)
 - [ ] Biometrics, iOS, Android (postponed)
 
@@ -163,3 +172,4 @@ Status: **accepted** or **open**. Accepted decisions bind the implementation jus
 | D-13 | accepted | **UUIDv7 reveals the creation time**: `records.id` is stored in plaintext (database and backup), and v7 contains a millisecond timestamp, which breaks principle 2 | New ids are random (UUIDv4); sorting uses `occurred_at` from the encrypted content. Existing v7 ids are read unchanged |
 | D-14 | accepted | **Reminders on desktop**: the schedule is in the encrypted settings, yet a reminder must arrive while the journal is locked; on desktop only while the app runs | Postponed to the mobile versions (system notification scheduling). No plaintext schedule on disk |
 | D-15 | accepted | **Updates without network**: auto-update breaks principle 1 (a connection reveals the IP address and that the app is used) | Settings → About: version, build date (`SOURCE_DATE_EPOCH` for reproducibility), a hint after 90 days computed locally, a button opening the Releases page in the browser (fixed URL in Rust); README: GitHub notifications. Package managers (Homebrew; later winget, Flathub) update from outside |
+| D-16 | accepted | **Losing the only copy**: a damaged `vault.db` or a mistake (deleting, a bad import) loses everything unless the user saved a backup | Automatic backups when the journal locks, at most every 20 h, newest 7, in `backups/` next to the vault, same format and encryption as manual backups. Fixed slot names (no dates in plaintext); file times reveal on which recent days the journal was locked (accepted, documented). Replaced after a password change so they stop opening with the old password; deleted with the journal; can be turned off |

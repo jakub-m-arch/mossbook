@@ -2,12 +2,12 @@
 //! policy (SPEC §8.3, V-3, decisions D-6 and D-11). Plain Rust, no Tauri, so
 //! it can be unit-tested.
 
-use std::path::PathBuf;
-use std::time::{Duration, Instant};
+use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant, SystemTime};
 
-use mossbook_core::backup::Backup;
+use mossbook_core::backup::{Backup, auto};
 use mossbook_core::crypto::kdf::KdfParams;
-use mossbook_core::domain::{AutoLock, EntryKindTag};
+use mossbook_core::domain::{AutoLock, EntryKindTag, Timestamp};
 use mossbook_core::journal::{ImportMode, ImportReport, Journal};
 use mossbook_core::vault::{self, DestroyError, PendingVault, UnlockThrottle, VaultError};
 use serde::{Deserialize, Serialize};
@@ -82,6 +82,20 @@ pub struct Session {
     kdf_override: Option<KdfParams>,
     /// A backup file picked by the user, waiting for its password (X-2).
     pending_backup: Option<Backup>,
+    /// The last automatic backup that was due could not be written (D-16).
+    auto_backup_failed: bool,
+}
+
+/// What the settings show about backups.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct BackupInfo {
+    pub auto_enabled: bool,
+    /// Newest automatic backup on this device, in the user's offset.
+    pub auto_latest: Option<Timestamp>,
+    pub auto_count: usize,
+    pub auto_failed: bool,
+    /// When the user last saved a backup themselves.
+    pub last_export: Option<Timestamp>,
 }
 
 /// What the UI learns about a picked backup before it is opened.
@@ -124,6 +138,7 @@ impl Session {
             utc_offset: UtcOffset::UTC,
             kdf_override: None,
             pending_backup: None,
+            auto_backup_failed: false,
         }
     }
 
@@ -241,7 +256,9 @@ impl Session {
     ) -> AppResult<()> {
         self.before_unlock(now)?;
         let result = vault::unlock_with_recovery(&self.vault_path, phrase, new_password);
-        self.after_unlock(result, now)
+        self.after_unlock(result, now)?;
+        self.refresh_auto_backups();
+        Ok(())
     }
 
     fn before_unlock(&self, now: Instant) -> AppResult<()> {
@@ -287,9 +304,58 @@ impl Session {
         else {
             unreachable!("checked above");
         };
+        if journal.settings().auto_backup && auto::is_due(&self.auto_dir(), SystemTime::now()) {
+            self.auto_backup_failed = !write_auto_backup(&self.auto_dir(), &journal);
+        }
         // Even if flushing fails, the journal (DEK and content) is dropped and zeroed.
         journal.lock()?;
         Ok(true)
+    }
+
+    // ---- automatic backups (D-16) ----
+
+    fn auto_dir(&self) -> PathBuf {
+        auto::dir_for(&self.vault_path)
+    }
+
+    /// After the password changes, older automatic backups would keep opening
+    /// with the old password: replace them with one under the new password.
+    fn refresh_auto_backups(&mut self) {
+        let dir = self.auto_dir();
+        let Ok(journal) = self.journal() else {
+            return;
+        };
+        let enabled = journal.settings().auto_backup;
+        let ok = auto::clear(&dir).is_ok() && (!enabled || write_auto_backup(&dir, journal));
+        self.auto_backup_failed = !ok;
+    }
+
+    /// Where automatic backups are kept: the folder a backup picker opens in.
+    pub fn auto_backup_dir(&self) -> Option<PathBuf> {
+        let dir = self.auto_dir();
+        dir.is_dir().then_some(dir)
+    }
+
+    /// The newest automatic backup, to show it in the file manager.
+    pub fn latest_auto_backup(&self) -> Option<PathBuf> {
+        auto::list(&self.auto_dir())
+            .into_iter()
+            .next()
+            .map(|b| b.path)
+    }
+
+    pub fn backup_info(&self) -> AppResult<BackupInfo> {
+        let settings = self.journal()?.settings();
+        let backups = auto::list(&self.auto_dir());
+        Ok(BackupInfo {
+            auto_enabled: settings.auto_backup,
+            auto_latest: backups.first().map(|b| {
+                Timestamp(time::OffsetDateTime::from(b.modified).to_offset(self.utc_offset))
+            }),
+            auto_count: backups.len(),
+            auto_failed: self.auto_backup_failed,
+            last_export: settings.last_export,
+        })
     }
 
     /// Quick entry from the lock screen (E-15): sealed into the inbox without
@@ -310,7 +376,13 @@ impl Session {
 
     pub fn change_password(&mut self, old: &str, new: &str) -> AppResult<()> {
         self.journal_mut()?.vault_mut().change_password(old, new)?;
+        self.refresh_auto_backups();
         Ok(())
+    }
+
+    /// Checks a written-down recovery phrase against the unlocked vault.
+    pub fn verify_recovery(&self, phrase: &str) -> AppResult<()> {
+        Ok(self.journal()?.vault().verify_recovery(phrase)?)
     }
 
     /// Deletes the vault after re-checking the password (V-9). On a wrong
@@ -324,7 +396,12 @@ impl Session {
             unreachable!("journal() succeeded above");
         };
         match journal.into_vault().destroy(password) {
-            Ok(()) => Ok(()),
+            Ok(()) => {
+                // The journal is gone; its automatic backups go with it.
+                auto::clear(&self.auto_dir())?;
+                self.auto_backup_failed = false;
+                Ok(())
+            }
             Err(DestroyError::Rejected { vault, error }) => {
                 // Not reachable after the check above; stay safe and lock.
                 vault.lock()?;
@@ -469,6 +546,16 @@ impl Session {
         self.dialogs_open = self.dialogs_open.saturating_sub(1);
         self.last_activity = now;
     }
+}
+
+/// Writes an automatic backup of `journal`; `false` if it failed. Best effort:
+/// a failure must never stop the journal from locking.
+fn write_auto_backup(dir: &Path, journal: &Journal) -> bool {
+    journal
+        .vault()
+        .export_backup()
+        .and_then(|backup| auto::write(dir, &backup))
+        .is_ok()
 }
 
 #[cfg(test)]
@@ -754,6 +841,100 @@ mod tests {
         let entries = s.journal().unwrap().entries(&Default::default());
         assert_eq!(entries.len(), 1);
         assert!(entries[0].incomplete);
+    }
+
+    fn auto_files(dir: &TempDir) -> Vec<PathBuf> {
+        auto::list(&auto::dir_for(&dir.path().join("vault.db")))
+            .into_iter()
+            .map(|b| b.path)
+            .collect()
+    }
+
+    #[test]
+    fn lock_writes_an_automatic_backup_once_per_interval() {
+        let (dir, mut s) = unlocked();
+        let now = s.now();
+        s.journal_mut()
+            .unwrap()
+            .quick_entry(EntryKindTag::Note, None, now)
+            .unwrap();
+        s.lock().unwrap();
+        let files = auto_files(&dir);
+        assert_eq!(files.len(), 1);
+        // A real backup that opens with the password and holds the entry.
+        let backup = Backup::from_bytes(&std::fs::read(&files[0]).unwrap()).unwrap();
+        let opened = backup.open_with_password(PASSWORD).unwrap();
+        assert_eq!(opened.record_count(), 1, "the entry");
+
+        // Not due again right away.
+        s.unlock(PASSWORD, Instant::now()).unwrap();
+        s.lock().unwrap();
+        assert_eq!(auto_files(&dir).len(), 1);
+
+        let info = {
+            s.unlock(PASSWORD, Instant::now()).unwrap();
+            s.backup_info().unwrap()
+        };
+        assert!(info.auto_enabled && !info.auto_failed);
+        assert_eq!(info.auto_count, 1);
+        assert!(info.auto_latest.is_some());
+        assert_eq!(info.last_export, None);
+    }
+
+    #[test]
+    fn automatic_backups_can_be_turned_off() {
+        let (dir, mut s) = unlocked();
+        let mut settings = Settings::default();
+        settings.auto_backup = false;
+        s.journal_mut().unwrap().save_settings(settings).unwrap();
+        s.lock().unwrap();
+        assert!(auto_files(&dir).is_empty());
+    }
+
+    #[test]
+    fn password_change_replaces_automatic_backups() {
+        let (dir, mut s) = unlocked();
+        s.lock().unwrap();
+        s.unlock(PASSWORD, Instant::now()).unwrap();
+        s.change_password(PASSWORD, "a new synthetic password")
+            .unwrap();
+        let files = auto_files(&dir);
+        assert_eq!(files.len(), 1);
+        let backup = Backup::from_bytes(&std::fs::read(&files[0]).unwrap()).unwrap();
+        assert!(backup.clone().open_with_password(PASSWORD).is_err());
+        assert!(
+            backup
+                .open_with_password("a new synthetic password")
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn destroy_removes_automatic_backups() {
+        let (dir, mut s) = unlocked();
+        s.lock().unwrap();
+        assert_eq!(auto_files(&dir).len(), 1);
+        s.unlock(PASSWORD, Instant::now()).unwrap();
+        s.destroy(PASSWORD).unwrap();
+        assert!(auto_files(&dir).is_empty());
+        assert!(std::fs::read_dir(dir.path()).unwrap().next().is_none());
+    }
+
+    #[test]
+    fn recovery_phrase_can_be_checked() {
+        let (_dir, mut s) = session();
+        let setup = s.create(PASSWORD).unwrap();
+        s.confirm_recovery(&answers(&setup), Instant::now())
+            .unwrap();
+        s.verify_recovery(&setup.words.join(" ")).unwrap();
+        let mut other = setup.words.clone();
+        other.swap(0, 1);
+        assert!(s.verify_recovery(&other.join(" ")).is_err());
+        s.lock().unwrap();
+        assert_eq!(
+            s.verify_recovery(&setup.words.join(" ")).unwrap_err().code,
+            "locked"
+        );
     }
 
     #[test]

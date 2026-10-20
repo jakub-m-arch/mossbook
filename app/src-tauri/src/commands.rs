@@ -23,8 +23,8 @@ use zeroize::Zeroizing;
 
 use crate::error::{AppError, AppResult};
 use crate::session::{
-    BackupSecret, BackupSummary, ImportOutcome, LockReason, RecoveryAnswer, RecoverySetup, Session,
-    Status,
+    BackupInfo, BackupSecret, BackupSummary, ImportOutcome, LockReason, RecoveryAnswer,
+    RecoverySetup, Session, Status,
 };
 
 /// Event sent to the UI whenever the vault locks.
@@ -135,6 +135,13 @@ pub fn vault_change_password(
 ) -> AppResult<()> {
     let (old, new) = (Zeroizing::new(old), Zeroizing::new(new));
     with_session(&state, |s| s.change_password(&old, &new))
+}
+
+/// Checks a written-down recovery phrase without changing anything.
+#[tauri::command(async)]
+pub fn vault_verify_recovery(state: State<'_, AppState>, phrase: String) -> AppResult<()> {
+    let phrase = Zeroizing::new(phrase);
+    with_session(&state, |s| s.verify_recovery(&phrase))
 }
 
 #[tauri::command(async)]
@@ -312,6 +319,58 @@ pub fn backup_export(app: AppHandle, state: State<'_, AppState>) -> AppResult<bo
         .to_bytes()?;
     write_file(&app, target, &bytes)
         .map_err(|_| AppError::new("io", "cannot write the backup file"))?;
+    with_session(&state, |s| {
+        let now = s.now();
+        Ok(s.journal_mut()?.record_export(now)?)
+    })?;
+    Ok(true)
+}
+
+/// Automatic backups and the last saved backup, for the settings (D-16).
+#[tauri::command(async)]
+pub fn backup_info(state: State<'_, AppState>) -> AppResult<BackupInfo> {
+    with_session(&state, |s| s.backup_info())
+}
+
+/// Shows the newest automatic backup in the system file manager.
+#[tauri::command(async)]
+pub fn backup_reveal(app: AppHandle, state: State<'_, AppState>) -> AppResult<()> {
+    let latest = {
+        let session = state.session();
+        session.journal()?;
+        session.latest_auto_backup()
+    };
+    let latest = latest.ok_or_else(|| AppError::new("not_found", "no automatic backup yet"))?;
+    app.opener()
+        .reveal_item_in_dir(latest)
+        .map_err(|_| AppError::new("io", "cannot open the file manager"))
+}
+
+/// Saves the whole journal as readable, **unencrypted** JSON (X-4) where the
+/// user chooses. The UI warns first. `false` if cancelled.
+#[tauri::command(async)]
+pub fn export_json(app: AppHandle, state: State<'_, AppState>) -> AppResult<bool> {
+    let name = {
+        let session = state.session();
+        session.journal()?;
+        format!("mossbook-export-{}.json", session.now().date())
+    };
+    let target = with_dialog(&state, || {
+        app.dialog()
+            .file()
+            .add_filter("JSON", &["json"])
+            .set_file_name(name)
+            .blocking_save_file()
+    });
+    let Some(target) = target else {
+        return Ok(false);
+    };
+    // Built after the dialog: the vault may have locked on idle meanwhile.
+    let json = with_session(&state, |s| {
+        let now = s.now();
+        Ok(s.journal()?.export_json(now)?)
+    })?;
+    write_file(&app, target, &json).map_err(|_| AppError::new("io", "cannot write the export"))?;
     Ok(true)
 }
 
@@ -327,11 +386,14 @@ fn write_file(app: &AppHandle, target: FilePath, bytes: &[u8]) -> std::io::Resul
 /// Lets the user pick a backup file and checks its structure. `None` if cancelled.
 #[tauri::command(async)]
 pub fn backup_pick(app: AppHandle, state: State<'_, AppState>) -> AppResult<Option<BackupSummary>> {
+    // Start in the automatic backups folder when there is one (D-16).
+    let auto_dir = state.session().auto_backup_dir();
     let picked = with_dialog(&state, || {
-        app.dialog()
-            .file()
-            .add_filter("Mossbook", &["mossbook"])
-            .blocking_pick_file()
+        let mut dialog = app.dialog().file().add_filter("Mossbook", &["mossbook"]);
+        if let Some(dir) = auto_dir {
+            dialog = dialog.set_directory(dir);
+        }
+        dialog.blocking_pick_file()
     });
     let Some(picked) = picked else {
         return Ok(None);

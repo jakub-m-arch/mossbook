@@ -30,6 +30,7 @@ It complements [`crypto.md`](crypto.md) (cryptography) and
 | Content in logs | Crash or debug output | Logging macros forbidden by lints; redacted `Debug`; errors carry codes, not data | `clippy.toml`, `domain/`, `error.rs` |
 | Quick entry while locked | Writing down a moment without the password | Sealed box to the vault's public key: entries can be added but nothing can be read; validated on unlock | `crypto/sealed.rs`, `journal.rs` |
 | Clipboard | A copied sentence lingers | Cleared after 60 s if still unchanged | `commands.rs` (`clipboard_clear_if`) |
+| Losing the journal file | Disk error, a crash mid-write, deleting something by mistake | Automatic encrypted backups on lock (daily, newest seven, D-16); a reminder in the settings of when a backup was last saved elsewhere; a way to check the written-down recovery key | `core/src/backup/auto.rs`, `routes/settings/` |
 | Memory after locking | Content left in RAM | Keys in `SecretBox`; decrypted content and domain objects zeroed on drop | `crypto/mod.rs`, `ZeroizeOnDrop` in `domain/` |
 
 ## Accepted metadata leaks
@@ -39,7 +40,8 @@ Visible to someone with the vault file or a backup, by design:
 - the number of records, and how many of each type (entry, tag, plan, settings);
 - the number of quick entries waiting in the inbox until the next unlock;
 - the approximate size of each record;
-- the file's modification time;
+- the file's modification time, and those of the automatic backups, which show on
+  which of the last few days the journal was locked (at most one per day);
 - the KDF parameters and that the file is a Mossbook vault.
 
 ## Known limitations
@@ -58,6 +60,11 @@ Visible to someone with the vault file or a backup, by design:
 - **Platform web view.** The UI runs in the system web view (WebKitGTK, WebView2,
   WKWebView); its security updates come from the operating system.
 - **Old backups.** A backup opens with the password valid when it was made (D-9).
+  Automatic backups are replaced after a password change; backups saved elsewhere are
+  the user's to delete.
+- **Plain exports.** The PDF report and the JSON export are not encrypted. The app
+  warns before writing them; what happens to the files afterwards is outside its
+  control.
 - **Inbox injection.** Someone with write access to the vault file can append
   quick entries (the public key is in the header). They can only become "to complete"
   entries of a known type with an in-range value, which the user sees and can delete.

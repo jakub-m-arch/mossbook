@@ -33,6 +33,7 @@ async function invokedCommands(): Promise<string[]> {
 		() => api.vaultUnlockRecovery('phrase', 'pw'),
 		api.vaultLock,
 		() => api.vaultChangePassword('a', 'b'),
+		() => api.vaultVerifyRecovery('phrase'),
 		() => api.vaultDestroy('pw'),
 		() => api.entriesList(),
 		() => api.entryGet('id'),
@@ -61,7 +62,9 @@ async function invokedCommands(): Promise<string[]> {
 				autolock: 'immediately',
 				locale: 'pl',
 				crisis_country: 'PL',
-				reminders: []
+				reminders: [],
+				auto_backup: true,
+				last_export: null
 			}),
 		() => api.statsMood('week'),
 		() => api.statsPatterns('week'),
@@ -73,6 +76,9 @@ async function invokedCommands(): Promise<string[]> {
 		api.backupExport,
 		api.backupPick,
 		() => api.backupImport('pw', 'password', 'merge'),
+		api.backupInfo,
+		api.backupReveal,
+		api.exportJson,
 		() =>
 			api.reportPdf({
 				title: 'r',

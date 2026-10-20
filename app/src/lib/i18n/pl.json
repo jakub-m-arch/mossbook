@@ -318,7 +318,16 @@
 		"restoreTitle": "Przywróć z kopii",
 		"restoreIntro": "Masz plik .mossbook z innego urządzenia? Wybierz go i otwórz hasłem albo kluczem odzyskiwania. Dziennik zachowa hasło i klucz z kopii.",
 		"haveBackup": "Mam kopię zapasową",
-		"choose": "Wybierz plik"
+		"choose": "Wybierz plik",
+		"autoTitle": "Automatyczne kopie na tym urządzeniu",
+		"autoToggle": "Rób kopię przy blokowaniu dziennika (raz dziennie, zostaje ostatnie 7)",
+		"autoLatest": "Ostatnia automatyczna kopia: {date}",
+		"autoNone": "Nie ma jeszcze automatycznej kopii. Pierwsza powstanie przy następnej blokadzie dziennika.",
+		"autoFailed": "Nie udało się zapisać ostatniej automatycznej kopii. Twój dziennik jest nienaruszony.",
+		"autoShow": "Pokaż w folderze",
+		"autoHint": "Te kopie pomagają, gdy plik dziennika się uszkodzi albo coś zostanie usunięte przez pomyłkę. Zostają na tym urządzeniu, więc zapisz też kopię gdzie indziej, np. na pendrivie albo innym komputerze.",
+		"lastExport": "Ostatnia kopia zapisana przez ciebie: {date}",
+		"lastExportNever": "Nie zapisano jeszcze żadnej własnej kopii."
 	},
 	"password": {
 		"title": "Zmień hasło",
@@ -326,7 +335,8 @@
 		"new": "Nowe hasło",
 		"submit": "Zmień hasło",
 		"changed": "Hasło zmienione. Klucz odzyskiwania się nie zmienia.",
-		"oldBackups": "Starsze kopie nadal otworzysz poprzednim hasłem."
+		"oldBackups": "Starsze kopie nadal otworzysz poprzednim hasłem.",
+		"autoReplaced": "Automatyczne kopie na tym urządzeniu zastąpiła jedna, otwierana nowym hasłem."
 	},
 	"destroy": {
 		"title": "Usuń wszystkie dane",
@@ -452,5 +462,21 @@
 		"checkHint": "Otworzy stronę z wydaniami w przeglądarce. Sama aplikacja nie łączy się z internetem.",
 		"old": "Ta wersja ma już ponad 3 miesiące. Możliwe, że jest dostępna nowsza.",
 		"watch": "Powiadomienia o nowych wersjach możesz dostawać z GitHuba: Watch → Custom → Releases."
+	},
+	"recoveryCheck": {
+		"title": "Sprawdź klucz odzyskiwania",
+		"intro": "Wpisz 24 zapisane słowa, żeby upewnić się, że otwierają ten dziennik. Nic się nie zmieni.",
+		"label": "Twoje 24 słowa",
+		"submit": "Sprawdź klucz",
+		"ok": "Te słowa otwierają twój dziennik. Przechowuj je w bezpiecznym miejscu.",
+		"wrong": "Te słowa nie otwierają tego dziennika. Porównaj każde słowo ze swoją notatką."
+	},
+	"exportJson": {
+		"title": "Czytelna kopia (JSON)",
+		"intro": "Wszystkie wpisy, tagi, plan i ustawienia w jednym pliku JSON, który odczytają inne programy. Twoje dane możesz zabrać, dokąd chcesz.",
+		"warning": "Plik JSON nie jest zaszyfrowany. Każdy, kto go otworzy, przeczyta cały dziennik. Zapisz go tylko w bezpiecznym miejscu i usuń, gdy nie będzie potrzebny.",
+		"submit": "Zapisz plik JSON",
+		"question": "Zapisać plik bez szyfrowania?",
+		"saved": "Plik zapisany."
 	}
 }

@@ -187,6 +187,51 @@ fn plan_and_settings_persist_with_defaults() {
 }
 
 #[test]
+fn last_export_is_set_only_by_the_journal() {
+    let (fx, mut j) = create();
+    assert_eq!(j.settings().last_export, None);
+    j.record_export(NOW).unwrap();
+    assert_eq!(j.settings().last_export, Some(Timestamp(NOW)));
+    // The UI sends settings without (or with a stale) last_export: it is kept.
+    let mut settings = j.settings().clone();
+    settings.last_export = None;
+    settings.auto_backup = false;
+    j.save_settings(settings).unwrap();
+    let j = reopen(&fx, j);
+    assert_eq!(j.settings().last_export, Some(Timestamp(NOW)));
+    assert!(!j.settings().auto_backup);
+}
+
+#[test]
+fn json_export_holds_the_whole_journal() {
+    let (_fx, mut j) = create();
+    let tag = j.create_tag("synthetic tag", "#2e7d4f").unwrap().id;
+    let later = j.quick_entry(EntryKindTag::Fear, Some(7), NOW).unwrap().id;
+    let earlier = j
+        .quick_entry(EntryKindTag::Note, None, NOW - Duration::days(1))
+        .unwrap()
+        .id;
+    let mut plan = SafetyPlan::default();
+    plan.warning_signs = vec!["synthetic sign".into()];
+    j.save_plan(plan).unwrap();
+
+    let bytes = j.export_json(NOW).unwrap();
+    let doc: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(doc["format"], "mossbook-export");
+    assert_eq!(doc["version"], 1);
+    assert_eq!(doc["exported_at"], "2026-10-19T20:00:00+02:00");
+    let entries = doc["entries"].as_array().unwrap();
+    assert_eq!(entries.len(), 2);
+    // Oldest first, and the entries read back as the app's own type.
+    let first: Entry = serde_json::from_value(entries[0].clone()).unwrap();
+    assert_eq!(first.id, earlier);
+    assert_eq!(entries[1]["id"], serde_json::to_value(later).unwrap());
+    assert_eq!(doc["tags"][0]["id"], serde_json::to_value(tag).unwrap());
+    assert_eq!(doc["plan"]["warning_signs"][0], "synthetic sign");
+    assert!(doc["settings"]["auto_backup"].as_bool().unwrap());
+}
+
+#[test]
 fn record_under_wrong_id_is_unreadable() {
     let (fx, mut j) = create();
     let e = Entry::new(EntryKind::Note, NOW).unwrap();

@@ -32,7 +32,7 @@ test('settings: export, merge import, autolock', async ({ page }) => {
 	await page.getByRole('button', { name: 'Wczytaj kopię' }).click();
 	await page.getByLabel('kluczem odzyskiwania').check();
 	await page
-		.getByLabel('Klucz odzyskiwania')
+		.getByLabel('Klucz odzyskiwania', { exact: true })
 		.fill(Array.from({ length: 24 }, () => 'word').join(' '));
 	await page.getByLabel('Zastąp: dziennik będzie dokładnie taki jak kopia').check();
 	await expect(page.getByText('Wpisy, których nie ma w kopii, zostaną usunięte.')).toBeVisible();
@@ -79,4 +79,54 @@ test('about: version, offline age hint, check for updates opens the browser', as
 		() => (window as unknown as { __fake: { calls: string[] } }).__fake.calls
 	);
 	expect(calls).toContain('open_releases');
+});
+
+test('backups: last saved copy, automatic copies, recovery key check, JSON export', async ({
+	page
+}) => {
+	await createVault(page);
+	await page.getByRole('link', { name: 'Ustawienia' }).click();
+
+	await expect(page.getByText('Nie zapisano jeszcze żadnej własnej kopii.')).toBeVisible();
+	await expect(page.getByText(/^Nie ma jeszcze automatycznej kopii/)).toBeVisible();
+	await page.getByRole('button', { name: 'Zapisz kopię' }).click();
+	await expect(page.getByTestId('last-export')).toHaveText(
+		/^Ostatnia kopia zapisana przez ciebie: /
+	);
+
+	// Locking makes the automatic copy.
+	await page.getByRole('button', { name: 'Zablokuj' }).click();
+	await page.getByLabel('Hasło', { exact: true }).fill(PASSWORD);
+	await page.getByRole('button', { name: 'Otwórz' }).click();
+	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await expect(page.getByTestId('auto-latest')).toHaveText(/^Ostatnia automatyczna kopia: /);
+	await page.getByRole('button', { name: 'Pokaż w folderze' }).click();
+	await page.getByRole('checkbox', { name: /^Rób kopię przy blokowaniu/ }).uncheck();
+	await expect(page.getByTestId('auto-latest')).toBeHidden();
+
+	// Recovery key check: wrong words, then the right ones.
+	const words = Array.from({ length: 24 }, (_, i) => `word${i + 1}`);
+	await page.getByLabel('Twoje 24 słowa').fill([...words].reverse().join(' '));
+	await page.getByRole('button', { name: 'Sprawdź klucz' }).click();
+	await expect(
+		page.getByText('Te słowa nie otwierają tego dziennika.', { exact: false })
+	).toBeVisible();
+	await page.getByLabel('Twoje 24 słowa').fill(words.join(' '));
+	await page.getByRole('button', { name: 'Sprawdź klucz' }).click();
+	await expect(page.getByText('Te słowa otwierają twój dziennik.', { exact: false })).toBeVisible();
+	await expect(page.getByLabel('Twoje 24 słowa')).toHaveValue('');
+
+	// JSON export asks first, because the file is not encrypted.
+	await expect(page.getByText(/^Plik JSON nie jest zaszyfrowany/)).toBeVisible();
+	await page.getByRole('button', { name: 'Zapisz plik JSON' }).click();
+	await page
+		.getByRole('group', { name: 'Zapisać plik bez szyfrowania?' })
+		.getByRole('button', { name: 'Zapisz plik JSON' })
+		.click();
+	await expect(page.getByText('Plik zapisany.')).toBeVisible();
+	await page.screenshot({ path: `${SHOTS}/28-settings-backups.png`, fullPage: true });
+	const exports = await page.evaluate(
+		() => (window as unknown as { __fake: { jsonExports: number } }).__fake.jsonExports
+	);
+	expect(exports).toBe(1);
 });

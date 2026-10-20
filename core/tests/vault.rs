@@ -259,6 +259,32 @@ fn recovery_errors() {
 }
 
 #[test]
+fn verify_recovery_checks_without_changing_anything() {
+    let (fx, v) = create_vault();
+    let (other, _other_vault) = create_vault();
+    let messy = format!(" {} ", fx.phrase.to_uppercase());
+    assert_eq!(v.verify_recovery(&messy), Ok(()));
+    assert_eq!(
+        v.verify_recovery(&other.phrase),
+        Err(VaultError::WrongRecoveryKey)
+    );
+    assert_eq!(
+        v.verify_recovery("not a phrase"),
+        Err(VaultError::InvalidRecoveryPhrase)
+    );
+    // One word changed: still 24 words, but the checksum (or the key) fails.
+    let mut words: Vec<&str> = fx.phrase.split(' ').collect();
+    words[0] = if words[0] == "abandon" {
+        "ability"
+    } else {
+        "abandon"
+    };
+    assert!(v.verify_recovery(&words.join(" ")).is_err());
+    v.lock().unwrap();
+    assert!(vault::unlock(&fx.path, PASSWORD).is_ok());
+}
+
+#[test]
 fn destroy_requires_password_and_removes_files() {
     let (fx, v) = create_vault();
     let v = match v.destroy("wrong password") {

@@ -7,8 +7,8 @@ use core::fmt;
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-
 use time::OffsetDateTime;
+use zeroize::Zeroizing;
 
 use crate::crypto::aead::RecordType;
 use crate::domain::entry::ENTRY_SCHEMA;
@@ -19,6 +19,11 @@ use crate::domain::{
 use crate::query::stats::{MoodPoint, mood_by_day};
 use crate::query::{EntryFilter, Patterns, StatsRange};
 use crate::vault::{LoadedRecord, UnlockedVault, VaultError};
+
+/// `format` field of the plain JSON export.
+pub const EXPORT_FORMAT: &str = "mossbook-export";
+/// Version of the plain JSON export layout.
+pub const EXPORT_VERSION: u16 = 1;
 
 /// Fixed record id of the safety plan (a singleton).
 pub const PLAN_ID: Id = Id::from_bytes([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3]);
@@ -424,8 +429,22 @@ impl Journal {
         &self.settings
     }
 
-    pub fn save_settings(&mut self, settings: Settings) -> Result<&Settings, JournalError> {
+    /// Saves the settings. `last_export` is kept from the stored settings: it is
+    /// set only by [`Self::record_export`].
+    pub fn save_settings(&mut self, mut settings: Settings) -> Result<&Settings, JournalError> {
         settings.validate()?;
+        settings.last_export = self.settings.last_export;
+        self.store_settings(settings)
+    }
+
+    /// Notes that the user saved a backup themselves (shown in the settings).
+    pub fn record_export(&mut self, now: OffsetDateTime) -> Result<(), JournalError> {
+        let mut settings = self.settings.clone();
+        settings.last_export = Some(now.into());
+        self.store_settings(settings).map(drop)
+    }
+
+    fn store_settings(&mut self, settings: Settings) -> Result<&Settings, JournalError> {
         self.vault.put(
             *SETTINGS_ID.as_bytes(),
             RecordType::Settings,
@@ -433,6 +452,41 @@ impl Journal {
         )?;
         self.settings = settings;
         Ok(&self.settings)
+    }
+
+    // ---- plain export ----
+
+    /// The whole journal as readable JSON (X-4): entries (oldest first), tags,
+    /// the plan and the settings, in the same shapes the app uses internally.
+    /// The result is **not encrypted**; the UI warns before saving it.
+    /// Described in `docs/backup-format.md` (*Plain JSON export*).
+    pub fn export_json(&self, now: OffsetDateTime) -> Result<Zeroizing<Vec<u8>>, JournalError> {
+        #[derive(Serialize)]
+        struct Export<'a> {
+            format: &'static str,
+            version: u16,
+            exported_at: crate::domain::Timestamp,
+            entries: Vec<&'a Entry>,
+            tags: Vec<&'a Tag>,
+            plan: &'a SafetyPlan,
+            settings: &'a Settings,
+        }
+        let mut entries: Vec<&Entry> = self.entries.values().collect();
+        entries.sort_by_key(|e| (e.occurred_at, e.id));
+        let mut tags: Vec<&Tag> = self.tags.values().collect();
+        tags.sort_by(|a, b| a.name.cmp(&b.name).then(a.id.cmp(&b.id)));
+        let export = Export {
+            format: EXPORT_FORMAT,
+            version: EXPORT_VERSION,
+            exported_at: now.into(),
+            entries,
+            tags,
+            plan: &self.plan,
+            settings: &self.settings,
+        };
+        serde_json::to_vec_pretty(&export)
+            .map(Zeroizing::new)
+            .map_err(|_| DomainError::Encoding.into())
     }
 
     // ---- import ----

@@ -39,7 +39,7 @@ command contract.
 | `domain/` | Plain data types: `Entry`, `EntryKind`, `EntryDraft`, `InboxEntry`, `Tag`, `SafetyPlan`, `Settings`, `Id`, `Timestamp`. CBOR encoding, range validation, `ZeroizeOnDrop`, redacted `Debug`. |
 | `journal.rs` | `Journal`: the unlocked journal as domain objects (`HashMap`s of entries and tags, the plan, the settings) on top of an `UnlockedVault`. All mutations go through it: save, quick entry, tags (merge and delete in one transaction), import, and moving inbox entries in on open. |
 | `query/` | Read-only computations over the in-memory journal: `filter`, `search` (case- and diacritic-insensitive), `stats` (mood series), `patterns` (overviews A-2–A-4, with minimum data thresholds). |
-| `backup/` | The `.mossbook` file: export (header + encrypted records 1:1 + sealed manifest), open with password or recovery key, restore without re-encryption, decode for import. |
+| `backup/` | The `.mossbook` file: export (header + encrypted records 1:1 + sealed manifest), open with password or recovery key, restore without re-encryption, decode for import. `auto`: automatic backups on lock (slots, rotation, clearing; D-16). |
 | `report/` | The therapist PDF: takes a `ReportDoc` built by the UI and lays it out on A4 with embedded Noto Sans. |
 | `crisis.rs` | Static crisis phone numbers from `core/data/crisis/*.json`, embedded at compile time. |
 
@@ -114,8 +114,11 @@ nonce and the record AAD → one SQLite write.
 copies the header and encrypted records and seals a manifest → file written.
 `backup_pick` + `backup_import` open a backup with its own secret and either restore it
 (no vault yet) or merge/replace (re-encrypting under the current DEK, D-4).
+`export_json` writes the unencrypted JSON export (X-4) after the UI has warned.
 
-**Lock.** Manual, background, idle or exit → the `Journal` is dropped: the DEK and all
+**Lock.** Manual, background, idle or exit → if an automatic backup is due (D-16), one
+is written to `backups/` (best effort: a failure never blocks locking) → the `Journal`
+is dropped: the DEK and all
 decrypted objects are zeroed, the WAL is checkpointed.
 
 ## Tests

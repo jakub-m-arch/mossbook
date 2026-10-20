@@ -7,6 +7,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type {
 	AppError,
 	AppInfo,
+	BackupInfo,
 	BackupSecret,
 	BackupSummary,
 	CrisisInfo,
@@ -60,6 +61,9 @@ export const vaultUnlockRecovery = (phrase: string, newPassword: string) =>
 export const vaultLock = () => invoke<void>('vault_lock');
 export const vaultChangePassword = (old: string, next: string) =>
 	invoke<void>('vault_change_password', { old, new: next });
+/** Checks a written-down recovery phrase without changing anything. */
+export const vaultVerifyRecovery = (phrase: string) =>
+	invoke<void>('vault_verify_recovery', { phrase });
 export const vaultDestroy = (password: string) => invoke<void>('vault_destroy', { password });
 
 /** Fires whenever the vault locks (manually, in the background or when idle). */
@@ -135,3 +139,9 @@ export const backupPick = () => invoke<BackupSummary | null>('backup_pick');
 /** Opens the picked backup and restores it (no vault) or imports it (unlocked). */
 export const backupImport = (secret: string, kind: BackupSecret, mode: ImportMode) =>
 	invoke<ImportOutcome>('backup_import', { secret, kind, mode });
+/** Automatic backups and the last backup saved by the user (D-16). */
+export const backupInfo = () => invoke<BackupInfo>('backup_info');
+/** Shows the newest automatic backup in the system file manager. */
+export const backupReveal = () => invoke<void>('backup_reveal');
+/** Saves the whole journal as unencrypted JSON (X-4). `false` if cancelled. */
+export const exportJson = () => invoke<boolean>('export_json');

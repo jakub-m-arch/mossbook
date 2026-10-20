@@ -11,6 +11,7 @@ pub const COMMANDS: &[&str] = &[
     "vault_unlock_recovery",
     "vault_lock",
     "vault_change_password",
+    "vault_verify_recovery",
     "vault_destroy",
     "entries_list",
     "entry_get",
@@ -37,5 +38,8 @@ pub const COMMANDS: &[&str] = &[
     "backup_export",
     "backup_pick",
     "backup_import",
+    "backup_info",
+    "backup_reveal",
+    "export_json",
     "report_pdf",
 ];

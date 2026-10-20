@@ -47,6 +47,7 @@ pub fn run() {
             commands::vault_unlock_recovery,
             commands::vault_lock,
             commands::vault_change_password,
+            commands::vault_verify_recovery,
             commands::vault_destroy,
             commands::entries_list,
             commands::entry_get,
@@ -73,6 +74,9 @@ pub fn run() {
             commands::backup_export,
             commands::backup_pick,
             commands::backup_import,
+            commands::backup_info,
+            commands::backup_reveal,
+            commands::export_json,
             commands::report_pdf,
         ])
         .build(tauri::generate_context!())
@@ -210,6 +214,25 @@ mod ipc_shapes {
 
         let s = serde_json::to_value(Settings::default()).unwrap();
         assert_eq!(s["autolock"], json!("immediately"));
+        assert_eq!(s["auto_backup"], json!(true));
+        assert_eq!(s["last_export"], json!(null));
+        let info = crate::session::BackupInfo {
+            auto_enabled: true,
+            auto_latest: Some(datetime!(2026-10-20 08:00 +02:00).into()),
+            auto_count: 1,
+            auto_failed: false,
+            last_export: None,
+        };
+        assert_eq!(
+            serde_json::to_value(info).unwrap(),
+            json!({
+                "auto_enabled": true,
+                "auto_latest": "2026-10-20T08:00:00+02:00",
+                "auto_count": 1,
+                "auto_failed": false,
+                "last_export": null
+            })
+        );
         assert_eq!(
             serde_json::to_value(AutoLock::After1Min).unwrap(),
             json!("after1_min")

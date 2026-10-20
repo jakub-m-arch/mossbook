@@ -28,7 +28,7 @@ backup (Settings → Backup).
 - **Done:** every desktop feature of the MVP, and from v1 the PDF report, nightmares (IRT),
   difficult content, the mood calendar, overviews, and quick entry while locked.
 - **Not yet:** Android and iOS builds, biometric unlock, reminders (they come with the
-  mobile versions), plain JSON export, and code-signed installers.
+  mobile versions), and code-signed installers.
 
 The specification is [`SPEC.md`](SPEC.md); the checklist and the decisions taken along
 the way are in [`docs/PLAN.md`](docs/PLAN.md).
@@ -78,6 +78,9 @@ Mossbook never connects to the internet, so it does not check for updates by its
 - **Patterns**: mood over time, a mood calendar and overviews (tags, triggers, sleep,
   time of day, strategies), shown as plain observations, never clinical conclusions.
 - **Encrypted backup** to a single `.mossbook` file; restore on a new device or merge.
+  **Automatic backups** on this device every day, and a way to check that your
+  written-down recovery key works.
+- **Your data stays portable**: export everything as readable JSON at any time.
 - **Report for your therapist** as a PDF for a chosen period, types and tags.
 - **Quick entry from the lock screen** without the password: it can add, never read.
 - **Languages**: Polish, English and Ukrainian from the first release.

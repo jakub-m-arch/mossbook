@@ -198,6 +198,10 @@ export interface Settings {
 	locale: 'pl' | 'en' | 'uk' | null;
 	crisis_country: string;
 	reminders: Reminder[];
+	/** Automatic local backups when the journal locks (D-16). */
+	auto_backup: boolean;
+	/** When a backup was last saved by the user; set by Rust, ignored on save. */
+	last_export: string | null;
 }
 
 // ---- patterns ----
@@ -286,6 +290,16 @@ export interface BackupSummary {
 	records: number;
 	/** The backup comes from the vault that is currently unlocked. */
 	same_vault: boolean;
+}
+
+export interface BackupInfo {
+	auto_enabled: boolean;
+	/** Newest automatic backup on this device (RFC 3339), if any. */
+	auto_latest: string | null;
+	auto_count: number;
+	/** The last automatic backup that was due could not be written. */
+	auto_failed: boolean;
+	last_export: string | null;
 }
 
 export type BackupSecret = 'password' | 'recovery_phrase';
