@@ -90,7 +90,8 @@ Mossbook never connects to the internet, so it does not check for updates by its
   **Automatic backups** on this device every day, and a way to check that your
   written-down recovery key works.
 - **Your data stays portable**: export everything as readable JSON at any time.
-- **Report for your therapist** as a PDF for a chosen period, types and tags.
+- **Report for your therapist** as a PDF for a chosen period, types and tags,
+  optionally protected with a password (AES-256).
 - **Quick entry from the lock screen** without the password: it can add, never read.
 - **Languages**: Polish, English and Ukrainian from the first release.
 - **Calm by design**: no streaks, points, badges or guilt-inducing notifications.
@@ -114,8 +115,9 @@ memory analysis while the journal is unlocked.
 The cryptographic design is documented in [`docs/crypto.md`](docs/crypto.md) and the
 backup file in [`docs/backup-format.md`](docs/backup-format.md), in enough detail to
 write an independent reader. The test vectors are cross-checked against libsodium and
-argon2-cffi by [`tools/verify-vectors.py`](tools/verify-vectors.py), and
-[`tools/read-backup.py`](tools/read-backup.py) opens backups without any Mossbook code.
+argon2-cffi by [`tools/verify-vectors.py`](tools/verify-vectors.py),
+[`tools/read-backup.py`](tools/read-backup.py) opens backups without any Mossbook code,
+and [`tools/read-report.py`](tools/read-report.py) opens a password-protected report PDF.
 
 What Mossbook does and does not protect against, including known limitations, is in
 [`docs/threat-model.md`](docs/threat-model.md).
@@ -162,7 +164,7 @@ mossbook/
 ├── docs/             architecture.md, crypto.md, backup-format.md, threat-model.md,
 │                     release.md, PLAN.md
 ├── packaging/        Homebrew cask template
-├── tools/            verify-vectors.py, read-backup.py (independent readers)
+├── tools/            verify-vectors.py, read-backup.py, read-report.py (independent readers)
 └── SPEC.md           specification
 ```
 

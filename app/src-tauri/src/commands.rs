@@ -13,7 +13,7 @@ use mossbook_core::crisis::{self, CrisisDirectory};
 use mossbook_core::domain::{Entry, EntryDraft, EntryKindTag, Id, SafetyPlan, Settings, Tag};
 use mossbook_core::journal::ImportMode;
 use mossbook_core::query::{EntryFilter, MoodPoint, Patterns, StatsRange};
-use mossbook_core::report::{ReportDoc, render_pdf};
+use mossbook_core::report::{ReportDoc, ReportError, render_pdf};
 use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::DialogExt;
@@ -444,13 +444,18 @@ pub fn backup_import(
 // ---- report for a therapist (X-3) ----
 
 /// Renders the report and saves it where the user chooses. `false` if cancelled.
-/// The PDF is not encrypted; the UI warns before calling this.
+/// With a password, the PDF is encrypted with AES-256; the UI warns about the
+/// limits of that protection before calling this.
 #[tauri::command(async)]
 pub fn report_pdf(
     app: AppHandle,
     state: State<'_, AppState>,
     report: ReportDoc,
+    password: Option<String>,
 ) -> AppResult<bool> {
+    // Move the secret into a zeroizing buffer immediately; it never reaches a log
+    // or an error message.
+    let password = password.map(Zeroizing::new);
     let name = {
         let session = state.session();
         // Only an unlocked journal can produce a report.
@@ -458,7 +463,13 @@ pub fn report_pdf(
         format!("mossbook-report-{}.pdf", session.now().date())
     };
     let pdf = Zeroizing::new(
-        render_pdf(&report).map_err(|e| AppError::new("invalid_field", e.to_string()))?,
+        render_pdf(&report, password.as_ref().map(|p| p.as_str())).map_err(|e| match e {
+            ReportError::TooLarge => AppError::new("report_too_large", e.to_string()),
+            ReportError::WeakPassword => AppError::new("report_password_short", e.to_string()),
+            ReportError::Font | ReportError::Encrypt => {
+                AppError::new("report_failed", e.to_string())
+            }
+        })?,
     );
     let target = with_dialog(&state, || {
         app.dialog()

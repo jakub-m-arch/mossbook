@@ -21,6 +21,8 @@ export interface ReportOptions {
 	tags: Map<string, Tag>;
 	t: Translate;
 	locale: string;
+	/** Whether the PDF file will be password-protected (changes the footer). */
+	encrypted?: boolean;
 }
 
 const chip = (t: Translate, prefix: string, item: Emotion | Symptom) =>
@@ -66,7 +68,7 @@ export function buildReport(entries: Entry[], o: ReportOptions): ReportDoc {
 			heading: day.format(localDate(g.key)),
 			items: g.items.map((e) => item(e, o, time))
 		})),
-		footer: t('report.footer'),
+		footer: t(o.encrypted ? 'report.footerEncrypted' : 'report.footer'),
 		page_label: t('report.page')
 	};
 }

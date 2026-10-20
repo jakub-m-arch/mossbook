@@ -29,6 +29,17 @@ export function copiedText(target: EventTarget | null): string {
 	return window.getSelection()?.toString() ?? '';
 }
 
+/**
+ * Writes `text` to the clipboard and schedules the same 60 s clear as a user
+ * copy. `navigator.clipboard.writeText` does not fire a `copy` event, so the
+ * document listener above would not see it.
+ */
+export async function copyWithClear(text: string): Promise<void> {
+	if (!navigator.clipboard) throw new Error('clipboard unavailable');
+	await navigator.clipboard.writeText(text);
+	setTimeout(() => clipboardClearIf(text).catch(() => {}), CLIPBOARD_CLEAR_MS);
+}
+
 let covered = $state(false);
 
 /** Whether the privacy curtain covers the content (desktop focus loss, D-11). */

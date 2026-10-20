@@ -5,6 +5,10 @@ All notable changes to Mossbook. Versions follow [Semantic Versioning](https://s
 ## Unreleased
 
 ### Added
+- Therapist PDF reports can be protected with a password (AES-256, PDF 2.0). The
+  password is generated in the report form, is never stored, and must be sent through
+  a different channel than the file; reports containing "difficult" entries start
+  protected. A warning explains what the password does and does not cover.
 - Website: <https://jakub-m-arch.github.io/mossbook/> (Polish and English), with no
   cookies, analytics or third-party requests.
 

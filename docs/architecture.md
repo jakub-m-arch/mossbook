@@ -40,7 +40,7 @@ command contract.
 | `journal.rs` | `Journal`: the unlocked journal as domain objects (`HashMap`s of entries and tags, the plan, the settings) on top of an `UnlockedVault`. All mutations go through it: save, quick entry, tags (merge and delete in one transaction), import, and moving inbox entries in on open. |
 | `query/` | Read-only computations over the in-memory journal: `filter`, `search` (case- and diacritic-insensitive), `stats` (mood series), `patterns` (overviews A-2–A-4, with minimum data thresholds). |
 | `backup/` | The `.mossbook` file: export (header + encrypted records 1:1 + sealed manifest), open with password or recovery key, restore without re-encryption, decode for import. `auto`: automatic backups on lock (slots, rotation, clearing; D-16). |
-| `report/` | The therapist PDF: takes a `ReportDoc` built by the UI and lays it out on A4 with embedded Noto Sans. |
+| `report/` | The therapist PDF: takes a `ReportDoc` built by the UI and lays it out on A4 with embedded Noto Sans; optionally encrypts the finished file with AES-256 (`lopdf`, PDF 2.0 V5/R6). |
 | `crisis.rs` | Static crisis phone numbers from `core/data/crisis/*.json`, embedded at compile time. |
 
 ## App layer (`app/src-tauri/src`)
@@ -130,7 +130,7 @@ decrypted objects are zeroed, the WAL is checkpointed.
 | `app/src-tauri` tests | Session state machine, auto-lock policy, command/capability/handler consistency, JSON shapes, version consistency |
 | `app/src/**/*.spec.ts` | UI logic (Vitest), i18n parity, API wrapper list |
 | `app/e2e/` | Playwright scenarios against `fake-tauri.js`, an in-browser stand-in for the backend; any console error fails a test |
-| `tools/` | Independent Python readers that check the vectors and the backup format without Mossbook code |
+| `tools/` | Independent Python readers that check the vectors, the backup format and an encrypted report PDF without Mossbook code |
 
 ## Build and release
 

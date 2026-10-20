@@ -111,8 +111,12 @@ export const statsPatterns = (range: StatsRange) => invoke<Patterns>('stats_patt
 
 // ---- report (X-3) ----
 
-/** Renders the report to PDF and opens the save dialog. `false` if cancelled. */
-export const reportPdf = (report: ReportDoc) => invoke<boolean>('report_pdf', { report });
+/**
+ * Renders the report to PDF and opens the save dialog. `false` if cancelled.
+ * With `password`, the PDF is encrypted with AES-256.
+ */
+export const reportPdf = (report: ReportDoc, password?: string) =>
+	invoke<boolean>('report_pdf', { report, password: password ?? null });
 
 // ---- clipboard ----
 
