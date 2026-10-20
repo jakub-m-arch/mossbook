@@ -1,6 +1,11 @@
 # Keeps the GitHub Actions pinned to commit SHAs up to date (supply chain:
 # a tag can be moved, a commit cannot). Rust and npm dependencies are updated by
 # hand, with `cargo deny` and `cargo audit` in CI.
+#
+# Only minor and patch updates are proposed. Major versions of the actions used
+# by release.yml (tauri-action, attest-build-provenance) are not exercised by
+# pull request CI, so they are bumped by hand and checked with a test release
+# (see docs/release.md).
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -10,3 +15,6 @@ updates:
     groups:
       actions:
         patterns: ['*']
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']

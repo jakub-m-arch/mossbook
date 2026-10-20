@@ -38,3 +38,15 @@ installers and attaches them with `SHA256SUMS` to a **draft** release.
 
 Installers are not code-signed yet: macOS Gatekeeper and Windows SmartScreen will
 warn on first launch (README, *Install*).
+
+## Updating GitHub Actions
+
+Actions are pinned to commit SHAs. Dependabot proposes minor and patch updates
+monthly; ordinary CI on its pull request covers `ci.yml`. Major versions are
+ignored there and bumped by hand:
+
+- [ ] Read the action's changelog for breaking changes (inputs, outputs,
+      required permissions, Node runtime).
+- [ ] Pin the new commit SHA with the version in a comment, as the other actions.
+- [ ] If the action is used by `release.yml` or `homebrew.yml`, check it with a
+      test tag (for example `v0.1.2-rc.1`), then delete the draft release and the tag.
