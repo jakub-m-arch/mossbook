@@ -133,6 +133,7 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Za
 - [x] **„Treść trudna” (E-16)**: przełącznik w każdym formularzu; na osi czasu tylko rodzaj i godzina, odsłonięcie stuknięciem
 - [x] **Kalendarz (E-14)** we Wzorcach: miesiąc, odcień dnia wg średniego samopoczucia (jeden odcień, bez czerwieni), legenda, nawigacja po miesiącach; stuknięcie w dzień → oś czasu z filtrem tego dnia
 - [x] **Statystyki A-2–A-4** (`core::query::patterns`, zakładka Wzorce → Zestawienia): od 14 wpisów w okresie; najczęstsze tagi i wyzwalacze (wolny tekst grupowany po normalizacji, ≥ 2 powtórzenia); samopoczucie a sen poprzedniej nocy (słaby/średni/dobry), pora dnia, dzień tygodnia; strategie: średni spadek intensywności (≥ 2 użycia); paski z liczbami, tylko obserwacje
-- [ ] Przypomnienia (R-1–R-3)
+- [ ] Przypomnienia (R-1–R-3): **odłożone do wersji mobilnych** (D-14)
 - [x] **Szybki wpis bez odblokowania (E-15)**: para X25519 w nagłówku (`x25519_pub`, `wrapped_x25519_priv`), sealed box zgodny z libsodium (test z PyNaCl), tabela `inbox`, minimalny `InboxEntry` (rodzaj, wartość, czas), przeniesienie do dziennika przy odblokowaniu, starsze skarbce dostają klucze przy następnym odblokowaniu; przycisk na ekranie blokady
 - [ ] Biometria, iOS, Android (odłożone)
+| D-14 | przyjęte | **Przypomnienia na desktopie**: harmonogram jest w zaszyfrowanych ustawieniach, a przypomnienie musi przyjść przy zablokowanym dzienniku; na desktopie tylko przy działającej aplikacji | Odłożone do wersji mobilnych (systemowe planowanie powiadomień). Bez jawnego harmonogramu na dysku |

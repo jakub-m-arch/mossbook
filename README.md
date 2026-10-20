@@ -34,6 +34,7 @@ keep a backup (Settings → Backup). Android and iOS builds are postponed.
 | 10 | Mood chart, language setting (pl / en / uk) | done |
 | 11 | Android build | postponed |
 | 12 | Release 0.1.0 (desktop) | in progress |
+| 13 | v1 features: PDF report, IRT, calendar, overviews, quick entry while locked | done |
 
 The detailed checklist lives in [`docs/PLAN.md`](docs/PLAN.md) and the full
 specification in [`SPEC.md`](SPEC.md) (both in Polish).
@@ -59,9 +60,11 @@ Download the installer for your system from
   case and diacritics (searching `lodz` finds `Łódź`).
 - **Plan for a hard moment** based on the Stanley–Brown safety plan, with crisis
   phone numbers and grounding exercises available **without unlocking**.
-- **Patterns**: mood over time, shown as plain observations, never clinical conclusions.
+- **Patterns**: mood over time, a mood calendar and overviews (tags, triggers, sleep,
+  time of day, strategies), shown as plain observations, never clinical conclusions.
 - **Encrypted backup** to a single `.mossbook` file; restore on a new device or merge.
-  A PDF report for your therapist is planned.
+- **Report for your therapist** as a PDF for a chosen period, types and tags.
+- **Quick entry from the lock screen** without the password: it can add, never read.
 - **Languages**: Polish, English and Ukrainian from the first release.
 - **Calm by design**: no streaks, points, badges or guilt-inducing notifications.
 
