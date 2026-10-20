@@ -1,0 +1,12 @@
+# Keeps the GitHub Actions pinned to commit SHAs up to date (supply chain:
+# a tag can be moved, a commit cannot). Rust and npm dependencies are updated by
+# hand, with `cargo deny` and `cargo audit` in CI.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ['*']

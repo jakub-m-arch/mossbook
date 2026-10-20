@@ -11,6 +11,8 @@ All notable changes to Mossbook. Versions follow [Semantic Versioning](https://s
 - Settings show when you last saved a backup yourself and when the latest automatic
   one was made, with "Show in folder". The backup picker opens in that folder.
 - Check your recovery key: type the 24 words and see whether they open your journal.
+- Releases carry build provenance attestations (`gh attestation verify`, see
+  `SECURITY.md`); CI actions are pinned to commit SHAs.
 - Readable copy: save the whole journal as a JSON file (not encrypted; the app warns
   first). The format is in `docs/backup-format.md`.
 

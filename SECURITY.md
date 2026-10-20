@@ -39,6 +39,17 @@ sha256sum --check --ignore-missing SHA256SUMS      # Linux
 shasum -a 256 --check --ignore-missing SHA256SUMS  # macOS
 ```
 
+Each installer also has a **build provenance attestation**, signed by GitHub for the
+`Release` workflow run that built it. It shows which commit and workflow produced the
+file, so a download cannot be swapped for one built elsewhere:
+
+```sh
+gh attestation verify Mossbook_0.1.2_aarch64.dmg --repo jakub-m-arch/mossbook
+```
+
+(Releases from 0.1.2 on.) The workflows pin every third-party GitHub Action to a commit
+SHA, so a moved tag cannot change what the release build runs.
+
 The cryptographic design can be checked independently: `tools/verify-vectors.py`
 recomputes the test vectors with libsodium and argon2-cffi, and `tools/read-backup.py`
 opens a backup without any Mossbook code (see `docs/crypto.md`).

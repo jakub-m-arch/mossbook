@@ -32,7 +32,7 @@ jobs:
       # The cask template comes from the default branch (it does not depend on the
       # release and may be newer than the tag); only the checksums come from the release.
       # The ref must be explicit: a release event would otherwise check out the tag.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         if: steps.token.outputs.skip != 'true'
         with:
           ref: ${{ github.event.repository.default_branch }}
@@ -44,7 +44,7 @@ jobs:
           gh release download "$TAG" --repo "${{ github.repository }}" --pattern SHA256SUMS
           packaging/homebrew/render.sh "${TAG#v}" SHA256SUMS mossbook.rb
           cat mossbook.rb
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         if: steps.token.outputs.skip != 'true'
         with:
           repository: jakub-m-arch/homebrew-mossbook

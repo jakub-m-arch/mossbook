@@ -33,7 +33,7 @@ Android SDK are not installed.**
 **Findings:**
 - On Android/iOS Tauri always depends on `reqwest` (+ `hyper`) but uses it only under `cfg(all(dev, mobile))` for the dev-server proxy. `deny.toml` allows `reqwest` only as a dependency of `tauri`. Stage 11: check that the release `.so` contains no `reqwest`/`hyper` symbols, in addition to the manifest test.
 - `cargo audit` warns (unmaintained/unsound) about gtk-rs 0.18 on Linux, which comes with Tauri; also zbus via the opener plugin. They do not block CI and are silenced in `deny.toml` with reasons.
-- To consider: pinning GitHub Actions to commit SHAs (supply chain).
+- GitHub Actions are pinned to commit SHAs (stage 14).
 
 ### Stage 2: Core – cryptography (`core/src/crypto/`)
 - [x] `kdf.rs`: Argon2id, `KdfParams { m_kib, t, p }`, 13-byte header encoding, upper-bound validation, `calibrate(CALIBRATION_TARGET)` (raises only `t`), NFC password normalisation
@@ -132,7 +132,7 @@ Postponed on purpose (2026-10-19): the tools are missing (JDK, SDK, NDK) and sto
 - [x] **Automatic backups (D-16)**: on lock, at most every 20 h, newest 7 in `backups/` next to the vault; fixed slot names; replaced after a password change, deleted with the journal; can be turned off; the backup picker opens in that folder
 - [x] Settings show the latest automatic backup ("Show in folder") and when the user last saved a backup themselves (`Settings.last_export`, set only by the journal)
 - [x] **Recovery key check**: type the 24 words, see whether they open this journal; nothing changes
-- [ ] Build provenance attestations and GitHub Actions pinned to commit SHAs
+- [x] Build provenance attestations in the `Release` workflow; all GitHub Actions pinned to commit SHAs, kept current by Dependabot (monthly)
 - [ ] Screenshots and a plain-language privacy section in the README
 - [ ] Crisis numbers for more countries (UA, GB, DE, US at least), from official sources
 - [ ] Reviews: a psychotherapist (exercises, IRT, tone), a native Ukrainian speaker
