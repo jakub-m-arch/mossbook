@@ -22,22 +22,16 @@ encrypted on your device, and can be shared with a therapist only if you choose 
 
 ## Status
 
-**Version 0.1 is being prepared: the first desktop release** (Linux, Windows, macOS).
-All MVP features for desktop are in place and tested; it is still early software, so
-keep a backup (Settings → Backup). Android and iOS builds are postponed.
+**0.1 is out for desktop** (Linux, Windows, macOS). It is early software: keep a
+backup (Settings → Backup).
 
-| Stage | Scope | State |
-|---|---|---|
-| 1–5 | Skeleton, cryptography, vault, domain, Tauri commands and auto-lock | done |
-| 6–8 | Setup, lock, journal, timeline, tags, safety plan, crisis lines, exercises | done |
-| 9 | Encrypted `.mossbook` backups | done |
-| 10 | Mood chart, language setting (pl / en / uk) | done |
-| 11 | Android build | postponed |
-| 12 | Release 0.1.0 (desktop) | in progress |
-| 13 | v1 features: PDF report, IRT, calendar, overviews, quick entry while locked | done |
+- **Done:** every desktop feature of the MVP, and from v1 the PDF report, nightmares (IRT),
+  difficult content, the mood calendar, overviews, and quick entry while locked.
+- **Not yet:** Android and iOS builds, biometric unlock, reminders (they come with the
+  mobile versions), plain JSON export, and code-signed installers.
 
-The detailed checklist lives in [`docs/PLAN.md`](docs/PLAN.md) and the full
-specification in [`SPEC.md`](SPEC.md) (both in Polish).
+The specification is [`SPEC.md`](SPEC.md); the checklist and the decisions taken along
+the way are in [`docs/PLAN.md`](docs/PLAN.md).
 
 ## Install
 
@@ -68,7 +62,8 @@ Mossbook never connects to the internet, so it does not check for updates by its
   from the build date, offline).
 - **Get notified:** on [the repository](https://github.com/jakub-m-arch/mossbook),
   *Watch → Custom → Releases*, and GitHub emails you when a new version is out.
-- To update, install the new version over the old one. Your journal stays where it
+- With Homebrew, `brew upgrade` is enough. Otherwise install the new version over
+  the old one. Your journal stays where it
   is; keeping a recent backup (Settings → Backup) is still a good idea.
 
 ## What it does
@@ -133,24 +128,30 @@ What Mossbook does and does not protect against, including known limitations, is
           vault.db (SQLite)
 ```
 
-- **[Tauri 2](https://tauri.app)** for desktop (Linux, Windows, macOS) and mobile (Android, later iOS).
+- **[Tauri 2](https://tauri.app)** for desktop (Linux, Windows, macOS), later Android and iOS.
 - **Rust** for everything that touches data. Cryptography uses audited
   [RustCrypto](https://github.com/RustCrypto) crates; no home-grown primitives.
 - **Svelte 5 + SvelteKit** (static SPA) for the interface. All assets are local; no CDN.
 
+How the pieces fit together, module by module, is in
+[`docs/architecture.md`](docs/architecture.md).
+
 ```
 mossbook/
-├── core/             mossbook-core: crypto/, store/, vault/, domain/, query/, journal.rs, crisis.rs
-│   ├── data/crisis/  crisis phone numbers per country, with sources and check date
+├── core/             mossbook-core: crypto/, store/, vault/, domain/, journal.rs,
+│   │                 query/, backup/, report/, crisis.rs
+│   ├── data/         crisis phone numbers per country (with sources), report fonts
 │   ├── migrations/   SQL schema
-│   └── tests/        integration tests and the format-v1 fixture
+│   └── tests/        integration tests and the format-v1 fixtures
 ├── app/
 │   ├── src-tauri/    Tauri commands, session, capabilities
 │   ├── src/          Svelte UI (routes/, lib/api, lib/i18n, lib/components)
 │   └── e2e/          Playwright scenarios against a fake backend
-├── docs/             crypto.md, backup-format.md, threat-model.md, release.md, PLAN.md
+├── docs/             architecture.md, crypto.md, backup-format.md, threat-model.md,
+│                     release.md, PLAN.md
+├── packaging/        Homebrew cask template
 ├── tools/            verify-vectors.py, read-backup.py (independent readers)
-└── SPEC.md           full specification (Polish)
+└── SPEC.md           specification
 ```
 
 ## Building from source

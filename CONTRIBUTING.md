@@ -17,6 +17,8 @@ These are not negotiable (see also [`CLAUDE.md`](CLAUDE.md)):
 
 ## Workflow
 
+How the code is organised is described in [`docs/architecture.md`](docs/architecture.md).
+
 1. Open an issue first for anything larger than a small fix.
 2. Keep changes focused; add tests. Changes to `core/crypto`, `core/vault`,
    `core/backup` or a file format need negative tests too, and a format change

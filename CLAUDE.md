@@ -1,23 +1,25 @@
-# Mossbook: zasady dla agenta
+# Mossbook: rules for agents and contributors
 
-Specyfikacja: `SPEC.md`. Plan i stan prac: `docs/PLAN.md` (aktualizuj checklistę po każdym etapie).
+Specification: `SPEC.md`. Plan, progress and decisions: `docs/PLAN.md` (update the
+checklist after every stage). How the code fits together: `docs/architecture.md`.
 
-## Nienaruszalne
-- NIGDY nie dodawaj zależności sieciowych (reqwest, hyper, ureq, tauri-plugin-http, fetch do zewnętrznych adresów, CDN). Aplikacja działa w 100% offline.
-- NIGDY nie zapisuj danych użytkownika na dysk w postaci jawnej. Wszystko przez warstwę `core::store` i szyfrowanie z `core::crypto`.
-- NIGDY nie loguj treści wpisów, tagów, haseł, kluczy ani fraz odzyskiwania (`println!`, `log::*`, `tracing::*`, `console.log`). Typy domenowe mają ręczny `Debug` z redakcją.
-- NIGDY nie implementuj własnych prymitywów kryptograficznych. Używaj crate'ów RustCrypto wymienionych w SPEC.md §6.6.
-- Klucze trzymaj w `secrecy`/`zeroize`. Frontend nigdy nie dostaje klucza.
-- Nie dodawaj telemetrii, analityki ani raportowania błędów na zewnątrz.
-- Teksty w UI: bez diagnoz i ocen klinicznych, bez gamifikacji, bez komunikatów wywołujących poczucie winy.
+## Non-negotiable
+- NEVER add networking dependencies (reqwest, hyper, ureq, tauri-plugin-http, fetch to external addresses, CDNs). The app works 100% offline.
+- NEVER write user data to disk in plaintext. Everything goes through `core::store` and encryption from `core::crypto`.
+- NEVER log entry content, tags, passwords, keys or recovery phrases (`println!`, `log::*`, `tracing::*`, `console.log`). Domain types have a hand-written, redacting `Debug`.
+- NEVER implement cryptographic primitives yourself. Use the RustCrypto crates listed in SPEC.md §6.6.
+- Keep keys in `secrecy`/`zeroize`. The frontend never receives a key.
+- No telemetry, analytics or external error reporting.
+- UI texts: no diagnoses or clinical assessments, no gamification, nothing that makes the user feel guilty.
 
-## Architektura
-- Logika w `core/` (czysty Rust, bez Tauri). `app/src-tauri` to cienka warstwa komend.
-- Svelte 5 (runes) + TypeScript. Komunikacja wyłącznie przez typowane wrappery w `app/src/lib/api/`.
-- Przy wątpliwościach pytaj, zamiast zgadywać, szczególnie w kryptografii i formacie plików. Decyzje podjęte poza SPEC.md są w `docs/PLAN.md` §3.
+## Architecture
+- Logic lives in `core/` (pure Rust, no Tauri). `app/src-tauri` is a thin command layer.
+- Svelte 5 (runes) + TypeScript. The UI talks to Rust only through the typed wrappers in `app/src/lib/api/`.
+- When in doubt, ask instead of guessing, especially about cryptography and file formats. Decisions made outside SPEC.md are in `docs/PLAN.md` §3.
 
-## Jakość
-- Każda zmiana w `core/crypto`, `core/vault`, `core/backup` wymaga testów (w tym negatywnych).
-- Przed zakończeniem zadania: `cargo fmt`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `npm run check` (w `app/`).
-- Dane testowe tylko syntetyczne.
-- Zmiana formatu rekordu lub kopii = podbicie wersji + migracja + test migracji.
+## Quality
+- Every change in `core/crypto`, `core/vault` or `core/backup` needs tests, including negative ones.
+- Before finishing a task: `cargo fmt`, `cargo clippy --all-targets -- -D warnings`, `cargo test`, `npm run check` (in `app/`).
+- Test data is synthetic only.
+- Changing a record or backup format = version bump + migration + migration test.
+- Code comments and documentation are written in English.

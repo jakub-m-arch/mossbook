@@ -1,140 +1,165 @@
-# Mossbook: plan implementacji
+# Mossbook: implementation plan
 
-Plan wykonawczy do `SPEC.md` (§12). Każdy etap kończy się zielonym CI i osobnym PR-em.
-Legenda: `[ ]` do zrobienia, `[x]` zrobione.
+The working plan for [`SPEC.md`](../SPEC.md) (§12): stages, their state, and the
+decisions taken along the way (§3). Update the checklist after every stage.
+Legend: `[ ]` to do, `[x]` done.
 
 ---
 
-## 1. Przygotowanie środowiska (jednorazowo)
+## 1. Environment (one-off)
 
-Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Zainstalowano Rust 1.99.1, tauri-cli 2.12.3, cargo-deny 0.20.2, cargo-audit 0.22.2. **Brakuje pełnego Xcode, JDK i Android SDK.**
+As of 2026-10-18 (macOS): Node 26 and npm, Xcode Command Line Tools, Rust 1.99.1,
+tauri-cli 2.12.3, cargo-deny 0.20.2, cargo-audit 0.22.2. **Full Xcode, a JDK and the
+Android SDK are not installed.**
 
 - [x] Rust: `rustup` (stable) + `rustfmt`, `clippy`
 - [x] `cargo install tauri-cli cargo-deny cargo-audit --locked`
-- [ ] (etap 11) JDK 17, Android Studio / SDK + NDK, `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`
-- [ ] (v1, iOS) pełny Xcode
-- [ ] `gh` CLI (opcjonalnie, do PR-ów)
+- [ ] (stage 11) JDK 17, Android Studio / SDK + NDK, `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`
+- [ ] (v1, iOS) full Xcode
 
 ---
 
-## 2. Etapy
+## 2. Stages
 
-### Etap 1: Szkielet
-- [x] Workspace Cargo: `core` (`mossbook-core`), `app/src-tauri` (`mossbook`); `rust-toolchain.toml` (1.99.1), resolver 3, edition 2024, profil `release` (`lto`, `codegen-units = 1`, `panic = "abort"`, `strip`)
-- [x] `app/`: SvelteKit 3 + `adapter-static` (SPA, `fallback: index.html`, `ssr = false`), Svelte 5 (runes wymuszone), TS, Vite 8, Vitest, ESLint, Prettier
-- [x] Tauri 2.12: CSP z SPEC §8.4 (+ `devCsp` z websocketem HMR), `freezePrototype`, capabilities puste, usunięty `tauri-plugin-log`; identyfikator `io.github.jakubmarch.mossbook`
-- [x] `deny.toml`: licencje zgodne z GPL-3.0, bany crate'ów sieciowych i `tauri-plugin-log`, tylko crates.io
-- [x] Lint „brak logowania”: clippy `print_stdout`/`print_stderr`/`dbg_macro` + `disallowed-macros` dla `log::*`/`tracing::*`; ESLint `no-console`
-- [x] CI: fmt, clippy, test, deny, audit, `npm run check`/`lint`/`test`, build desktop ubuntu/windows/macos (bez podpisywania)
-- [x] Pusta aplikacja startuje (lokalnie: macOS, `cargo tauri build --debug --no-bundle`)
-- [ ] CI zielone na GitHubie (po pierwszym pushu)
+### Stage 1: Skeleton
+- [x] Cargo workspace: `core` (`mossbook-core`), `app/src-tauri` (`mossbook`); `rust-toolchain.toml` (1.99.1), resolver 3, edition 2024, `release` profile (`lto`, `codegen-units = 1`, `panic = "abort"`, `strip`)
+- [x] `app/`: SvelteKit 3 + `adapter-static` (SPA, `fallback: index.html`, `ssr = false`), Svelte 5 (runes enforced), TS, Vite 8, Vitest, ESLint, Prettier
+- [x] Tauri 2.12: CSP from SPEC §8.4 (+ `devCsp` with the HMR websocket), `freezePrototype`, `tauri-plugin-log` removed; identifier `io.github.jakubmarch.mossbook`
+- [x] `deny.toml`: GPL-3.0-compatible licences, networking crates and `tauri-plugin-log` banned, crates.io only
+- [x] "No logging" lints: clippy `print_stdout`/`print_stderr`/`dbg_macro` + `disallowed-macros` for `log::*`/`tracing::*`; ESLint `no-console`
+- [x] CI: fmt, clippy, test, deny, audit, `npm run check`/`lint`/`test`, e2e, desktop builds on Ubuntu/Windows/macOS (unsigned)
+- [x] The empty app starts; CI green on GitHub
 
-**Ustalenia z etapu 1:**
-- Tauri na Androidzie/iOS zawsze zależy od `reqwest` (+`hyper`), ale używa go tylko pod `cfg(all(dev, mobile))` do proxy dev serwera. `deny.toml` dopuszcza `reqwest` wyłącznie jako zależność `tauri`. Etap 11: sprawdzić, że release `.so` nie zawiera symboli `reqwest`/`hyper`, oprócz testu manifestu.
-- `cargo audit` zgłasza ostrzeżenia (unmaintained/unsound) dla gtk-rs 0.18 na Linuksie, przychodzące z Tauri. Nie blokują CI; `RUSTSEC-2024-0370` jest wyciszony w `deny.toml` z uzasadnieniem.
-- Do rozważenia: przypięcie akcji GitHub do SHA (łańcuch dostaw).
+**Findings:**
+- On Android/iOS Tauri always depends on `reqwest` (+ `hyper`) but uses it only under `cfg(all(dev, mobile))` for the dev-server proxy. `deny.toml` allows `reqwest` only as a dependency of `tauri`. Stage 11: check that the release `.so` contains no `reqwest`/`hyper` symbols, in addition to the manifest test.
+- `cargo audit` warns (unmaintained/unsound) about gtk-rs 0.18 on Linux, which comes with Tauri; also zbus via the opener plugin. They do not block CI and are silenced in `deny.toml` with reasons.
+- To consider: pinning GitHub Actions to commit SHAs (supply chain).
 
-### Etap 2: Core – kryptografia (`core/src/crypto/`)
-- [x] `kdf.rs`: Argon2id, `KdfParams { m_kib, t, p }`, 13-bajtowe kodowanie do nagłówka, walidacja górnych limitów, `calibrate(CALIBRATION_TARGET)` (podnosi tylko `t`), normalizacja hasła NFC
-- [x] `aead.rs`: XChaCha20-Poly1305, `nonce(24) || ct || tag(16)`, AAD rekordu z SPEC §6.2, `RecordType` z kodami kolumny
-- [x] `wrap.rs`: wrap/unwrap DEK, AAD `"mossbook/wrap/v1" || vault_id`
-- [x] `recovery.rs`: 256 bit ↔ 24 słowa BIP-39, HKDF-SHA256 → KEK_rec, normalizacja wejścia, `confirm()` dla V-1
-- [x] `Dek`, `Kek`, `RecoveryKey` w `SecretBox`, bez `Clone`, `Debug` z redakcją; bufory pośrednie zerowane
-- [x] Testy (40): round-trip, złe hasło/klucz, każdy podmieniony bajt, zamiana rekordów, inny typ/skarbiec, wrogie parametry KDF, cała hierarchia + zmiana hasła, wektor BIP-39, proptest
-- [x] Stałe wektory potwierdzone niezależnie (libsodium, argon2-cffi): `tools/verify-vectors.py`
+### Stage 2: Core – cryptography (`core/src/crypto/`)
+- [x] `kdf.rs`: Argon2id, `KdfParams { m_kib, t, p }`, 13-byte header encoding, upper-bound validation, `calibrate(CALIBRATION_TARGET)` (raises only `t`), NFC password normalisation
+- [x] `aead.rs`: XChaCha20-Poly1305, `nonce(24) || ct || tag(16)`, record AAD from SPEC §6.2, `RecordType` with column codes
+- [x] `wrap.rs`: DEK wrap/unwrap, AAD `"mossbook/wrap/v1" || vault_id`
+- [x] `recovery.rs`: 256 bit ↔ 24 BIP-39 words, HKDF-SHA256 → KEK_rec, input normalisation, `confirm()` for V-1
+- [x] `Dek`, `Kek`, `RecoveryKey` in `SecretBox`, no `Clone`, redacted `Debug`; intermediate buffers zeroed
+- [x] Tests: round-trips, wrong password/key, every flipped byte, swapped records, other type/vault, hostile KDF parameters, the whole hierarchy + password change, BIP-39 vector, proptest
+- [x] Fixed vectors confirmed independently (libsodium, argon2-cffi): `tools/verify-vectors.py`
 - [x] `docs/crypto.md`
 
-### Etap 3: Core – skarbiec i magazyn (`vault/`, `store/`)
-- [x] `store/`: `rusqlite` (`bundled`), schemat z SPEC §7 (`STRICT`), `WAL`, `secure_delete = ON`, migracje przez `PRAGMA user_version`, odmowa otwarcia bazy z nowszej wersji
-- [x] `VaultHeader` w `meta`, `UnlockedVault` (DEK + rekordy w pamięci, zerowane przy `Drop`); rekordy jako bajty, typy domenowe w etapie 4
-- [x] `PendingVault` (D-3): skarbiec w pamięci, zapis dopiero po potwierdzeniu 3 słów, przez `vault.db.creating` + rename
-- [x] `unlock`, `unlock_with_recovery` (+ nowe hasło), `lock` (checkpoint WAL), `change_password` (rewrap, nowa sól), `destroy` (oddaje skarbiec przy złym haśle)
-- [x] `UnlockThrottle`: 1, 2, 4… 60 s, tylko w pamięci (D-5)
-- [x] Uszkodzone rekordy są pomijane i liczone, a nie blokują całego skarbca
-- [x] Testy integracyjne (14): cykl życia, złe hasło/fraza, odzyskiwanie, zmiana hasła, usuwanie, brak jawnej treści na dysku, podmiana/zamiana rekordów, podmiana nagłówka, fixture formatu v1
-- [x] `docs/crypto.md`: sekcja *Vault file*
+### Stage 3: Core – vault and storage (`vault/`, `store/`)
+- [x] `store/`: `rusqlite` (`bundled`), schema from SPEC §7 (`STRICT`), WAL, `secure_delete = ON`, migrations via `PRAGMA user_version`, refuses databases from a newer version
+- [x] `VaultHeader` in `meta`, `UnlockedVault` (DEK + records in memory, zeroed on drop)
+- [x] `PendingVault` (D-3): the vault lives in memory and is written only after the 3 words are confirmed, via `vault.db.creating` + rename
+- [x] `unlock`, `unlock_with_recovery` (+ new password), `lock` (WAL checkpoint), `change_password` (rewrap, new salt), `destroy` (hands the vault back on a wrong password)
+- [x] `UnlockThrottle`: 1, 2, 4… 60 s, in memory only (D-5)
+- [x] Corrupted records are skipped and counted instead of blocking the whole vault
+- [x] Integration tests: life cycle, wrong password/phrase, recovery, password change, deletion, no plaintext on disk, tampered/swapped records, tampered header, format v1 fixture
+- [x] `docs/crypto.md`: *Vault file*
 
-### Etap 4: Core – domena i zapytania
-- [x] `domain/`: `Entry` (+`EntryKind` ×6), `Tag`, `SafetyPlan`, `Settings`, `Emotion`/`Symptom` z `Custom(String)`; walidacja zakresów; UUIDv7; CBOR; znaczniki czasu RFC 3339 z offsetem; `ZeroizeOnDrop` i `Debug` z redakcją
-- [x] `Journal`: CRUD wpisów (zachowuje `created_at`, odrzuca nieznane tagi), szybki wpis, tagi (tworzenie, zmiana nazwy/koloru, usuwanie i łączenie w jednej transakcji), plan i ustawienia jako singletony
-- [x] `UnlockedVault` oddaje odszyfrowane rekordy raz (`take_loaded`), więc treść jest w pamięci tylko jako obiekty domenowe; zapis wsadowy `write_batch`
-- [x] `query/`: filtr (typ, tagi, zakres dat, tylko do uzupełnienia), wyszukiwanie bez wielkości liter i znaków diakrytycznych (także `ł`, tagi), `mood_by_day` dla A-1
-- [x] Testy: jednostkowe domeny i zapytań, integracyjne dziennika (8), proptest: dowolne `Entry` → zapis → blokada → odczyt
-- [x] `docs/crypto.md`: sekcja *Record contents*
+### Stage 4: Core – domain and queries
+- [x] `domain/`: `Entry` (+ six `EntryKind`s), `Tag`, `SafetyPlan`, `Settings`, `Emotion`/`Symptom` with `Custom(String)`; range validation; random UUIDv4 ids (D-13); CBOR; RFC 3339 timestamps with offset; `ZeroizeOnDrop` and redacted `Debug`
+- [x] `Journal`: entry CRUD (keeps `created_at`, rejects unknown tags), quick entry, tags (create, rename/recolour, delete and merge in one transaction), plan and settings as singletons
+- [x] `UnlockedVault` hands over decrypted records once (`take_loaded`), so content stays in memory only as domain objects; batched writes (`write_batch`)
+- [x] `query/`: filter (type, tags, date range, incomplete only), search ignoring case and diacritics (including `ł`, and tag names), `mood_by_day` for A-1
+- [x] Tests: domain and query unit tests, journal integration tests, proptest: any `Entry` → save → lock → read
+- [x] `docs/crypto.md`: *Record contents*
 
-### Etap 5: Tauri – komendy i stan
-- [x] `Session` (czysty Rust, testowalny): stany `no_vault` / `creating` / `locked` / `unlocked`, opóźnienie po błędnych próbach, zmiana hasła, usuwanie (przy złym haśle dziennik zostaje nietknięty)
-- [x] 26 komend z SPEC §8.3 (bez kopii i PDF), wszystkie `async` (Argon2 nie blokuje UI); hasła od razu w `Zeroizing`; `AppError { code, message, retry_after_ms }`
-- [x] Auto-blokada w Ruście: `Suspended` (mobile) i minimalizacja (desktop) → blokada przy polityce „natychmiast”; utrata fokusu → tylko zdarzenie `privacy-curtain` (D-11); timer bezczynności co 5 s, frontend tylko go resetuje (`activity_ping`); okna systemowe wstrzymują blokadę w tle, ale nie timer (D-6)
-- [x] Czas lokalny: UI podaje offset (`clock_sync`), bo `now_local()` jest niewiarygodne w procesie wielowątkowym
-- [x] Uprawnienia: `AppManifest` generuje `allow-<komenda>`, capability nadaje dokładnie te + `core:event:allow-(un)listen`; test pilnuje zgodności listy komend, capability i `generate_handler!`
-- [x] `app/src/lib/api/`: typy TS i wrappery `invoke()` (D-7: ręcznie + test kształtów JSON w Ruście + test Vitest porównujący wrappery z listą komend w Ruście)
-- [x] Aplikacja startuje lokalnie (macOS)
+### Stage 5: Tauri – commands and state
+- [x] `Session` (plain Rust, testable): `no_vault` / `creating` / `locked` / `unlocked`, wrong-attempt delay, password change, deletion (a wrong password leaves the journal untouched)
+- [x] Commands from SPEC §8.3, all `async` (Argon2 does not block the UI); passwords moved into `Zeroizing` at once; `AppError { code, message, retry_after_ms }`
+- [x] Auto-lock in Rust: `Suspended` (mobile) and minimising (desktop) lock under the "immediately" policy; focus loss only emits `privacy-curtain` (D-11); idle timer every 5 s, reset by the frontend (`activity_ping`); system dialogs pause the background lock but not the timer (D-6)
+- [x] Local time: the UI sends its UTC offset (`clock_sync`), because `now_local()` is unreliable in a multi-threaded process
+- [x] Permissions: `AppManifest` generates `allow-<command>`, the capability grants exactly those + `core:event:allow-(un)listen`; a test keeps the command list, the capability and `generate_handler!` in sync
+- [x] `app/src/lib/api/`: TS types and `invoke()` wrappers (D-7: by hand + JSON shape tests in Rust + a Vitest test comparing the wrappers with the Rust command list)
 
-### Etap 6: UI – zakładanie skarbca i blokada
-- [x] `setup`: powitanie z komunikatem z §9, hasło + powtórzenie + lokalny wskaźnik siły (bez zależności), 24 słowa z ostrzeżeniem z V-1, „zapisałem” wymagane, przepisanie 3 słów
-- [x] `lock`: hasło, odliczanie opóźnienia po błędnej próbie, „Nie pamiętam hasła”; `recover`: 24 słowa + nowe hasło
-- [x] Przycisk blokady zawsze widoczny po odblokowaniu (`UnlockedShell`), komunikat o nieczytelnych rekordach
-- [x] Zdarzenia z Rusta: `vault-locked` → ekran blokady, `privacy-curtain` → zasłona; pingi aktywności co ≥ 20 s; `clock_sync` przy starcie i powrocie
-- [x] i18n pl/en/uk (język systemu przed odblokowaniem, D-2), test zgodności kluczy i placeholderów
-- [x] Style: spokojna paleta, tryb ciemny, cele ≥ 48 px, `prefers-reduced-motion`, bez czerwieni w ostrzeżeniach
-- [x] E2E (Playwright, Chromium, udawany backend `e2e/fake-tauri.js`): zakładanie, blokada, złe hasło z opóźnieniem, odblokowanie, auto-blokada z Rusta, zasłona, odzyskiwanie; w CI
-- [ ] Przycisk „Plan na trudny moment / telefony” na ekranie blokady (etap 8)
-- [ ] Tłumaczenia uk do przejrzenia przez native speakera przed wydaniem
+### Stage 6: UI – vault creation and lock screen
+- [x] `setup`: welcome with the notice from §9, password + repeat + local strength meter (no dependency), 24 words with the V-1 warning, "I have written it down" required, retyping 3 words
+- [x] `lock`: password, countdown after a wrong attempt, "I forgot my password"; `recover`: 24 words + new password
+- [x] Lock button always visible when unlocked (`UnlockedShell`), notice about unreadable records
+- [x] Rust events: `vault-locked` → lock screen, `privacy-curtain` → curtain; activity pings every ≥ 20 s; `clock_sync` at start and on return
+- [x] i18n pl/en/uk (system language before unlocking, D-2), a test for matching keys and placeholders
+- [x] Styles: calm palette, dark mode, targets ≥ 48 px, `prefers-reduced-motion`, no red in warnings
+- [x] E2E (Playwright, Chromium, fake backend `e2e/fake-tauri.js`): creation, lock, wrong password with delay, unlock, auto-lock from Rust, curtain, recovery; in CI
+- [ ] Ukrainian translations to be reviewed by a native speaker
 
-### Etap 7: UI – wpisy
-- [x] Szybki wpis (E-10): rodzaj + ocena/intensywność = 2 stuknięcia; sen i notatka 1 stuknięcie; zapis jako „do uzupełnienia”, po czym od razu otwiera się formularz wpisu (można uzupełnić teraz albo wyjść)
-- [x] Formularze E-1 (piktogramy pogody 1–5, nie emoji), E-2, E-3 (objawy + własne, unikanie, strategia, intensywność po), E-4, E-6; koszmar (E-5) tylko przy edycji istniejących (tworzenie w v1); zapis po jednym polu; pełny zapis kończy „do uzupełnienia”
-- [x] Oś czasu z filtrami (rodzaj, tagi, zakres dat, tylko do uzupełnienia) i wyszukiwaniem w Ruście; edycja; usuwanie z potwierdzeniem w miejscu (bez `confirm()`)
-- [x] Tagi (E-12): tworzenie, zmiana nazwy, kolor z palety, usuwanie, łączenie
-- [x] Schowek: po `copy` Rust czyści schowek po 60 s, jeśli nadal zawiera skopiowany tekst (`tauri-plugin-clipboard-manager`, używany tylko z Rusta; BSL-1.0 dopuszczona w `deny.toml`)
-- [x] E2E: szybki wpis, pełny formularz + edycja + usunięcie, tagi + filtr + wyszukiwanie bez diakrytyków; każdy test pada na błędzie w konsoli
-- [ ] Język z ustawień po odblokowaniu: razem z ekranem ustawień (etap 10), bo domyślne `locale = "pl"` nadpisałoby język systemu
+### Stage 7: UI – entries
+- [x] Quick entry (E-10): type + rating/intensity = 2 taps; sleep and note 1 tap; saved as "to complete", then the entry form opens straight away (complete now or leave)
+- [x] Forms E-1 (weather pictograms 1–5, not emoji), E-2, E-3 (symptoms + own, avoidance, strategy, intensity after), E-4, E-6; saving after one field; a full save clears "to complete"
+- [x] Timeline with filters (type, tags, date range, to complete only) and search in Rust; editing; deleting with an inline confirmation (no `confirm()`)
+- [x] Tags (E-12): create, rename, colour from a palette, delete, merge
+- [x] Clipboard: after `copy`, Rust clears the clipboard after 60 s if it still holds the copied text (`tauri-plugin-clipboard-manager`, used from Rust only; BSL-1.0 allowed in `deny.toml`)
+- [x] E2E: quick entry, full form + edit + delete, tags + filter + diacritic-insensitive search; every test fails on a console error
 
-### Etap 8: Plan na trudny moment
-- [x] Edytor planu Stanley–Brown (P-1), sześć sekcji, kontakty z przyciskiem połączenia; dostęp jednym przyciskiem z osi czasu (P-2)
-- [x] `core/data/crisis/pl.json` (+ `sources`, `verified_at`), moduł `core::crisis` z walidacją plików w testach; numery zweryfikowane 2026-10-19 ze stroną MZ (gov.pl) i stronami operatorów
-- [x] Ekran pomocy bez odblokowania (P-3): numery z przyciskiem „Zadzwoń”, kraj z regionu języka systemu (D-2), komunikat dla krajów bez danych
-- [x] `dial`: tylko numery kryzysowe i zapisane kontakty z planu (po odblokowaniu); `tauri-plugin-opener` używany wyłącznie z Rusta
-- [x] Ćwiczenia offline (P-4): oddech 4-7-8 i pudełkowy z animacją (bez animacji przy `prefers-reduced-motion`), 5-4-3-2-1
-- [x] Przycisk „Plan na trudny moment / telefony” na ekranie blokady
-- [x] E2E: pomoc z ekranu blokady (numery, połączenie, ćwiczenia), plan (zapis, połączenie tylko z zapisanym kontaktem)
-- [ ] Teksty ćwiczeń do konsultacji z psychoterapeutą przed v1 (SPEC §9); numery do ponownej weryfikacji przed każdym wydaniem
+### Stage 8: Plan for a hard moment
+- [x] Stanley–Brown plan editor (P-1), six sections, contacts with a call button; one tap from the timeline (P-2)
+- [x] `core/data/crisis/pl.json` (+ `sources`, `verified_at`), `core::crisis` with file validation in tests; numbers checked on 2026-10-19 against the Ministry of Health (gov.pl) and the operators' pages
+- [x] Help screen without unlocking (P-3): numbers with a "Call" button, country from the system language region (D-2), a message for countries without data
+- [x] `dial`: only crisis numbers and contacts saved in the plan (after unlocking); `tauri-plugin-opener` used from Rust only
+- [x] Offline exercises (P-4): 4-7-8 and box breathing with an animation (none under `prefers-reduced-motion`), 5-4-3-2-1
+- [x] "Plan for a hard moment / phone numbers" button on the lock screen
+- [x] E2E: help from the lock screen (numbers, calling, exercises), plan (saving, calling only a saved contact)
+- [ ] Exercise texts to be reviewed by a psychotherapist (SPEC §9); numbers re-checked before every release
 
-### Etap 9: Kopia `.mossbook`
-- [x] `core::backup`: `MOSSBOOK` + wersja + CBOR; nagłówek i zaszyfrowane rekordy 1:1 z bazy; manifest (SHA-256 rekordów, szyfrowany DEK) wykrywa usunięcie, dodanie i zmianę kolejności; limit 512 MiB
-- [x] Otwieranie hasłem albo kluczem odzyskiwania z dnia kopii (D-9); przywracanie na nowym urządzeniu bez ponownego szyfrowania; import do istniejącego dziennika z ponownym szyfrowaniem (D-4): scalanie (nowsze `updated_at`, tagi po nazwie, plan i ustawienia bez zmian) albo zastąpienie, w jednej transakcji
-- [x] Komendy `backup_export` / `backup_pick` / `backup_import` z systemowymi oknami (plugin `dialog` + `fs`, obsługa `content://` na Androidzie); blokada w tle wstrzymana na czas okna (D-6), mutex sesji nie jest trzymany w trakcie
-- [x] Ekran ustawień: kopia (zapis, wczytanie), automatyczna blokada (V-3), zmiana hasła (V-5), usunięcie wszystkich danych (V-9); „Mam kopię zapasową” na pierwszym ekranie
-- [x] `docs/backup-format.md` + niezależny czytnik `tools/read-backup.py` (libsodium, argon2-cffi, cbor2), sprawdzony na fixture
-- [x] Testy: eksport → przywrócenie / import do innego skarbca = identyczne dane, scalanie, złe hasło/klucz, manipulacje (bajt, usunięcie, zamiana, obcy manifest, obcięty plik, wersja), stary hasło po zmianie, fixture `backup-v1.mossbook`; E2E: przywracanie, ustawienia, zmiana hasła, usunięcie danych
+### Stage 9: `.mossbook` backup
+- [x] `core::backup`: `MOSSBOOK` + version + CBOR; header and encrypted records copied 1:1 from the database; a manifest (SHA-256 of the records, sealed under the DEK) catches removal, addition and reordering; 512 MiB limit
+- [x] Opens with the password or recovery key valid when the backup was made (D-9); restoring on a new device without re-encryption; importing into an existing journal with re-encryption (D-4): merge (newer `updated_at` wins, tags matched by name, plan and settings unchanged) or replace, in one transaction
+- [x] `backup_export` / `backup_pick` / `backup_import` with system dialogs (plugins `dialog` + `fs`, `content://` handled for Android); the background lock is paused during the dialog (D-6) and the session mutex is not held meanwhile
+- [x] Settings screen: backup (save, load), auto-lock (V-3), password change (V-5), deleting all data (V-9); "I have a backup" on the first screen
+- [x] `docs/backup-format.md` + the independent reader `tools/read-backup.py` (libsodium, argon2-cffi, cbor2), checked against the fixture
+- [x] Tests: export → restore / import into another vault = identical data, merge, wrong password/key, tampering (byte, removal, swap, foreign manifest, truncated file, version), old password after a change, fixture `backup-v1.mossbook`; E2E: restore, settings, password change, deletion
 
-### Etap 10: Wykres i i18n
-- [x] A-1: zakładka „Wzorce”, wykres samopoczucia (tydzień / miesiąc / 3 miesiące) jako własny SVG zamiast uPlot (D-12): linia 2 px, znaczniki z obwódką, siatka, krzyżyk + podpowiedź (mysz i strzałki), widok tabeli; kolory serii zwalidowane (jasny/ciemny); tylko obserwacje, bez wniosków klinicznych
-- [x] Język w ustawieniach: „jak w systemie”, Polski, English, Українська; `Settings.locale` opcjonalne (stare rekordy z napisem nadal się wczytują), stosowane po odblokowaniu (D-2)
-- [x] Teksty z liczbami przeformułowane tak, żeby nie wymagały odmiany liczebników
-- [ ] Tłumaczenia uk do przejrzenia przez native speakera przed wydaniem
+### Stage 10: Chart and i18n
+- [x] A-1: "Patterns" tab, mood chart (week / month / 3 months) as hand-written SVG instead of uPlot (D-12): 2 px line, ringed markers, grid, crosshair + tooltip (mouse and arrow keys), table view; series colours validated for light and dark; observations only
+- [x] Language setting: "as in the system", Polski, English, Українська; `Settings.locale` optional (old records with a string still load), applied after unlocking (D-2)
+- [x] Texts with numbers rephrased so they need no plural forms
 
-### Etap 11: Android — odłożony
-Świadomie odłożony (decyzja z 2026-10-19): brak narzędzi (JDK, SDK, NDK), a dystrybucja w sklepach jest niepewna. Do zrobienia przy powrocie: `cargo tauri android init`, manifest wydania bez `INTERNET`, `allowBackup=false` + `dataExtractionRules`, `FLAG_SECURE`, test manifestu i sprawdzenie, że release `.so` nie zawiera `reqwest`/`hyper`.
+### Stage 11: Android — postponed
+Postponed on purpose (2026-10-19): the tools are missing (JDK, SDK, NDK) and store distribution is uncertain. When resuming: `cargo tauri android init`, a release manifest without `INTERNET`, `allowBackup=false` + `dataExtractionRules`, `FLAG_SECURE`, a manifest test and a check that the release `.so` contains no `reqwest`/`hyper`.
 
-### Etap 12: Wydanie 0.1.0 (desktop)
-- [x] `SECURITY.md`, `docs/threat-model.md` (zagrożenie → ochrona → miejsce w kodzie, akceptowane wycieki, ograniczenia), `CONTRIBUTING.md` (DCO, zasady), `CHANGELOG.md`
-- [x] Workflow `Release`: tag `v*` → instalatory Linux / Windows / macOS (arm i x86) + `SHA256SUMS` jako **szkic** wydania
-- [x] `docs/release.md`: lista kontrolna (weryfikacja numerów kryzysowych, niezależne narzędzia, wersje, ręczny test)
-- [x] Test spójności wersji (Cargo, `tauri.conf.json`, `package.json`)
-- [x] Poprawka przed wydaniem: losowe UUIDv4 zamiast v7 (D-13)
-- [ ] Włączyć prywatne zgłaszanie podatności w ustawieniach repozytorium
-- [x] Ręczny test wersji release (instalacja .dmg, raport PDF, szybki wpis) i tag `v0.1.0` (2026-10-20)
+### Stage 12: Release 0.1 (desktop)
+- [x] `SECURITY.md`, `docs/threat-model.md` (threat → protection → place in code, accepted leaks, limitations), `CONTRIBUTING.md` (DCO, rules), `CHANGELOG.md`
+- [x] `Release` workflow: tag `v*` → Linux / Windows / macOS (arm and x86, the latter cross-compiled) installers + `SHA256SUMS` as a **draft** release
+- [x] `docs/release.md`: checklist (crisis numbers, independent tools, versions, manual test)
+- [x] Version consistency test (Cargo, `tauri.conf.json`, `package.json`)
+- [x] Before the release: random UUIDv4 instead of v7 (D-13)
+- [x] Manual test of the release build (.dmg install, PDF report, quick entry); `v0.1.0` published (2026-10-20)
+- [x] Offline update check in Settings → About, GitHub release notifications in the README (D-15)
+- [x] Homebrew tap `jakub-m-arch/homebrew-mossbook`, updated by the `Homebrew` workflow on publish; clears quarantine because the app is not notarized
+- [x] `v0.1.1`: macOS bundle signed ad-hoc as a whole (0.1.0 was reported as "damaged" after download)
+- [ ] Enable private vulnerability reporting in the repository settings
+- [ ] Code signing: Apple Developer ID + notarisation (macOS), SignPath or Azure Trusted Signing (Windows)
 
-### Etap 13 (v1)
-- [x] **Raport PDF dla terapeuty (X-3)**: wybór okresu, rodzajów i tagów; frontend buduje model dokumentu (tłumaczenia), ten sam model jest podglądem i trafia do `core::report`, który składa A4 przez `printpdf` (łamanie tekstu po szerokościach glifów, podział na strony, stopka „nie jest zaszyfrowany” + numer strony); Noto Sans (OFL) osadzony w całości (~600 KB, podzbiór wymagałby ciężkiej funkcji `text_layout`); ostrzeżenie przed zapisem; zapis przez okno systemowe
-- [x] **Koszmar / IRT (E-5)**: tworzenie (szybki wpis jednym stuknięciem), wyjaśnienie metody, treść koszmaru zwinięta przy ponownym otwarciu, nowa wersja, powtórki z datami; domyślnie „treść trudna”
-- [x] **„Treść trudna” (E-16)**: przełącznik w każdym formularzu; na osi czasu tylko rodzaj i godzina, odsłonięcie stuknięciem
-- [x] **Kalendarz (E-14)** we Wzorcach: miesiąc, odcień dnia wg średniego samopoczucia (jeden odcień, bez czerwieni), legenda, nawigacja po miesiącach; stuknięcie w dzień → oś czasu z filtrem tego dnia
-- [x] **Statystyki A-2–A-4** (`core::query::patterns`, zakładka Wzorce → Zestawienia): od 14 wpisów w okresie; najczęstsze tagi i wyzwalacze (wolny tekst grupowany po normalizacji, ≥ 2 powtórzenia); samopoczucie a sen poprzedniej nocy (słaby/średni/dobry), pora dnia, dzień tygodnia; strategie: średni spadek intensywności (≥ 2 użycia); paski z liczbami, tylko obserwacje
-- [ ] Przypomnienia (R-1–R-3): **odłożone do wersji mobilnych** (D-14)
-- [x] **Szybki wpis bez odblokowania (E-15)**: para X25519 w nagłówku (`x25519_pub`, `wrapped_x25519_priv`), sealed box zgodny z libsodium (test z PyNaCl), tabela `inbox`, minimalny `InboxEntry` (rodzaj, wartość, czas), przeniesienie do dziennika przy odblokowaniu, starsze skarbce dostają klucze przy następnym odblokowaniu; przycisk na ekranie blokady
-- [ ] Biometria, iOS, Android (odłożone)
-| D-14 | przyjęte | **Przypomnienia na desktopie**: harmonogram jest w zaszyfrowanych ustawieniach, a przypomnienie musi przyjść przy zablokowanym dzienniku; na desktopie tylko przy działającej aplikacji | Odłożone do wersji mobilnych (systemowe planowanie powiadomień). Bez jawnego harmonogramu na dysku |
-| D-15 | przyjęte | **Aktualizacje bez sieci**: auto-update łamie zasadę 1 (połączenie ujawnia IP i fakt używania aplikacji) | Ustawienia → „O aplikacji”: wersja, data buildu (`SOURCE_DATE_EPOCH` dla powtarzalności), podpowiedź po 90 dniach liczona lokalnie, przycisk otwierający stronę Releases w przeglądarce (stały URL w Ruście); README: powiadomienia GitHuba. Później: Homebrew / winget / Flathub aktualizują z zewnątrz |
+### Stage 13 (v1)
+- [x] **PDF report for a therapist (X-3)**: period, types and tags; the frontend builds the document model (translations), the same model is the preview and goes to `core::report`, which lays out A4 with `printpdf` (word wrap by glyph widths, pagination, "not encrypted" footer + page number); Noto Sans (OFL) embedded whole (~600 KB; subsetting would need the heavy `text_layout` feature); a warning before saving; saved through the system dialog
+- [x] **Nightmare / IRT (E-5)**: creation (one-tap quick entry), an explanation of the method, the nightmare collapsed when reopened, the new version, rehearsals with dates; "difficult content" by default
+- [x] **Difficult content (E-16)**: a switch in every form; the timeline shows only the type and time, revealed on tap
+- [x] **Calendar (E-14)** in Patterns: a month, each day tinted by average mood (one hue, no red), legend, month navigation; tapping a day → timeline filtered to that day
+- [x] **Overviews A-2–A-4** (`core::query::patterns`, Patterns → Overviews): from 14 entries in the period; most frequent tags and triggers (free text grouped after normalisation, ≥ 2 repeats); mood versus the previous night's sleep (poor/fair/good), time of day, day of week; strategies: average intensity drop (≥ 2 uses); bars with numbers, observations only
+- [x] **Quick entry without unlocking (E-15)**: X25519 pair in the header (`x25519_pub`, `wrapped_x25519_priv`), libsodium-compatible sealed box (tested against PyNaCl), `inbox` table, minimal `InboxEntry` (type, value, time), moved into the journal on unlock; older vaults get the keys on their next unlock; button on the lock screen
+- [ ] Plain JSON export (X-4)
+- [ ] Reminders (R-1–R-3): **postponed to the mobile versions** (D-14)
+- [ ] Biometrics, iOS, Android (postponed)
+
+---
+
+## 3. Decisions and gaps in the specification
+
+Status: **accepted** or **open**. Accepted decisions bind the implementation just like
+`SPEC.md`.
+
+| ID | Status | Problem | Decision |
+|---|---|---|---|
+| D-1 | accepted | **Licence** | `GPL-3.0-or-later` + a section 7 permission for App Store / Google Play distribution (`LICENSE-EXCEPTION.md`). Copyleft blocks closed forks with telemetry; the permission removes the known conflict between the GPL and App Store terms. Contributions under the DCO (`Signed-off-by`). Dependencies must have GPL-3.0-compatible licences (enforced by `cargo deny`) |
+| D-2 | accepted | **Settings before unlocking**: the lock screen needs a language and a crisis-line country, but `Settings` are encrypted (principle 2) | Before unlocking, language and country come from the system. The saved language applies after unlocking. No plaintext setting in `meta` |
+| D-3 | accepted | **When the vault is created**: if the app closes between `vault_create` and `vault_confirm_recovery`, a vault without a confirmed key would exist | The vault is built in memory and written to disk only after the words are confirmed. `vault_create` returns the phrase, `vault_confirm_recovery` writes the file |
+| D-4 | accepted | **Importing from another vault**: the AAD contains `vault_id`, so records from another vault's backup cannot simply be copied | Import always decrypts with the backup's key and re-encrypts under the current DEK. Id conflicts when merging: newer `updated_at` wins |
+| D-5 | accepted | **Wrong-attempt counter (V-8)**: a persistent counter on disk is plaintext metadata, and an offline attacker bypasses it anyway | The counter lives in process memory only. The real protection is Argon2id, as the threat model says |
+| D-6 | accepted | **Auto-lock and system dialogs**: a save dialog or the Android picker causes focus loss or backgrounding, which would lock the vault mid-export | A "system dialog in progress" flag in Rust pauses the "immediately" lock, but not the idle timer |
+| D-7 | accepted | **TS types**: maintaining them by hand risks drift | By hand, guarded by JSON shape tests in Rust and a Vitest test comparing the wrappers with the Rust command list (`specta`/`tauri-specta` were not stable enough for Tauri 2) |
+| D-8 | open | **The plaintext `type` column** reveals how many entries (as opposed to tags) there are | Accepted for now and listed among the leaks in SPEC §2 and the threat model. Alternative: a single "record" type with the type only in the AAD and content |
+| D-9 | accepted | **An old backup after a password change** opens with the old password (it holds the DEK wrapped under the old KEK) | Documented in the password-change UI and in `docs/backup-format.md` |
+| D-10 | accepted | **Frontend router**: SPEC mentions `routes/` | SvelteKit + `adapter-static` (the official Tauri template) |
+| D-11 | accepted | **Desktop "immediately on going to the background"**: on desktop focus is lost all the time | Desktop: lock on minimise/hide; focus loss only covers the window |
+| D-12 | accepted | **Chart library**: SPEC named uPlot | Hand-written SVG charts: no dependency, colours from CSS variables (dark mode without redrawing), accessibility (slider role, table view) |
+| D-13 | accepted | **UUIDv7 reveals the creation time**: `records.id` is stored in plaintext (database and backup), and v7 contains a millisecond timestamp, which breaks principle 2 | New ids are random (UUIDv4); sorting uses `occurred_at` from the encrypted content. Existing v7 ids are read unchanged |
+| D-14 | accepted | **Reminders on desktop**: the schedule is in the encrypted settings, yet a reminder must arrive while the journal is locked; on desktop only while the app runs | Postponed to the mobile versions (system notification scheduling). No plaintext schedule on disk |
+| D-15 | accepted | **Updates without network**: auto-update breaks principle 1 (a connection reveals the IP address and that the app is used) | Settings → About: version, build date (`SOURCE_DATE_EPOCH` for reproducibility), a hint after 90 days computed locally, a button opening the Releases page in the browser (fixed URL in Rust); README: GitHub notifications. Package managers (Homebrew; later winget, Flathub) update from outside |
