@@ -24,7 +24,9 @@ jobs:
           - name: macos-aarch64
             os: macos-latest
           - name: macos-x86_64
-            os: macos-13
+            # Intel runners are retired; cross-compile on Apple Silicon.
+            os: macos-latest
+            target: x86_64-apple-darwin
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -40,7 +42,12 @@ jobs:
           cache-dependency-path: app/package-lock.json
       - run: npm ci
         working-directory: app
+      - name: Rust target for cross-compilation
+        if: matrix.target
+        run: rustup target add ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.name }}
       - uses: taiki-e/install-action@v2
         with:
           tool: tauri-cli
@@ -55,6 +62,7 @@ jobs:
           releaseBody: See CHANGELOG.md. Verify downloads against SHA256SUMS.
           releaseDraft: true
           prerelease: true
+          args: ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
 
   checksums:
     name: SHA256SUMS
