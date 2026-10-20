@@ -32,7 +32,9 @@ installers and attaches them with `SHA256SUMS` to a **draft** release.
 
 - [ ] Download one installer per platform from the draft and check it against
       `SHA256SUMS`.
-- [ ] Review the release notes, then publish the draft.
+- [ ] Review the release notes, then publish the draft. Publishing triggers the
+      `Homebrew` workflow, which updates the cask in `jakub-m-arch/homebrew-mossbook`
+      (needs the `HOMEBREW_TAP_TOKEN` secret; it is skipped with a notice otherwise).
 
 Installers are not code-signed yet: macOS Gatekeeper and Windows SmartScreen will
 warn on first launch (README, *Install*).
