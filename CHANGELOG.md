@@ -2,7 +2,7 @@
 
 All notable changes to Mossbook. Versions follow [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.1.2 (2026-10-20)
 
 ### Added
 - Automatic backups: when the journal locks, at most once a day, an encrypted backup

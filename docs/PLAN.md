@@ -125,6 +125,7 @@ Postponed on purpose (2026-10-19): the tools are missing (JDK, SDK, NDK) and sto
 - [x] Offline update check in Settings → About, GitHub release notifications in the README (D-15)
 - [x] Homebrew tap `jakub-m-arch/homebrew-mossbook`, updated by the `Homebrew` workflow on publish; clears quarantine because the app is not notarized
 - [x] `v0.1.1`: macOS bundle signed ad-hoc as a whole (0.1.0 was reported as "damaged" after download)
+- [x] `v0.1.2`: automatic backups, recovery key check, JSON export, first release with provenance attestations
 - [ ] Enable private vulnerability reporting in the repository settings
 - [ ] Code signing: Apple Developer ID + notarisation (macOS), SignPath or Azure Trusted Signing (Windows)
 
@@ -132,7 +133,7 @@ Postponed on purpose (2026-10-19): the tools are missing (JDK, SDK, NDK) and sto
 - [x] **Automatic backups (D-16)**: on lock, at most every 20 h, newest 7 in `backups/` next to the vault; fixed slot names; replaced after a password change, deleted with the journal; can be turned off; the backup picker opens in that folder
 - [x] Settings show the latest automatic backup ("Show in folder") and when the user last saved a backup themselves (`Settings.last_export`, set only by the journal)
 - [x] **Recovery key check**: type the 24 words, see whether they open this journal; nothing changes
-- [x] Build provenance attestations in the `Release` workflow; all GitHub Actions pinned to commit SHAs, kept current by Dependabot (monthly)
+- [x] Build provenance attestations in the `Release` workflow; all GitHub Actions pinned to commit SHAs, kept current by Dependabot (monthly, minor and patch only)
 - [ ] Screenshots and a plain-language privacy section in the README
 - [ ] Crisis numbers for more countries (UA, GB, DE, US at least), from official sources
 - [ ] Reviews: a psychotherapist (exercises, IRT, tone), a native Ukrainian speaker
