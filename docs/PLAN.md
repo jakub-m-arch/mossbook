@@ -134,7 +134,8 @@ Postponed on purpose (2026-10-19): the tools are missing (JDK, SDK, NDK) and sto
 - [x] Settings show the latest automatic backup ("Show in folder") and when the user last saved a backup themselves (`Settings.last_export`, set only by the journal)
 - [x] **Recovery key check**: type the 24 words, see whether they open this journal; nothing changes
 - [x] Build provenance attestations in the `Release` workflow; all GitHub Actions pinned to commit SHAs, kept current by Dependabot (monthly, minor and patch only)
-- [ ] Screenshots and a plain-language privacy section in the README
+- [x] Website in `site/` (Polish root, English at `/en/`), published to GitHub Pages by the `Website` workflow with the latest release version; no third-party requests (CSP). Plain-language privacy, honest limits, downloads per system, FAQ, crisis numbers
+- [x] Screenshots from the app with synthetic entries, light and dark (`app/site-shots`, `playwright.site.config.ts`); also in the README
 - [ ] Crisis numbers for more countries (UA, GB, DE, US at least), from official sources
 - [ ] Reviews: a psychotherapist (exercises, IRT, tone), a native Ukrainian speaker
 

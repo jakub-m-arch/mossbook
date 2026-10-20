@@ -9,6 +9,15 @@ Mossbook is built for everyone, with particular care for people living with PTSD
 anxiety and for people working with a therapist. Notes are written in seconds, kept
 encrypted on your device, and can be shared with a therapist only if you choose to.
 
+**Website and downloads:** <https://jakub-m-arch.github.io/mossbook/en/>
+
+<p align="center">
+  <img src="site/img/en-timeline.png" width="250" alt="Timeline with mood, sleep and event entries">
+  <img src="site/img/en-entry.png" width="250" alt="Mood entry with emotions and a note">
+  <img src="site/img/en-patterns.png" width="250" alt="Mood over time and overviews">
+</p>
+<p align="center"><sub>Screenshots with made-up entries.</sub></p>
+
 > **Nobody but you can read your entries.** There is no server, no account and no
 > telemetry. Everything is encrypted on your device, and the code is open so anyone
 > can check.

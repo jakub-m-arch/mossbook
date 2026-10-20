@@ -2,6 +2,12 @@
 
 All notable changes to Mossbook. Versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Added
+- Website: <https://jakub-m-arch.github.io/mossbook/> (Polish and English), with no
+  cookies, analytics or third-party requests.
+
 ## 0.1.2 (2026-10-20)
 
 ### Added

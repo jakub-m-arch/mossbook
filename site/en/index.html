@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta
+			http-equiv="Content-Security-Policy"
+			content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'"
+		/>
+		<meta name="referrer" content="no-referrer" />
+		<title>Mossbook: a private journal that works offline</title>
+		<meta
+			name="description"
+			content="A private journal for mood, sleep, fear and hard moments. Works offline and encrypts everything on your device. No account, no tracking. Free and open source."
+		/>
+		<link rel="canonical" href="https://jakub-m-arch.github.io/mossbook/en/" />
+		<link rel="alternate" hreflang="pl" href="https://jakub-m-arch.github.io/mossbook/" />
+		<link rel="alternate" hreflang="en" href="https://jakub-m-arch.github.io/mossbook/en/" />
+		<meta property="og:title" content="Mossbook: a journal that stays with you" />
+		<meta
+			property="og:description"
+			content="A private well-being journal. Offline, no account, everything encrypted on your device."
+		/>
+		<meta property="og:image" content="https://jakub-m-arch.github.io/mossbook/img/og-en.png" />
+		<meta property="og:type" content="website" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="theme-color" content="#f5f3ed" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#121412" media="(prefers-color-scheme: dark)" />
+		<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+		<link rel="preload" href="../fonts/newsreader-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin />
+		<link rel="stylesheet" href="../style.css" />
+		<script src="../main.js" defer></script>
+	</head>
+	<body>
+		<a class="skip" href="#main">Skip to content</a>
+
+		<header class="wrap top">
+			<a class="brand" href="./" aria-label="Mossbook, home">
+				<img src="../favicon.svg" alt="" width="30" height="30" />
+				Mossbook
+			</a>
+			<nav aria-label="Site">
+				<a class="hide-sm" href="#privacy">Privacy</a>
+				<a class="hide-sm" href="#questions">Questions</a>
+				<a href="#download">Download</a>
+				<a class="lang" href="../" hreflang="pl" lang="pl" data-lang="pl">PL</a>
+			</nav>
+		</header>
+
+		<main id="main">
+			<section class="wrap hero">
+				<div>
+					<p class="label">A private well-being journal</p>
+					<h1>A journal that stays <em>with&nbsp;you.</em></h1>
+					<p class="lead">
+						Write down your mood, sleep, fears and hard moments in seconds. Mossbook works
+						offline, encrypts every entry on your device and sends nothing to anyone. No account,
+						no ads, no tracking.
+					</p>
+					<div class="actions">
+						<a
+							class="button"
+							href="#download"
+							data-primary
+							data-mac="Download for macOS"
+							data-windows="Download for Windows"
+							data-linux="Download for Linux"
+						>
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14" /></svg>
+							<span>Download Mossbook</span>
+						</a>
+						<a class="quiet" href="#privacy">How your data is protected</a>
+					</div>
+					<p class="fine">
+						Free and open source. Version {{version}} for macOS, Windows and Linux. In English,
+						Polish and Ukrainian.
+					</p>
+				</div>
+				<div class="pair" aria-hidden="true">
+					<div class="phone back"><picture><source srcset="../img/en-patterns-dark.png" media="(prefers-color-scheme: dark)" /><img src="../img/en-patterns.png" alt="" width="824" height="1678" /></picture></div>
+					<div class="phone front">
+						<picture><source srcset="../img/en-timeline-dark.png" media="(prefers-color-scheme: dark)" /><img src="../img/en-timeline.png" alt="" width="824" height="1678" /></picture>
+					</div>
+				</div>
+			</section>
+
+			<section class="wrap feature" aria-labelledby="writing">
+				<figure class="shot phone">
+					<picture><source srcset="../img/en-entry-dark.png" media="(prefers-color-scheme: dark)" /><img
+						src="../img/en-entry.png"
+						width="824"
+						height="1678"
+						loading="lazy"
+						alt="The mood form: “good”, energy 4, the emotions relief and calm, and a short note."
+					/></picture>
+				</figure>
+				<div class="text">
+					<p class="label">Writing</p>
+					<h2 id="writing">A few taps now, <em>the rest whenever you like.</em></h2>
+					<p>
+						A quick entry takes two taps at most. Add the details later, or never. You mark your
+						mood with the weather, not with a grade.
+					</p>
+					<dl class="kinds">
+						<div>
+							<dt>Mood</dt>
+							<dd>From “very hard” to “very good”, with energy and emotions.</dd>
+						</div>
+						<div>
+							<dt>Event</dt>
+							<dd>What happened, where, what your body felt and what helped.</dd>
+						</div>
+						<div>
+							<dt>Fear</dt>
+							<dd>The trigger, symptoms, and intensity before and after what helped.</dd>
+						</div>
+						<div>
+							<dt>Sleep</dt>
+							<dd>Hours, quality, waking up at night.</dd>
+						</div>
+						<div>
+							<dt>Nightmare</dt>
+							<dd>What it was, and a rewritten version to rehearse (IRT).</dd>
+						</div>
+						<div>
+							<dt>Note</dt>
+							<dd>Everything else. With tags and search.</dd>
+						</div>
+					</dl>
+				</div>
+			</section>
+
+			<section class="wrap feature flip" aria-labelledby="patterns">
+				<figure class="shot phone">
+					<picture><source srcset="../img/en-patterns-dark.png" media="(prefers-color-scheme: dark)" /><img
+						src="../img/en-patterns.png"
+						width="824"
+						height="1678"
+						loading="lazy"
+						alt="The Patterns screen: a chart of mood over the last month and an overview by time of day."
+					/></picture>
+				</figure>
+				<div class="text">
+					<p class="label">Patterns</p>
+					<h2 id="patterns">Observations, <em>not verdicts.</em></h2>
+					<p>
+						A mood chart and calendar, plus overviews: how you sleep on better days, which time of
+						day tends to be hardest, what actually brings fear down. Overviews only appear once
+						there is enough to go on.
+					</p>
+					<p>
+						Mossbook does not diagnose and does not tell you how you feel. It shows what you have
+						written, so it is easier to think about or talk about.
+					</p>
+					<p class="aside">No streaks, points or badges. A break from writing is just a break.</p>
+				</div>
+			</section>
+
+			<section class="wrap feature" aria-labelledby="hard-moment">
+				<figure class="shot phone">
+					<picture><source srcset="../img/en-lock-dark.png" media="(prefers-color-scheme: dark)" /><img
+						src="../img/en-lock.png"
+						width="824"
+						height="1678"
+						loading="lazy"
+						alt="The lock screen with the buttons Quick entry and Plan for a hard moment / phones."
+					/></picture>
+				</figure>
+				<div class="text">
+					<p class="label">For a hard moment</p>
+					<h2 id="hard-moment">Help without <em>typing a password.</em></h2>
+					<p>
+						Your plan for a hard moment, crisis lines and exercises (4-7-8 breathing, 5-4-3-2-1
+						grounding) are right there on the lock screen. The plan is based on the Stanley–Brown
+						safety plan.
+					</p>
+					<p>
+						You can add a quick entry from there too. Mossbook saves it, but shows nothing from
+						your journal until you unlock it.
+					</p>
+				</div>
+			</section>
+
+			<section class="wrap feature duo" aria-labelledby="therapy">
+				<div class="text">
+					<p class="label">If you see a therapist</p>
+					<h2 id="therapy">A report <em>you put together.</em></h2>
+					<p>
+						Choose the period, entry types and tags, and Mossbook prepares a clear PDF: your
+						entries day by day and your average mood. You see a preview before anything is saved.
+						You decide what goes in and who gets it.
+					</p>
+				</div>
+				<div class="text">
+					<p class="label">Your data, your files</p>
+					<h2>Data you can <em>take with you.</em></h2>
+					<p>
+						When you lock it, at most once a day, Mossbook makes an encrypted backup and keeps the
+						last seven. You can also save a full backup as a single file wherever you like, and
+						export the whole journal as readable JSON. The format is publicly documented.
+					</p>
+				</div>
+			</section>
+
+			<section class="band" id="privacy" aria-labelledby="privacy-h">
+				<div class="wrap">
+					<p class="label">Privacy</p>
+					<h2 id="privacy-h">Promises you <em>can check.</em></h2>
+					<p class="lead">
+						Anyone can write “we care about your privacy”. Each of the statements below is backed
+						by code that anyone can read.
+					</p>
+					<ol class="ledger">
+						<li>
+							<span class="n">1</span>
+							<h3>It never goes online.</h3>
+							<p>
+								There is no networking code in the app. An automatic check on every change rejects
+								libraries that could add it.
+							</p>
+						</li>
+						<li>
+							<span class="n">2</span>
+							<h3>Everything is encrypted.</h3>
+							<p>
+								Every entry, tag, date and setting. XChaCha20-Poly1305, with the key derived from
+								your password by Argon2id. Nothing on disk can be read.
+							</p>
+						</li>
+						<li>
+							<span class="n">3</span>
+							<h3>Only you hold the key. Not even the author.</h3>
+							<p>
+								When you create your journal you get a 24-word recovery key. Lose both your
+								password and those words, and nobody can recover your entries. That is what real
+								privacy means, and it is better to know from the start.
+							</p>
+						</li>
+						<li>
+							<span class="n">4</span>
+							<h3>No account, analytics or ads.</h3>
+							<p>
+								There is no server to sign in to and no crash reports sent in the background. There
+								is no paid version that would change any of this.
+							</p>
+						</li>
+						<li>
+							<span class="n">5</span>
+							<h3>Open code, verifiable releases.</h3>
+							<p>
+								GPL licence. Every installer comes with a checksum and a provenance attestation that
+								ties it to the public code and the build on GitHub.
+								<a href="https://github.com/jakub-m-arch/mossbook/blob/main/SECURITY.md#verifying-a-release">How to check</a>
+							</p>
+						</li>
+					</ol>
+					<div class="limits">
+						<h3>What Mossbook cannot protect against</h3>
+						<p>
+							A device with malware or remote access, someone who knows your password, or a glance
+							over your shoulder. The full picture is in the
+							<a href="https://github.com/jakub-m-arch/mossbook/blob/main/docs/threat-model.md">threat model</a>.
+						</p>
+					</div>
+				</div>
+			</section>
+
+			<section class="wrap download" id="download" aria-labelledby="download-h">
+				<p class="label">Version {{version}}</p>
+				<h2 id="download-h">Download Mossbook</h2>
+				<p>
+					Free, for your computer. An Android version is in the works. Your journal stays on this
+					device, and a single backup file moves it to another one.
+				</p>
+
+				<div class="systems">
+					<div class="system" id="get-mac">
+						<div>
+							<h3>macOS</h3>
+							<span class="yours">Your system</span>
+						</div>
+						<div>
+							<div class="brew">
+								<code id="brew-cmd">brew install --cask jakub-m-arch/mossbook/mossbook</code>
+								<button type="button" data-copy="brew-cmd" data-done="Copied" hidden>Copy</button>
+							</div>
+							<ul class="files">
+								<li>
+									<a href="https://github.com/jakub-m-arch/mossbook/releases/download/v{{version}}/Mossbook_{{version}}_aarch64.dmg">.dmg <small>Apple Silicon</small></a>
+								</li>
+								<li>
+									<a href="https://github.com/jakub-m-arch/mossbook/releases/download/v{{version}}/Mossbook_{{version}}_x64.dmg">.dmg <small>Intel</small></a>
+								</li>
+							</ul>
+							<p class="note">
+								Homebrew is the easiest way: the app opens without warnings and
+								<code>brew upgrade</code> keeps it up to date. The .dmg is not notarized by Apple
+								yet, so on first launch choose <i>System Settings → Privacy &amp; Security → Open
+								Anyway</i>.
+							</p>
+						</div>
+					</div>
+					<div class="system" id="get-windows">
+						<div>
+							<h3>Windows</h3>
+							<span class="yours">Your system</span>
+						</div>
+						<div>
+							<ul class="files">
+								<li>
+									<a href="https://github.com/jakub-m-arch/mossbook/releases/download/v{{version}}/Mossbook_{{version}}_x64-setup.exe">Installer <small>.exe</small></a>
+								</li>
+								<li>
+									<a href="https://github.com/jakub-m-arch/mossbook/releases/download/v{{version}}/Mossbook_{{version}}_x64_en-US.msi">.msi</a>
+								</li>
+							</ul>
+							<p class="note">
+								The installer is not code-signed yet, so SmartScreen may warn you. Choose
+								<i>More info → Run anyway</i>.
+							</p>
+						</div>
+					</div>
+					<div class="system" id="get-linux">
+						<div>
+							<h3>Linux</h3>
+							<span class="yours">Your system</span>
+						</div>
+						<div>
+							<ul class="files">
+								<li>
+									<a href="https://github.com/jakub-m-arch/mossbook/releases/download/v{{version}}/Mossbook_{{version}}_amd64.AppImage">AppImage</a>
+								</li>
+								<li>
+									<a href="https://github.com/jakub-m-arch/mossbook/releases/download/v{{version}}/Mossbook_{{version}}_amd64.deb">.deb <small>Debian, Ubuntu</small></a>
+								</li>
+								<li>
+									<a href="https://github.com/jakub-m-arch/mossbook/releases/download/v{{version}}/Mossbook-{{version}}-1.x86_64.rpm">.rpm <small>Fedora</small></a>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+
+				<div class="after">
+					<div>
+						<h3>Updates</h3>
+						<p>
+							Mossbook never goes online, so it does not check for new versions itself. On
+							<a href="https://github.com/jakub-m-arch/mossbook">GitHub</a>, choose
+							<i>Watch → Custom → Releases</i> and you will get an email when one is out.
+						</p>
+					</div>
+					<div>
+						<h3>Authenticity</h3>
+						<p>
+							Every release has a <code>SHA256SUMS</code> file and a provenance attestation.
+							<a href="https://github.com/jakub-m-arch/mossbook/blob/main/SECURITY.md#verifying-a-release">How to verify</a>
+						</p>
+					</div>
+					<div>
+						<h3>What's new</h3>
+						<p>
+							<a href="https://github.com/jakub-m-arch/mossbook/releases/tag/v{{version}}">Release notes for {{version}}</a>
+							and the
+							<a href="https://github.com/jakub-m-arch/mossbook/blob/main/CHANGELOG.md">full changelog</a>.
+						</p>
+					</div>
+				</div>
+			</section>
+
+			<section class="wrap faq" id="questions" aria-labelledby="questions-h">
+				<div>
+					<p class="label">Questions</p>
+					<h2 id="questions-h">Before you start</h2>
+				</div>
+				<div>
+					<details>
+						<summary>What if I forget my password?</summary>
+						<p>
+							You open the journal with your 24-word recovery key and set a new password. Write the
+							words on paper and keep them somewhere safe. In Settings you can check at any time that
+							the words you wrote down are correct. Without the password and without the words,
+							nobody can open the journal.
+						</p>
+					</details>
+					<details>
+						<summary>Does Mossbook replace therapy?</summary>
+						<p>
+							No. It is a tool for writing down and organising your own observations, not a medical
+							device. It does not diagnose or recommend treatment. It works well alongside therapy,
+							and the PDF report makes talking to a professional easier.
+						</p>
+					</details>
+					<details>
+						<summary>Where is my data?</summary>
+						<p>
+							In a single encrypted file on your computer, with the automatic backups in a folder
+							next to it. Nowhere else. Moving to a new computer? Save a backup in Settings and open
+							it on the new one.
+						</p>
+					</details>
+					<details>
+						<summary>Why does my system warn me during installation?</summary>
+						<p>
+							Apple's signature costs 99 dollars a year, and signing for Windows needs a separate
+							process. Mossbook does not have them yet. Instead, the code is open and every release
+							has a checksum and an attestation you can verify yourself. On macOS, Homebrew installs
+							without warnings.
+						</p>
+					</details>
+					<details>
+						<summary>Is there a phone version?</summary>
+						<p>
+							Not yet. Android is next. It will work the same way: offline, without even the
+							permission to go online.
+						</p>
+					</details>
+					<details>
+						<summary>How much does it cost?</summary>
+						<p>
+							Nothing. Mossbook is an open-source project under the GPL. There are no ads, no
+							subscription and no data to sell, because none of it leaves your device.
+						</p>
+					</details>
+				</div>
+			</section>
+		</main>
+
+		<footer class="wrap foot">
+			<div class="crisis">
+				<h2>If things feel very hard right now</h2>
+				<div>
+					<p>
+						If you are in danger, call your local emergency number: <strong>112</strong> in the EU,
+						<strong>999</strong> in the UK, <strong>911</strong> in the US.
+					</p>
+					<p>
+						To find a free helpline in your country, see
+						<a href="https://findahelpline.com">findahelpline.com</a>.
+					</p>
+				</div>
+			</div>
+			<div class="row">
+				<span>Mossbook · GPL-3.0-or-later</span>
+				<nav aria-label="Links">
+					<a href="https://github.com/jakub-m-arch/mossbook">Source code</a>
+					<a href="https://github.com/jakub-m-arch/mossbook/blob/main/SECURITY.md">Security</a>
+					<a href="https://github.com/jakub-m-arch/mossbook/issues">Report a problem</a>
+					<a href="../" hreflang="pl" lang="pl" data-lang="pl">Polski</a>
+				</nav>
+			</div>
+			<p class="site-note">
+				This site uses no cookies or analytics and loads nothing from other servers. Your browser
+				only remembers the language you chose. It is hosted on GitHub Pages, which, like any
+				server, sees visitors' IP addresses.
+			</p>
+		</footer>
+	</body>
+</html>
