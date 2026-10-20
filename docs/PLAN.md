@@ -125,7 +125,7 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Za
 - [x] Test spójności wersji (Cargo, `tauri.conf.json`, `package.json`)
 - [x] Poprawka przed wydaniem: losowe UUIDv4 zamiast v7 (D-13)
 - [ ] Włączyć prywatne zgłaszanie podatności w ustawieniach repozytorium
-- [ ] Ręczny test wersji release i utworzenie tagu `v0.1.0`
+- [x] Ręczny test wersji release (instalacja .dmg, raport PDF, szybki wpis) i tag `v0.1.0` (2026-10-20)
 
 ### Etap 13 (v1)
 - [x] **Raport PDF dla terapeuty (X-3)**: wybór okresu, rodzajów i tagów; frontend buduje model dokumentu (tłumaczenia), ten sam model jest podglądem i trafia do `core::report`, który składa A4 przez `printpdf` (łamanie tekstu po szerokościach glifów, podział na strony, stopka „nie jest zaszyfrowany” + numer strony); Noto Sans (OFL) osadzony w całości (~600 KB, podzbiór wymagałby ciężkiej funkcji `text_layout`); ostrzeżenie przed zapisem; zapis przez okno systemowe
