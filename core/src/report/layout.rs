@@ -1,13 +1,18 @@
 //! A4 layout of a [`ReportDoc`]: word wrapping by glyph widths, pagination and a
 //! footer with page numbers on every page.
 
+use std::collections::BTreeMap;
+use std::sync::Arc;
+
+use lopdf::encryption::crypt_filters::{Aes256CryptFilter, CryptFilter};
+use lopdf::{Document, EncryptionState, EncryptionVersion, Permissions};
 use printpdf::{
     Color, FontId, Line, LinePoint, Mm, Op, ParsedFont, PdfDocument, PdfFontHandle, PdfPage,
     PdfSaveOptions, Point, Pt, Rgb, TextItem,
 };
 use zeroize::Zeroizing;
 
-use super::{ReportDoc, ReportError};
+use super::{MIN_REPORT_PASSWORD_CHARS, ReportDoc, ReportError};
 
 const REGULAR_TTF: &[u8] = include_bytes!("../../data/fonts/NotoSans-Regular.ttf");
 const BOLD_TTF: &[u8] = include_bytes!("../../data/fonts/NotoSans-Bold.ttf");
@@ -199,8 +204,9 @@ fn load(doc: &mut PdfDocument, bytes: &[u8]) -> Result<Face, ReportError> {
     Ok(Face { id, parsed })
 }
 
-/// Lays out the report on A4 pages and returns the PDF bytes.
-pub fn render_pdf(report: &ReportDoc) -> Result<Vec<u8>, ReportError> {
+/// Lays out the report on A4 pages and returns the PDF bytes. With a password,
+/// the file is encrypted with AES-256 (PDF 2.0, revision 6).
+pub fn render_pdf(report: &ReportDoc, password: Option<&str>) -> Result<Vec<u8>, ReportError> {
     report.validate()?;
     let mut doc = PdfDocument::new(&report.title);
     let regular = load(&mut doc, REGULAR_TTF)?;
@@ -265,9 +271,55 @@ pub fn render_pdf(report: &ReportDoc) -> Result<Vec<u8>, ReportError> {
         })
         .collect();
 
-    Ok(doc
+    let pdf = doc
         .with_pages(pdf_pages)
-        .save(&PdfSaveOptions::default(), &mut Vec::new()))
+        .save(&PdfSaveOptions::default(), &mut Vec::new());
+    match password {
+        Some(password) => encrypt_pdf(pdf, password),
+        None => Ok(pdf),
+    }
+}
+
+/// Encrypts a finished PDF with AES-256 (V5/R6, PDF 2.0). Only the user password
+/// is set; permissions stay permissive on purpose, because an owner password does
+/// not stop a determined reader from copying or printing the file.
+fn encrypt_pdf(pdf: Vec<u8>, password: &str) -> Result<Vec<u8>, ReportError> {
+    if password.chars().count() < MIN_REPORT_PASSWORD_CHARS {
+        return Err(ReportError::WeakPassword);
+    }
+    // PDF 2.0 prepares passwords with SASLprep; lopdf would otherwise fail later
+    // with a generic error that retrying cannot fix.
+    if stringprep::saslprep(password).is_err() {
+        return Err(ReportError::UnsupportedPassword);
+    }
+    // The rendered PDF is plaintext until the objects are encrypted; wipe the
+    // buffer as soon as the parser has copied what it needs.
+    let pdf = Zeroizing::new(pdf);
+    let mut doc = Document::load_mem(&pdf).map_err(|_| ReportError::Encrypt)?;
+    drop(pdf);
+    // V5 belongs to PDF 2.0; printpdf writes 1.3 by default.
+    doc.version = "2.0".to_owned();
+
+    let mut key = Zeroizing::new([0u8; 32]);
+    getrandom::fill(key.as_mut()).map_err(|_| ReportError::Encrypt)?;
+    let crypt_filter: Arc<dyn CryptFilter> = Arc::new(Aes256CryptFilter);
+    let state = EncryptionState::try_from(EncryptionVersion::V5 {
+        // The /Info dictionary is metadata too; encrypt it as well.
+        encrypt_metadata: true,
+        crypt_filters: BTreeMap::from([(b"StdCF".to_vec(), crypt_filter)]),
+        file_encryption_key: &key[..],
+        stream_filter: b"StdCF".to_vec(),
+        string_filter: b"StdCF".to_vec(),
+        owner_password: password,
+        user_password: password,
+        permissions: Permissions::all(),
+    })
+    .map_err(|_| ReportError::Encrypt)?;
+    doc.encrypt(&state).map_err(|_| ReportError::Encrypt)?;
+
+    let mut out = Vec::new();
+    doc.save_to(&mut out).map_err(|_| ReportError::Encrypt)?;
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -319,17 +371,90 @@ mod tests {
 
     #[test]
     fn renders_a_pdf_with_polish_and_ukrainian_text() {
-        let pdf = render_pdf(&sample(3)).unwrap();
+        let pdf = render_pdf(&sample(3), None).unwrap();
         assert!(pdf.starts_with(b"%PDF-"));
         // Fonts are embedded whole (subsetting needs printpdf's heavy text_layout
         // feature); two compressed Noto Sans faces are about 600 KB.
         assert!(pdf.len() < 1_000_000, "{} bytes", pdf.len());
     }
 
+    const PASSWORD: &str = "correct horse battery staple";
+
+    fn page_text(doc: &Document) -> String {
+        let pages: Vec<u32> = doc.get_pages().keys().copied().collect();
+        doc.extract_text(&pages).unwrap_or_default()
+    }
+
+    #[test]
+    fn encrypted_pdf_needs_the_password() {
+        let pdf = render_pdf(&sample(3), Some(PASSWORD)).unwrap();
+        assert!(pdf.starts_with(b"%PDF-"));
+
+        let mut doc = Document::load_mem(&pdf).unwrap();
+        assert!(doc.is_encrypted());
+        assert!(doc.decrypt("this is not the right password").is_err());
+
+        let plain = Document::load_mem(&render_pdf(&sample(3), None).unwrap()).unwrap();
+        let opened =
+            Document::load_mem_with_options(&pdf, lopdf::LoadOptions::with_password(PASSWORD))
+                .unwrap();
+        assert_eq!(page_text(&opened), page_text(&plain));
+    }
+
+    #[test]
+    fn encrypted_pdf_hides_the_title_metadata() {
+        let mut doc = sample(1);
+        doc.title = "SECRET-TITLE-123".into();
+        let pdf = render_pdf(&doc, Some(PASSWORD)).unwrap();
+        let needle = b"SECRET-TITLE-123";
+        assert!(!pdf.windows(needle.len()).any(|w| w == needle));
+        // Metadata strings in PDF may also be UTF-16BE.
+        let utf16: Vec<u8> = "SECRET-TITLE-123"
+            .encode_utf16()
+            .flat_map(u16::to_be_bytes)
+            .collect();
+        assert!(!pdf.windows(utf16.len()).any(|w| w == utf16));
+    }
+
+    #[test]
+    fn short_or_empty_passwords_are_rejected() {
+        assert_eq!(
+            render_pdf(&sample(1), Some("too short")).unwrap_err(),
+            ReportError::WeakPassword
+        );
+        assert_eq!(
+            render_pdf(&sample(1), Some("")).unwrap_err(),
+            ReportError::WeakPassword
+        );
+    }
+
+    #[test]
+    fn passwords_pdf_cannot_hold_are_rejected() {
+        for password in ["twelve chars 🙂 here", "tab\tinside the password"] {
+            assert_eq!(
+                render_pdf(&sample(1), Some(password)).unwrap_err(),
+                ReportError::UnsupportedPassword
+            );
+        }
+    }
+
+    #[test]
+    fn unicode_passwords_work() {
+        let password = "zażółć-gęślą-jaźń-123";
+        let pdf = render_pdf(&sample(1), Some(password)).unwrap();
+        let opened =
+            Document::load_mem_with_options(&pdf, lopdf::LoadOptions::with_password(password))
+                .unwrap();
+        assert_eq!(
+            page_text(&opened),
+            page_text(&Document::load_mem(&render_pdf(&sample(1), None).unwrap()).unwrap())
+        );
+    }
+
     #[test]
     fn long_reports_span_several_pages() {
-        let short = render_pdf(&sample(1)).unwrap();
-        let long = render_pdf(&sample(60)).unwrap();
+        let short = render_pdf(&sample(1), None).unwrap();
+        let long = render_pdf(&sample(60), None).unwrap();
         assert!(long.len() > short.len());
     }
 
@@ -337,7 +462,7 @@ mod tests {
     fn oversized_models_are_rejected() {
         let mut doc = sample(1);
         doc.title = "x".repeat(crate::report::MAX_TEXT_CHARS + 1);
-        assert_eq!(render_pdf(&doc).unwrap_err(), ReportError::TooLarge);
+        assert_eq!(render_pdf(&doc, None).unwrap_err(), ReportError::TooLarge);
         let mut doc = sample(0);
         doc.sections[0].items = vec![ReportItem::default(); crate::report::MAX_ITEMS + 1];
         assert_eq!(doc.validate(), Err(ReportError::TooLarge));
@@ -348,7 +473,23 @@ mod tests {
     #[ignore = "writes target/sample-report.pdf"]
     fn sample_pdf() {
         let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../target/sample-report.pdf");
-        std::fs::write(path, render_pdf(&sample(14)).unwrap()).unwrap();
+        std::fs::write(path, render_pdf(&sample(14), None).unwrap()).unwrap();
+    }
+
+    /// Writes an encrypted sample for reader checks:
+    /// `cargo test -p mossbook-core -- --ignored sample_pdf_encrypted`.
+    #[test]
+    #[ignore = "writes target/sample-report-encrypted.pdf"]
+    fn sample_pdf_encrypted() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../target/sample-report-encrypted.pdf"
+        );
+        std::fs::write(
+            path,
+            render_pdf(&sample(14), Some("correct horse battery staple")).unwrap(),
+        )
+        .unwrap();
     }
 
     #[test]

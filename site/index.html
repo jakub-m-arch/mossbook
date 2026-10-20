@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="pl">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta
+			http-equiv="Content-Security-Policy"
+			content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'"
+		/>
+		<meta name="referrer" content="no-referrer" />
+		<title>Mossbook: prywatny dziennik, który działa bez internetu</title>
+		<meta
+			name="description"
+			content="Prywatny dziennik samopoczucia, snu, lęku i trudnych chwil. Działa bez internetu, szyfruje wszystko na Twoim urządzeniu. Bez konta i bez śledzenia. Bezpłatny, otwarty kod."
+		/>
+		<link rel="canonical" href="https://jakub-m-arch.github.io/mossbook/" />
+		<link rel="alternate" hreflang="pl" href="https://jakub-m-arch.github.io/mossbook/" />
+		<link rel="alternate" hreflang="en" href="https://jakub-m-arch.github.io/mossbook/en/" />
+		<meta property="og:title" content="Mossbook: dziennik, który zostaje u Ciebie" />
+		<meta
+			property="og:description"
+			content="Prywatny dziennik samopoczucia. Bez internetu, bez konta, wszystko zaszyfrowane na Twoim urządzeniu."
+		/>
+		<meta property="og:image" content="https://jakub-m-arch.github.io/mossbook/img/og.png" />
+		<meta property="og:type" content="website" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="theme-color" content="#f5f3ed" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#121412" media="(prefers-color-scheme: dark)" />
+		<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+		<link rel="preload" href="fonts/newsreader-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin />
+		<link rel="stylesheet" href="style.css" />
+		<script src="main.js" defer></script>
+	</head>
+	<body>
+		<a class="skip" href="#main">Przejdź do treści</a>
+
+		<header class="wrap top">
+			<a class="brand" href="./" aria-label="Mossbook, strona główna">
+				<img src="favicon.svg" alt="" width="30" height="30" />
+				Mossbook
+			</a>
+			<nav aria-label="Strona">
+				<a class="hide-sm" href="#prywatnosc">Prywatność</a>
+				<a class="hide-sm" href="#pytania">Pytania</a>
+				<a href="#pobierz">Pobierz</a>
+				<a class="lang" href="en/" hreflang="en" lang="en" data-lang="en">EN</a>
+			</nav>
+		</header>
+
+		<main id="main">
+			<section class="wrap hero">
+				<div>
+					<p class="label">Prywatny dziennik samopoczucia</p>
+					<h1>Dziennik, który zostaje <em>u&nbsp;Ciebie.</em></h1>
+					<p class="lead">
+						Zapisuj nastrój, sen, lęk i trudne chwile w kilka sekund. Mossbook działa bez
+						internetu, szyfruje każdy wpis na Twoim urządzeniu i nikomu niczego nie wysyła.
+						Nie ma konta, reklam ani śledzenia.
+					</p>
+					<div class="actions">
+						<a
+							class="button"
+							href="#pobierz"
+							data-primary
+							data-mac="Pobierz na macOS"
+							data-windows="Pobierz na Windows"
+							data-linux="Pobierz na Linuksa"
+						>
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14" /></svg>
+							<span>Pobierz Mossbook</span>
+						</a>
+						<a class="quiet" href="#prywatnosc">Jak chronione są Twoje dane</a>
+					</div>
+					<p class="fine">
+						Bezpłatny i z otwartym kodem. Wersja {{version}} na macOS, Windows i Linuksa.
+						Po polsku, angielsku i ukraińsku.
+					</p>
+				</div>
+				<div class="pair" aria-hidden="true">
+					<div class="phone back"><picture><source srcset="img/pl-patterns-dark.png" media="(prefers-color-scheme: dark)" /><img src="img/pl-patterns.png" alt="" width="824" height="1678" /></picture></div>
+					<div class="phone front">
+						<picture><source srcset="img/pl-timeline-dark.png" media="(prefers-color-scheme: dark)" /><img src="img/pl-timeline.png" alt="" width="824" height="1678" /></picture>
+					</div>
+				</div>
+			</section>
+
+			<section class="wrap feature" aria-labelledby="zapis">
+				<figure class="shot phone">
+					<picture><source srcset="img/pl-entry-dark.png" media="(prefers-color-scheme: dark)" /><img
+						src="img/pl-entry.png"
+						width="824"
+						height="1678"
+						loading="lazy"
+						alt="Formularz samopoczucia: ocena „dobrze”, energia 4, emocje ulga i spokój, krótka notatka."
+					/></picture>
+				</figure>
+				<div class="text">
+					<p class="label">Zapisywanie</p>
+					<h2 id="zapis">Kilka stuknięć teraz, <em>resztę kiedy zechcesz.</em></h2>
+					<p>
+						Szybki wpis to najwyżej dwa stuknięcia. Szczegóły możesz uzupełnić później albo
+						wcale. Nastrój zaznaczasz pogodą, nie liczbą na egzaminie.
+					</p>
+					<dl class="kinds">
+						<div>
+							<dt>Samopoczucie</dt>
+							<dd>Od „bardzo ciężko” do „bardzo dobrze”, energia i emocje.</dd>
+						</div>
+						<div>
+							<dt>Zdarzenie</dt>
+							<dd>Co się stało, gdzie, co czuło ciało i co pomogło.</dd>
+						</div>
+						<div>
+							<dt>Lęk</dt>
+							<dd>Wyzwalacz, objawy i natężenie przed oraz po tym, co pomogło.</dd>
+						</div>
+						<div>
+							<dt>Sen</dt>
+							<dd>Godziny, jakość, wybudzenia.</dd>
+						</div>
+						<div>
+							<dt>Koszmar</dt>
+							<dd>Treść i nowa, przepisana wersja do ćwiczenia (IRT).</dd>
+						</div>
+						<div>
+							<dt>Notatka</dt>
+							<dd>Wszystko inne. Z tagami i wyszukiwaniem.</dd>
+						</div>
+					</dl>
+				</div>
+			</section>
+
+			<section class="wrap feature flip" aria-labelledby="wzorce">
+				<figure class="shot phone">
+					<picture><source srcset="img/pl-patterns-dark.png" media="(prefers-color-scheme: dark)" /><img
+						src="img/pl-patterns.png"
+						width="824"
+						height="1678"
+						loading="lazy"
+						alt="Ekran Wzorce: wykres samopoczucia z ostatniego miesiąca i zestawienie według pory dnia."
+					/></picture>
+				</figure>
+				<div class="text">
+					<p class="label">Wzorce</p>
+					<h2 id="wzorce">Obserwacje, <em>nie oceny.</em></h2>
+					<p>
+						Wykres i kalendarz nastroju, a do tego zestawienia: jak śpisz w lepsze dni, o jakiej
+						porze bywa najtrudniej, co rzeczywiście obniża lęk. Zestawienia pojawiają się
+						dopiero, gdy jest z czego je policzyć.
+					</p>
+					<p>
+						Mossbook nie stawia diagnoz i nie mówi, jak się czujesz. Pokazuje to, co zapisujesz,
+						tak żeby łatwiej było o tym pomyśleć albo porozmawiać.
+					</p>
+					<p class="aside">
+						Nie ma tu serii dni, punktów ani odznak. Przerwa w pisaniu to po prostu przerwa.
+					</p>
+				</div>
+			</section>
+
+			<section class="wrap feature" aria-labelledby="trudna-chwila">
+				<figure class="shot phone">
+					<picture><source srcset="img/pl-lock-dark.png" media="(prefers-color-scheme: dark)" /><img
+						src="img/pl-lock.png"
+						width="824"
+						height="1678"
+						loading="lazy"
+						alt="Ekran blokady z przyciskami Szybki wpis oraz Plan na trudny moment i telefony."
+					/></picture>
+				</figure>
+				<div class="text">
+					<p class="label">Na trudną chwilę</p>
+					<h2 id="trudna-chwila">Pomoc bez <em>wpisywania hasła.</em></h2>
+					<p>
+						Twój plan na trudny moment, telefony zaufania i ćwiczenia (oddech 4-7-8, uziemienie
+						5-4-3-2-1) są dostępne od razu, na ekranie blokady. Plan jest oparty na planie
+						bezpieczeństwa Stanley–Brown.
+					</p>
+					<p>
+						Stamtąd możesz też dodać szybki wpis. Mossbook go zapisze, ale niczego z dziennika nie
+						pokaże, dopóki go nie odblokujesz.
+					</p>
+				</div>
+			</section>
+
+			<section class="wrap feature duo" aria-labelledby="terapia">
+				<div class="text">
+					<p class="label">Jeśli chodzisz na terapię</p>
+					<h2 id="terapia">Raport, który <em>sam składasz.</em></h2>
+					<p>
+						Wybierasz okres, rodzaje wpisów i tagi, a Mossbook przygotowuje czytelny PDF: wpisy
+						dzień po dniu i średnią ocenę samopoczucia. Zanim cokolwiek zapiszesz, widzisz
+						podgląd. Ty decydujesz, co się w nim znajdzie i komu go dasz.
+					</p>
+				</div>
+				<div class="text">
+					<p class="label">Twoje dane, Twoje pliki</p>
+					<h2>Dane, które <em>możesz zabrać.</em></h2>
+					<p>
+						Gdy blokujesz dziennik, najwyżej raz na dobę, Mossbook robi zaszyfrowaną kopię i trzyma
+						siedem ostatnich. Pełną kopię zapiszesz też w jednym pliku, gdzie chcesz, a cały
+						dziennik wyeksportujesz do czytelnego JSON-a. Format jest opisany publicznie.
+					</p>
+				</div>
+			</section>
+
+			<section class="band" id="prywatnosc" aria-labelledby="prywatnosc-h">
+				<div class="wrap">
+					<p class="label">Prywatność</p>
+					<h2 id="prywatnosc-h">Obietnice, które <em>można sprawdzić.</em></h2>
+					<p class="lead">
+						Łatwo napisać „dbamy o Twoją prywatność”. Każde z poniższych zdań ma pokrycie w
+						kodzie, który każdy może przeczytać.
+					</p>
+					<ol class="ledger">
+						<li>
+							<span class="n">1</span>
+							<h3>Nie łączy się z internetem.</h3>
+							<p>
+								W aplikacji nie ma kodu sieciowego. Automatyczne sprawdzenie przy każdej zmianie
+								odrzuca biblioteki, które mogłyby go dodać.
+							</p>
+						</li>
+						<li>
+							<span class="n">2</span>
+							<h3>Wszystko jest zaszyfrowane.</h3>
+							<p>
+								Każdy wpis, tag, data i ustawienie. XChaCha20-Poly1305, a klucz powstaje z hasła
+								przez Argon2id. Na dysku nie ma niczego, co da się przeczytać.
+							</p>
+						</li>
+						<li>
+							<span class="n">3</span>
+							<h3>Klucz masz tylko Ty. Autor też nie.</h3>
+							<p>
+								Przy zakładaniu dziennika dostajesz 24 słowa klucza odzyskiwania. Gdy zgubisz
+								hasło i te słowa, wpisów nie odzyska nikt. Tak działa prawdziwa prywatność i lepiej
+								wiedzieć o tym od początku.
+							</p>
+						</li>
+						<li>
+							<span class="n">4</span>
+							<h3>Bez konta, analityki i reklam.</h3>
+							<p>
+								Nie ma serwera, na który można by się zalogować, ani raportów o błędach wysyłanych
+								w tle. Nie ma też wersji płatnej, która coś by zmieniała.
+							</p>
+						</li>
+						<li>
+							<span class="n">5</span>
+							<h3>Otwarty kod, sprawdzalne wydania.</h3>
+							<p>
+								Licencja GPL. Każdy instalator ma sumę kontrolną i atestację pochodzenia, która
+								wiąże go z publicznym kodem i budowaniem na GitHubie.
+								<a href="https://github.com/jakub-m-arch/mossbook/blob/main/SECURITY.md#verifying-a-release">Jak to sprawdzić</a>
+							</p>
+						</li>
+					</ol>
+					<div class="limits">
+						<h3>Czego Mossbook nie ochroni</h3>
+						<p>
+							Urządzenia z wirusem albo zdalnym dostępem, kogoś, kto zna Twoje hasło, ani
+							spojrzenia przez ramię. Pełny opis znajdziesz w
+							<a href="https://github.com/jakub-m-arch/mossbook/blob/main/docs/threat-model.md">modelu zagrożeń</a>
+							(po angielsku).
+						</p>
+					</div>
+				</div>
+			</section>
+
+			<section class="wrap download" id="pobierz" aria-labelledby="pobierz-h">
+				<p class="label">Wersja {{version}}</p>
+				<h2 id="pobierz-h">Pobierz Mossbook</h2>
+				<p>
+					Bezpłatnie, na komputer. Wersja na Androida jest w przygotowaniu. Twój dziennik
+					zostaje na tym urządzeniu, a kopię przeniesiesz na inne jednym plikiem.
+				</p>
+
+				<div class="systems">
+					<div class="system" id="get-mac">
+						<div>
+							<h3>macOS</h3>
+							<span class="yours">Twój system</span>
+						</div>
+						<div>
+							<div class="brew">
+								<code id="brew-cmd">brew install --cask jakub-m-arch/mossbook/mossbook</code>
+								<button type="button" data-copy="brew-cmd" data-done="Skopiowano" hidden>Kopiuj</button>
+							</div>
+							<ul class="files">
+								<li>
+									<a href="https://github.com/jakub-m-arch/mossbook/releases/download/v{{version}}/Mossbook_{{version}}_aarch64.dmg">.dmg <small>Apple Silicon</small></a>
+								</li>
+								<li>
+									<a href="https://github.com/jakub-m-arch/mossbook/releases/download/v{{version}}/Mossbook_{{version}}_x64.dmg">.dmg <small>Intel</small></a>
+								</li>
+							</ul>
+							<p class="note">
+								Najprościej przez Homebrew: aplikacja otworzy się bez ostrzeżeń, a aktualizujesz ją
+								poleceniem <code>brew upgrade</code>. Plik .dmg nie jest jeszcze notaryzowany przez
+								Apple, więc przy pierwszym uruchomieniu wybierz <i>Ustawienia systemowe →
+								Prywatność i ochrona → Otwórz mimo to</i>.
+							</p>
+						</div>
+					</div>
+					<div class="system" id="get-windows">
+						<div>
+							<h3>Windows</h3>
+							<span class="yours">Twój system</span>
+						</div>
+						<div>
+							<ul class="files">
+								<li>
+									<a href="https://github.com/jakub-m-arch/mossbook/releases/download/v{{version}}/Mossbook_{{version}}_x64-setup.exe">Instalator <small>.exe</small></a>
+								</li>
+								<li>
+									<a href="https://github.com/jakub-m-arch/mossbook/releases/download/v{{version}}/Mossbook_{{version}}_x64_en-US.msi">.msi</a>
+								</li>
+							</ul>
+							<p class="note">
+								Instalator nie ma jeszcze podpisu cyfrowego, więc SmartScreen może ostrzec. Wybierz
+								<i>Więcej informacji → Uruchom mimo to</i>.
+							</p>
+						</div>
+					</div>
+					<div class="system" id="get-linux">
+						<div>
+							<h3>Linux</h3>
+							<span class="yours">Twój system</span>
+						</div>
+						<div>
+							<ul class="files">
+								<li>
+									<a href="https://github.com/jakub-m-arch/mossbook/releases/download/v{{version}}/Mossbook_{{version}}_amd64.AppImage">AppImage</a>
+								</li>
+								<li>
+									<a href="https://github.com/jakub-m-arch/mossbook/releases/download/v{{version}}/Mossbook_{{version}}_amd64.deb">.deb <small>Debian, Ubuntu</small></a>
+								</li>
+								<li>
+									<a href="https://github.com/jakub-m-arch/mossbook/releases/download/v{{version}}/Mossbook-{{version}}-1.x86_64.rpm">.rpm <small>Fedora</small></a>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+
+				<div class="after">
+					<div>
+						<h3>Aktualizacje</h3>
+						<p>
+							Mossbook nie łączy się z siecią, więc sam nie sprawdza nowych wersji. Na
+							<a href="https://github.com/jakub-m-arch/mossbook">GitHubie</a> wybierz
+							<i>Watch → Custom → Releases</i>, a dostaniesz maila, gdy wyjdzie nowa.
+						</p>
+					</div>
+					<div>
+						<h3>Autentyczność</h3>
+						<p>
+							Każde wydanie ma plik <code>SHA256SUMS</code> i atestację pochodzenia.
+							<a href="https://github.com/jakub-m-arch/mossbook/blob/main/SECURITY.md#verifying-a-release">Instrukcja sprawdzenia</a>
+						</p>
+					</div>
+					<div>
+						<h3>Co nowego</h3>
+						<p>
+							<a href="https://github.com/jakub-m-arch/mossbook/releases/tag/v{{version}}">Informacje o wersji {{version}}</a>
+							i
+							<a href="https://github.com/jakub-m-arch/mossbook/blob/main/CHANGELOG.md">pełna historia zmian</a>.
+						</p>
+					</div>
+				</div>
+			</section>
+
+			<section class="wrap faq" id="pytania" aria-labelledby="pytania-h">
+				<div>
+					<p class="label">Pytania</p>
+					<h2 id="pytania-h">Zanim zaczniesz</h2>
+				</div>
+				<div>
+					<details>
+						<summary>Co, jeśli zapomnę hasła?</summary>
+						<p>
+							Otworzysz dziennik 24 słowami klucza odzyskiwania i ustawisz nowe hasło. Zapisz je
+							na papierze i schowaj. W ustawieniach możesz w każdej chwili sprawdzić, czy zapisane
+							słowa są poprawne. Bez hasła i bez tych słów dziennika nie otworzy nikt.
+						</p>
+					</details>
+					<details>
+						<summary>Czy Mossbook zastępuje terapię?</summary>
+						<p>
+							Nie. To narzędzie do zapisywania i porządkowania własnych obserwacji, nie wyrób
+							medyczny. Nie diagnozuje i nie doradza leczenia. Dobrze sprawdza się obok terapii, a
+							raport PDF ułatwia rozmowę ze specjalistą.
+						</p>
+					</details>
+					<details>
+						<summary>Gdzie są moje dane?</summary>
+						<p>
+							W jednym zaszyfrowanym pliku na Twoim komputerze, a automatyczne kopie leżą w folderze
+							obok. Nigdzie indziej. Zmieniasz komputer? Zapisz kopię w ustawieniach i otwórz ją na
+							nowym.
+						</p>
+					</details>
+					<details>
+						<summary>Dlaczego system ostrzega przy instalacji?</summary>
+						<p>
+							Podpis Apple kosztuje 99 dolarów rocznie, a podpis dla Windows wymaga osobnej
+							procedury. Mossbook jeszcze ich nie ma. W zamian kod jest otwarty, a każde wydanie ma
+							sumę kontrolną i atestację, którą sprawdzisz sam. Na macOS Homebrew instaluje bez
+							ostrzeżeń.
+						</p>
+					</details>
+					<details>
+						<summary>Czy jest wersja na telefon?</summary>
+						<p>
+							Jeszcze nie. Następna w kolejce jest wersja na Androida. Będzie działać tak samo: bez
+							internetu i nawet bez uprawnienia, żeby się z nim połączyć.
+						</p>
+					</details>
+					<details>
+						<summary>Ile to kosztuje?</summary>
+						<p>
+							Nic nie kosztuje. Mossbook to projekt open source na licencji GPL. Nie ma reklam,
+							subskrypcji ani danych, które można by sprzedać, bo żadne nie opuszczają Twojego
+							urządzenia.
+						</p>
+					</details>
+				</div>
+			</section>
+		</main>
+
+		<footer class="wrap foot">
+			<div class="crisis">
+				<h2>Jeśli jest Ci teraz bardzo ciężko</h2>
+				<div>
+					<p>Gdy grozi Ci niebezpieczeństwo, zadzwoń pod <strong>112</strong>.</p>
+					<p>
+						Telefon zaufania dla dorosłych: <strong>116 123</strong>. Centrum Wsparcia dla Osób
+						Dorosłych w Kryzysie Psychicznym: <strong>800 70 2222</strong>. Dla dzieci i młodzieży:
+						<strong>116 111</strong>. Całą dobę i bezpłatnie.
+					</p>
+				</div>
+			</div>
+			<div class="row">
+				<span>Mossbook · GPL-3.0-or-later</span>
+				<nav aria-label="Linki">
+					<a href="https://github.com/jakub-m-arch/mossbook">Kod źródłowy</a>
+					<a href="https://github.com/jakub-m-arch/mossbook/blob/main/SECURITY.md">Bezpieczeństwo</a>
+					<a href="https://github.com/jakub-m-arch/mossbook/issues">Zgłoś problem</a>
+					<a href="en/" hreflang="en" lang="en" data-lang="en">English</a>
+				</nav>
+			</div>
+			<p class="site-note">
+				Ta strona nie używa ciasteczek ani analityki i nie łączy się z innymi serwerami. W
+				przeglądarce zapamiętuje tylko wybrany język. Hostuje ją GitHub Pages, który jak każdy
+				serwer widzi adresy IP odwiedzających.
+			</p>
+		</footer>
+	</body>
+</html>

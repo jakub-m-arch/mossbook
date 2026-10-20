@@ -18,12 +18,25 @@ pub use layout::render_pdf;
 pub const MAX_ITEMS: usize = 20_000;
 pub const MAX_TEXT_CHARS: usize = 20_000;
 
+/// Minimum length of a password protecting the PDF report. The PDF security
+/// handler uses a password-based KDF that is much weaker than the vault's
+/// Argon2id, so short passwords are refused rather than giving a false sense of
+/// protection.
+pub const MIN_REPORT_PASSWORD_CHARS: usize = 12;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReportError {
     /// The model exceeds [`MAX_ITEMS`] or [`MAX_TEXT_CHARS`].
     TooLarge,
     /// The embedded font could not be loaded (a build problem, not user input).
     Font,
+    /// The password is empty or shorter than [`MIN_REPORT_PASSWORD_CHARS`].
+    WeakPassword,
+    /// The password contains characters that PDF 2.0 passwords cannot hold
+    /// (SASLprep rejects e.g. emoji, control characters and private-use code points).
+    UnsupportedPassword,
+    /// The PDF could not be encrypted (a bug or a library problem).
+    Encrypt,
 }
 
 impl fmt::Display for ReportError {
@@ -31,6 +44,9 @@ impl fmt::Display for ReportError {
         f.write_str(match self {
             Self::TooLarge => "report is too large",
             Self::Font => "report font unavailable",
+            Self::WeakPassword => "report password is too short",
+            Self::UnsupportedPassword => "report password has unsupported characters",
+            Self::Encrypt => "report encryption failed",
         })
     }
 }

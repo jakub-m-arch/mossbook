@@ -9,6 +9,15 @@ Mossbook is built for everyone, with particular care for people living with PTSD
 anxiety and for people working with a therapist. Notes are written in seconds, kept
 encrypted on your device, and can be shared with a therapist only if you choose to.
 
+**Website and downloads:** <https://jakub-m-arch.github.io/mossbook/en/>
+
+<p align="center">
+  <img src="site/img/en-timeline.png" width="250" alt="Timeline with mood, sleep and event entries">
+  <img src="site/img/en-entry.png" width="250" alt="Mood entry with emotions and a note">
+  <img src="site/img/en-patterns.png" width="250" alt="Mood over time and overviews">
+</p>
+<p align="center"><sub>Screenshots with made-up entries.</sub></p>
+
 > **Nobody but you can read your entries.** There is no server, no account and no
 > telemetry. Everything is encrypted on your device, and the code is open so anyone
 > can check.
@@ -81,7 +90,8 @@ Mossbook never connects to the internet, so it does not check for updates by its
   **Automatic backups** on this device every day, and a way to check that your
   written-down recovery key works.
 - **Your data stays portable**: export everything as readable JSON at any time.
-- **Report for your therapist** as a PDF for a chosen period, types and tags.
+- **Report for your therapist** as a PDF for a chosen period, types and tags,
+  optionally protected with a password (AES-256).
 - **Quick entry from the lock screen** without the password: it can add, never read.
 - **Languages**: Polish, English and Ukrainian from the first release.
 - **Calm by design**: no streaks, points, badges or guilt-inducing notifications.
@@ -105,8 +115,9 @@ memory analysis while the journal is unlocked.
 The cryptographic design is documented in [`docs/crypto.md`](docs/crypto.md) and the
 backup file in [`docs/backup-format.md`](docs/backup-format.md), in enough detail to
 write an independent reader. The test vectors are cross-checked against libsodium and
-argon2-cffi by [`tools/verify-vectors.py`](tools/verify-vectors.py), and
-[`tools/read-backup.py`](tools/read-backup.py) opens backups without any Mossbook code.
+argon2-cffi by [`tools/verify-vectors.py`](tools/verify-vectors.py),
+[`tools/read-backup.py`](tools/read-backup.py) opens backups without any Mossbook code,
+and [`tools/read-report.py`](tools/read-report.py) opens a password-protected report PDF.
 
 What Mossbook does and does not protect against, including known limitations, is in
 [`docs/threat-model.md`](docs/threat-model.md).
@@ -153,7 +164,7 @@ mossbook/
 ├── docs/             architecture.md, crypto.md, backup-format.md, threat-model.md,
 │                     release.md, PLAN.md
 ├── packaging/        Homebrew cask template
-├── tools/            verify-vectors.py, read-backup.py (independent readers)
+├── tools/            verify-vectors.py, read-backup.py, read-report.py (independent readers)
 └── SPEC.md           specification
 ```
 

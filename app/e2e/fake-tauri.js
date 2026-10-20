@@ -274,9 +274,10 @@
 				.map(([label, [drop, n]]) => ({ label, average_drop: drop / n, count: n }));
 			return out;
 		},
-		report_pdf: ({ report }) => {
+		report_pdf: ({ report, password }) => {
 			if (state.vault !== 'unlocked') return fail('locked');
 			window.__fake.reports.push(report);
+			window.__fake.reportPasswords.push(password ?? null);
 			return true;
 		},
 		stats_mood: ({ range }) => {
@@ -452,6 +453,7 @@
 		},
 		calls: [],
 		reports: [],
+		reportPasswords: [],
 		jsonExports: 0,
 		emit,
 		lockFromRust(reason) {

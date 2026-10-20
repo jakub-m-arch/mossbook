@@ -62,14 +62,38 @@ Visible to someone with the vault file or a backup, by design:
 - **Old backups.** A backup opens with the password valid when it was made (D-9).
   Automatic backups are replaced after a password change; backups saved elsewhere are
   the user's to delete.
-- **Plain exports.** The PDF report and the JSON export are not encrypted. The app
-  warns before writing them; what happens to the files afterwards is outside its
-  control.
+- **Plain exports.** The JSON export is not encrypted. The PDF report is not
+  encrypted by default; it can optionally be protected with a password, but that is
+  a property of the file, not of the relationship with the therapist. The app warns
+  before writing either file; what happens to them afterwards is outside its control.
 - **Inbox injection.** Someone with write access to the vault file can append
   quick entries (the public key is in the header). They can only become "to complete"
   entries of a known type with an in-range value, which the user sees and can delete.
 - **Throttling** lives in memory: restarting the app resets the delay. The real
   protection against guessing is the cost of Argon2id.
+
+## PDF report password
+
+An optional password can protect a report PDF with AES-256 (PDF 2.0, V5/R6). What it
+does and does not cover:
+
+| Situation | Protected? |
+|---|---|
+| The file is found in a download folder, on a USB stick or in a disk backup | Yes, if the password is strong |
+| The email carrying the PDF is read without the password | Yes |
+| The password is sent in the same email or chat as the PDF | No — the protection is then only apparent |
+| The therapist's device, account or backups | No — the file is already open there |
+| A screenshot, a printout or a forwarded decrypted copy | No |
+| A weak password or the journal password reused for the PDF | No — PDF encryption does not use Argon2id |
+
+The password is entered or generated in the UI, never stored and never logged. The
+report form enforces a 12-character minimum and recommends a generated password; it
+also warns against reusing the journal password, because the therapist learns this one. The
+encryption covers the PDF metadata as well. The file name and the fact that a PDF was
+created are not hidden.
+
+The password is **not** a substitute for choosing what goes into the report, and it
+does not replace the encrypted `.mossbook` backup.
 
 ## Out of scope
 

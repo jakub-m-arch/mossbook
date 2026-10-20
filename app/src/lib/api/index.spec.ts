@@ -116,6 +116,24 @@ describe('api wrappers', () => {
 		expect(args.offsetMinutes).toBe(-new Date().getTimezoneOffset());
 	});
 
+	it('passes an optional report password', async () => {
+		const report = {
+			title: 'r',
+			subtitle: '',
+			summary: [],
+			sections: [],
+			footer: '',
+			page_label: ''
+		};
+		await api.reportPdf(report);
+		expect(invoke).toHaveBeenLastCalledWith('report_pdf', { report, password: null });
+		await api.reportPdf(report, 'a long enough password');
+		expect(invoke).toHaveBeenLastCalledWith('report_pdf', {
+			report,
+			password: 'a long enough password'
+		});
+	});
+
 	it('recognizes AppError rejections', () => {
 		expect(api.isAppError({ code: 'locked', message: 'the vault is locked' })).toBe(true);
 		expect(api.isAppError(new Error('x'))).toBe(false);

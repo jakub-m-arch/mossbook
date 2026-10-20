@@ -44,13 +44,14 @@ describe('buildReport', () => {
 		note: 'potem lepiej'
 	});
 	const mood = entry('2026-10-18T09:00:00+02:00', { kind: emptyKind('mood'), mood: 4 });
-	const doc = buildReport([fear, mood], {
+	const options = {
 		from: '2026-10-01',
 		to: '2026-10-19',
 		tags,
 		t,
 		locale: 'pl'
-	});
+	};
+	const doc = buildReport([fear, mood], options);
 
 	it('orders days and entries oldest first, with a summary', () => {
 		expect(doc.title).toBe('Mossbook — moje zapiski');
@@ -73,5 +74,10 @@ describe('buildReport', () => {
 			{ label: 'Notatka', value: 'potem lepiej' }
 		]);
 		expect(doc.sections[0].items[0].meta).toBe('Samopoczucie: dobrze');
+	});
+
+	it('marks the footer when the PDF will be encrypted', () => {
+		const encrypted = buildReport([fear, mood], { ...options, encrypted: true });
+		expect(encrypted.footer).toBe('Mossbook · ten plik jest zabezpieczony hasłem');
 	});
 });

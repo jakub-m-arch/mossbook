@@ -154,7 +154,7 @@ period) overviews are not shown.
 |---|---|---|
 | X-1 | **Encrypted backup**: a single `.mossbook` file encrypted with the same key (opens with the password or the recovery key). Saved through the system file dialog | MVP |
 | X-2 | Importing a backup: merge (no duplicates, by id) or replace | MVP |
-| X-3 | **Report for a therapist (PDF)**: choice of period, types and tags; preview before saving; a warning that the PDF is **not encrypted** | v1 |
+| X-3 | **Report for a therapist (PDF)**: choice of period, types and tags; preview before saving; optional password protection (AES-256, PDF 2.0); a clear warning when the PDF is **not encrypted** and about sending the password through a different channel | v1 |
 | X-4 | Plain JSON export (full portability), with a warning | v1 |
 | X-5 | Deleting all data (V-9) | MVP |
 | X-6 | **Automatic local backups** when the journal locks (daily, newest seven), plus a note in the settings of when a backup was last saved elsewhere (D-16) | v1 |

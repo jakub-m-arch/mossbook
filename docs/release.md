@@ -17,6 +17,11 @@ Releases are desktop builds published on GitHub Releases with `SHA256SUMS`
 - [ ] `CHANGELOG.md` updated.
 - [ ] Manual smoke test of a release build (`cd app && cargo tauri build`): create a
       journal, quick entry, lock/unlock, save and load a backup, crisis screen.
+- [ ] PDF password: save a report with and without a password; open the encrypted
+      file in Adobe Acrobat, macOS Preview/Quick Look, Chrome/Edge and Firefox; check
+      that a wrong password fails, that Polish and Ukrainian text renders, and that the
+      PDF metadata is not readable without the password. `tools/read-report.py` is an
+      independent check (pypdf + cryptography).
 
 ## Tagging
 
