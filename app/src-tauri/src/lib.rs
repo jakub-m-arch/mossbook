@@ -63,6 +63,7 @@ pub fn run() {
             commands::settings_get,
             commands::settings_save,
             commands::stats_mood,
+            commands::stats_patterns,
             commands::clipboard_clear_if,
             commands::crisis_lines,
             commands::dial,

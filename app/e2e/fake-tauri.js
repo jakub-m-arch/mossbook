@@ -204,6 +204,48 @@
 			return null;
 		},
 		clipboard_clear_if: () => false,
+		// Simplified mirror of core::query::patterns (tags, time of day, strategies).
+		stats_patterns: ({ range }) => {
+			if (state.vault !== 'unlocked') return fail('locked');
+			const days = { week: 7, month: 30, three_months: 90 }[range];
+			const list = state.entries.filter(
+				(e) => Date.parse(e.occurred_at) >= Date.now() - days * 86400000
+			);
+			const out = {
+				entries: list.length,
+				enough_data: list.length >= 14,
+				top_tags: [],
+				top_triggers: [],
+				mood_by_sleep: [],
+				mood_by_time_of_day: [],
+				mood_by_weekday: [],
+				strategies: []
+			};
+			if (!out.enough_data) return out;
+			const slots = ['night', 'morning', 'afternoon', 'evening'];
+			const tod = new Map();
+			const strategies = new Map();
+			for (const e of list) {
+				const h = new Date(e.occurred_at).getHours();
+				const key = slots[h < 5 ? 0 : h < 12 ? 1 : h < 18 ? 2 : 3];
+				if (e.mood !== null) {
+					const [sum, n] = tod.get(key) ?? [0, 0];
+					tod.set(key, [sum + e.mood, n + 1]);
+				}
+				const f = typeof e.kind === 'object' && e.kind.fear;
+				if (f && f.strategy && f.intensity_after !== null && e.intensity !== null) {
+					const [drop, n] = strategies.get(f.strategy) ?? [0, 0];
+					strategies.set(f.strategy, [drop + e.intensity - f.intensity_after, n + 1]);
+				}
+			}
+			out.mood_by_time_of_day = slots
+				.filter((k) => tod.has(k))
+				.map((k) => ({ key: k, average: tod.get(k)[0] / tod.get(k)[1], count: tod.get(k)[1] }));
+			out.strategies = [...strategies]
+				.filter(([, [, n]]) => n >= 2)
+				.map(([label, [drop, n]]) => ({ label, average_drop: drop / n, count: n }));
+			return out;
+		},
 		report_pdf: ({ report }) => {
 			if (state.vault !== 'unlocked') return fail('locked');
 			window.__fake.reports.push(report);
@@ -349,6 +391,10 @@
 
 	/** Test hooks: simulate Rust-side events (auto-lock, focus loss). */
 	window.__fake = {
+		/** Adds synthetic entries directly (for tests that need many of them). */
+		seed(entries) {
+			state.entries.push(...entries);
+		},
 		calls: [],
 		reports: [],
 		emit,

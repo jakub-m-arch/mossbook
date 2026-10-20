@@ -132,7 +132,7 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Za
 - [x] **Koszmar / IRT (E-5)**: tworzenie (szybki wpis jednym stuknięciem), wyjaśnienie metody, treść koszmaru zwinięta przy ponownym otwarciu, nowa wersja, powtórki z datami; domyślnie „treść trudna”
 - [x] **„Treść trudna” (E-16)**: przełącznik w każdym formularzu; na osi czasu tylko rodzaj i godzina, odsłonięcie stuknięciem
 - [x] **Kalendarz (E-14)** we Wzorcach: miesiąc, odcień dnia wg średniego samopoczucia (jeden odcień, bez czerwieni), legenda, nawigacja po miesiącach; stuknięcie w dzień → oś czasu z filtrem tego dnia
-- [ ] Statystyki A-2–A-4
+- [x] **Statystyki A-2–A-4** (`core::query::patterns`, zakładka Wzorce → Zestawienia): od 14 wpisów w okresie; najczęstsze tagi i wyzwalacze (wolny tekst grupowany po normalizacji, ≥ 2 powtórzenia); samopoczucie a sen poprzedniej nocy (słaby/średni/dobry), pora dnia, dzień tygodnia; strategie: średni spadek intensywności (≥ 2 użycia); paski z liczbami, tylko obserwacje
 - [ ] Przypomnienia (R-1–R-3)
 - [ ] Szybki wpis bez odblokowania (E-15)
 - [ ] Biometria, iOS, Android (odłożone)

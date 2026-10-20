@@ -34,6 +34,7 @@
     "allow-settings-get",
     "allow-settings-save",
     "allow-stats-mood",
+    "allow-stats-patterns",
     "allow-clipboard-clear-if",
     "allow-crisis-lines",
     "allow-dial",

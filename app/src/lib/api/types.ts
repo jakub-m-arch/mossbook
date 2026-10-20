@@ -210,6 +210,40 @@ export interface MoodPoint {
 	count: number;
 }
 
+/** A-2–A-4: plain counts and averages; empty lists below 14 entries. */
+export interface Patterns {
+	entries: number;
+	enough_data: boolean;
+	top_tags: PatternCount[];
+	top_triggers: PatternCount[];
+	/** Keys: `poor` (1–2), `fair` (3), `good` (4–5). */
+	mood_by_sleep: PatternGroup[];
+	/** Keys: `night`, `morning`, `afternoon`, `evening`. */
+	mood_by_time_of_day: PatternGroup[];
+	/** Keys: `monday` … `sunday`. */
+	mood_by_weekday: PatternGroup[];
+	strategies: PatternStrategy[];
+}
+
+export interface PatternCount {
+	key: string;
+	label: string;
+	count: number;
+}
+
+export interface PatternGroup {
+	key: string;
+	average: number;
+	count: number;
+}
+
+export interface PatternStrategy {
+	label: string;
+	/** Positive: intensity went down by this much on average. */
+	average_drop: number;
+	count: number;
+}
+
 // ---- crisis lines (static, available without unlocking) ----
 
 export interface CrisisLine {

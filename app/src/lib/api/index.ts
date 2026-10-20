@@ -18,6 +18,7 @@ import type {
 	Id,
 	LockReason,
 	MoodPoint,
+	Patterns,
 	ReportDoc,
 	RecoveryAnswer,
 	RecoverySetup,
@@ -98,6 +99,7 @@ export const settingsSave = (settings: Settings) => invoke<Settings>('settings_s
 // ---- patterns ----
 
 export const statsMood = (range: StatsRange) => invoke<MoodPoint[]>('stats_mood', { range });
+export const statsPatterns = (range: StatsRange) => invoke<Patterns>('stats_patterns', { range });
 
 // ---- report (X-3) ----
 

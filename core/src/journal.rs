@@ -17,7 +17,7 @@ use crate::domain::{
     encode,
 };
 use crate::query::stats::{MoodPoint, mood_by_day};
-use crate::query::{EntryFilter, StatsRange};
+use crate::query::{EntryFilter, Patterns, StatsRange};
 use crate::vault::{LoadedRecord, UnlockedVault, VaultError};
 
 /// Fixed record id of the safety plan (a singleton).
@@ -532,6 +532,12 @@ impl Journal {
     }
 
     // ---- patterns ----
+
+    /// Tags, triggers, mood by sleep, time of day and weekday, strategies (A-2–A-4).
+    pub fn patterns(&self, range: StatsRange, now: OffsetDateTime) -> Patterns {
+        let (from, to) = range.bounds(now);
+        crate::query::patterns::patterns(self.entries.values(), &self.tags, from, to)
+    }
 
     /// Daily mood averages for the chart (A-1).
     pub fn mood_series(&self, range: StatsRange, now: OffsetDateTime) -> Vec<MoodPoint> {

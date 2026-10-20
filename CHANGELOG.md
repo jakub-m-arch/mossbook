@@ -25,6 +25,9 @@ First desktop release (Linux, Windows, macOS).
 ### Patterns
 - Mood over time for a week, a month or three months, with a table view.
 - Calendar tinted by each day's average mood; tap a day to see its entries.
+- Overviews from 14 entries in a period: most used tags and triggers, mood by the
+  previous night's sleep, time of day and weekday, and how much fear intensity went
+  down after each strategy. Counts and averages only, no interpretation.
 
 ### Report for a therapist
 - PDF report for a chosen period, entry types and tags, with a preview that matches

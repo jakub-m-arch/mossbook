@@ -12,7 +12,7 @@ use mossbook_core::backup::{Backup, BackupError, MAX_BACKUP_BYTES};
 use mossbook_core::crisis::{self, CrisisDirectory};
 use mossbook_core::domain::{Entry, EntryDraft, EntryKindTag, Id, SafetyPlan, Settings, Tag};
 use mossbook_core::journal::ImportMode;
-use mossbook_core::query::{EntryFilter, MoodPoint, StatsRange};
+use mossbook_core::query::{EntryFilter, MoodPoint, Patterns, StatsRange};
 use mossbook_core::report::{ReportDoc, render_pdf};
 use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_clipboard_manager::ClipboardExt;
@@ -400,6 +400,14 @@ pub fn report_pdf(
     };
     write_file(&app, target, &pdf).map_err(|_| AppError::new("io", "cannot write the report"))?;
     Ok(true)
+}
+
+#[tauri::command(async)]
+pub fn stats_patterns(state: State<'_, AppState>, range: StatsRange) -> AppResult<Patterns> {
+    with_session(&state, |s| {
+        let now = s.now();
+        Ok(s.journal()?.patterns(range, now))
+    })
 }
 
 // ---- clipboard ----

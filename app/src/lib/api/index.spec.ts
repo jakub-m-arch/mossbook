@@ -63,6 +63,7 @@ async function invokedCommands(): Promise<string[]> {
 				reminders: []
 			}),
 		() => api.statsMood('week'),
+		() => api.statsPatterns('week'),
 		() => api.clipboardClearIf('copied'),
 		() => api.crisisLines('PL'),
 		() => api.dial('112'),

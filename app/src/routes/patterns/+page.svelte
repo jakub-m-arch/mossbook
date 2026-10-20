@@ -3,8 +3,9 @@
 	import FileText from '@lucide/svelte/icons/file-text';
 
 	import { resolve } from '$app/paths';
-	import { statsMood } from '#lib/api/index.js';
-	import type { MoodPoint, StatsRange } from '#lib/api/index.js';
+	import { statsMood, statsPatterns } from '#lib/api/index.js';
+	import type { MoodPoint, Patterns, StatsRange } from '#lib/api/index.js';
+	import Insights from '#lib/components/Insights.svelte';
 	import { localToday, rangeDays } from '#lib/chart.js';
 	import MoodCalendar from '#lib/components/MoodCalendar.svelte';
 	import MoodChart from '#lib/components/MoodChart.svelte';
@@ -20,6 +21,7 @@
 
 	let range = $state<StatsRange>('month');
 	let points = $state<MoodPoint[] | null>(null);
+	let patterns = $state<Patterns | null>(null);
 	let error = $state('');
 
 	let bounds = $derived(rangeDays(range, localToday()));
@@ -30,9 +32,11 @@
 
 	$effect(() => {
 		const current = range;
-		statsMood(current)
-			.then((result) => {
-				if (current === range) points = result;
+		Promise.all([statsMood(current), statsPatterns(current)])
+			.then(([result, more]) => {
+				if (current !== range) return;
+				points = result;
+				patterns = more;
 			})
 			.catch(async (e) => {
 				if (!(await handleLocked(e))) error = errorText(e);
@@ -71,6 +75,11 @@
 				</p>
 				<MoodChart {points} from={bounds[0]} to={bounds[1]} />
 			{/if}
+		</section>
+
+		<section class="card stack" aria-labelledby="insights">
+			<h2 id="insights">{t('insights.title')}</h2>
+			{#if patterns}<Insights {patterns} />{/if}
 		</section>
 
 		<section class="card stack" aria-labelledby="calendar">

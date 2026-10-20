@@ -27,6 +27,7 @@ pub const COMMANDS: &[&str] = &[
     "settings_get",
     "settings_save",
     "stats_mood",
+    "stats_patterns",
     "clipboard_clear_if",
     "crisis_lines",
     "dial",
