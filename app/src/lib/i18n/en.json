@@ -164,7 +164,10 @@
 		"awakenings": "Times woken up",
 		"nightmare": "Had a nightmare",
 		"content": "The nightmare",
-		"rescripted": "New version"
+		"rescripted": "New version",
+		"rehearsals": "Rehearsals of the new version",
+		"sensitive": "Difficult content",
+		"sensitiveHint": "On the timeline show only the type and time; reveal the content on tap."
 	},
 	"entry": {
 		"new": "New entry",
@@ -174,7 +177,10 @@
 		"delete": "Delete entry",
 		"deleteConfirm": "Delete this entry? This cannot be undone.",
 		"incomplete": "to complete",
-		"notFound": "This entry does not exist."
+		"notFound": "This entry does not exist.",
+		"hidden": "Content hidden",
+		"reveal": "Show content",
+		"conceal": "Hide content"
 	},
 	"quick": {
 		"open": "Quick entry",
@@ -196,7 +202,8 @@
 		"none": "Nothing matches the filters.",
 		"button": "Filters",
 		"active": "Filters ({count})",
-		"apply": "Show entries"
+		"apply": "Show entries",
+		"day": "Entries from {date}"
 	},
 	"tags": {
 		"title": "Tags",
@@ -382,5 +389,23 @@
 		"avoidanceYes": "Avoided something",
 		"avoidanceNo": "No avoidance",
 		"sleepTime": "Sleep: {from} – {to}"
+	},
+	"nightmare": {
+		"intro": "Write down the nightmare, then a new version of it, calmer or with a different ending. You can rehearse it in your mind and mark when you do.",
+		"showContent": "Show the nightmare",
+		"hideContent": "Hide the nightmare",
+		"rehearse": "Rehearsed today",
+		"rehearsed": "Rehearsal saved: {date}",
+		"noRehearsals": "No rehearsals yet."
+	},
+	"calendar": {
+		"title": "Calendar",
+		"hint": "The color of a day shows its average mood rating: the darker, the better the day was.",
+		"previous": "Previous month",
+		"next": "Next month",
+		"day": "{date}: average {average}",
+		"dayEmpty": "{date}: no rating",
+		"legendLow": "harder",
+		"legendHigh": "better"
 	}
 }

@@ -6,6 +6,7 @@
 	import { statsMood } from '#lib/api/index.js';
 	import type { MoodPoint, StatsRange } from '#lib/api/index.js';
 	import { localToday, rangeDays } from '#lib/chart.js';
+	import MoodCalendar from '#lib/components/MoodCalendar.svelte';
 	import MoodChart from '#lib/components/MoodChart.svelte';
 	import UnlockedShell from '#lib/components/UnlockedShell.svelte';
 	import { locale, t } from '#lib/i18n/index.svelte.js';
@@ -70,6 +71,14 @@
 				</p>
 				<MoodChart {points} from={bounds[0]} to={bounds[1]} />
 			{/if}
+		</section>
+
+		<section class="card stack" aria-labelledby="calendar">
+			<div>
+				<h2 id="calendar">{t('calendar.title')}</h2>
+				<p class="muted small hint">{t('calendar.hint')}</p>
+			</div>
+			<MoodCalendar />
 		</section>
 
 		<p class="muted small">{t('patterns.note')}</p>

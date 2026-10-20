@@ -244,6 +244,8 @@ impl Journal {
             _ => entry.intensity = value,
         }
         entry.incomplete = true;
+        // A nightmare's content is hidden on the timeline by default (E-5, E-16).
+        entry.sensitive = kind == EntryKindTag::Nightmare;
         self.save_entry(entry, now)
     }
 

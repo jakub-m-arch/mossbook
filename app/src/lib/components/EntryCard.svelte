@@ -14,33 +14,61 @@
 		new Intl.DateTimeFormat(locale(), { timeStyle: 'short' }).format(new Date(entry.occurred_at))
 	);
 	let text = $derived(preview(entry, 160));
+	/** E-16: difficult content stays hidden until the user asks for it. */
+	let revealed = $state(false);
+	let hidden = $derived(entry.sensitive && !revealed);
 </script>
 
-<a class="row card" href={resolve('/entry/[id]', { id: entry.id })}>
-	<KindIcon {kind} />
-	<div class="body">
-		<div class="top">
-			<span class="title">{t(`kind.${kind}`)}</span>
-			{#if entry.mood}<MoodIcon value={entry.mood} size={20} />{/if}
-			{#if entry.intensity !== null}<span class="pill">{entry.intensity}/10</span>{/if}
-			<time datetime={entry.occurred_at}>{time}</time>
-		</div>
-		{#if text}<p class="text">{text}</p>{/if}
-		{#if entry.incomplete || entry.tags.length > 0}
-			<div class="meta">
-				{#if entry.incomplete}<span class="pill notice-pill">{t('entry.incomplete')}</span>{/if}
-				{#each entry.tags as id (id)}
-					{@const tag = tags.get(id)}
-					{#if tag}<span class="tag"
-							><span class="dot" style:background={tag.color}></span>{tag.name}</span
-						>{/if}
-				{/each}
+<div class="wrap">
+	<a class="row card" href={resolve('/entry/[id]', { id: entry.id })}>
+		<KindIcon {kind} />
+		<div class="body">
+			<div class="top">
+				<span class="title">{t(`kind.${kind}`)}</span>
+				{#if entry.mood}<MoodIcon value={entry.mood} size={20} />{/if}
+				{#if entry.intensity !== null}<span class="pill">{entry.intensity}/10</span>{/if}
+				<time datetime={entry.occurred_at}>{time}</time>
 			</div>
-		{/if}
-	</div>
-</a>
+			{#if hidden}
+				<p class="text">{t('entry.hidden')}</p>
+			{:else if text}
+				<p class="text">{text}</p>
+			{/if}
+			{#if !hidden && (entry.incomplete || entry.tags.length > 0)}
+				<div class="meta">
+					{#if entry.incomplete}<span class="pill notice-pill">{t('entry.incomplete')}</span>{/if}
+					{#each entry.tags as id (id)}
+						{@const tag = tags.get(id)}
+						{#if tag}<span class="tag"
+								><span class="dot" style:background={tag.color}></span>{tag.name}</span
+							>{/if}
+					{/each}
+				</div>
+			{/if}
+		</div>
+	</a>
+	{#if entry.sensitive && text}
+		<button
+			type="button"
+			class="link reveal"
+			aria-expanded={revealed}
+			onclick={() => (revealed = !revealed)}
+		>
+			{revealed ? t('entry.conceal') : t('entry.reveal')}
+		</button>
+	{/if}
+</div>
 
 <style>
+	.wrap {
+		position: relative;
+	}
+	.reveal {
+		position: absolute;
+		right: 0.5rem;
+		bottom: 0.4rem;
+		font-size: 0.85rem;
+	}
 	.row {
 		display: flex;
 		gap: 0.85rem;

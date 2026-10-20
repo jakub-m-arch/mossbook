@@ -23,6 +23,7 @@
 			sleep: {
 				sleep: { bedtime: null, wake: null, quality: null, awakenings: null, nightmare: false }
 			},
+			nightmare: { nightmare: { content: '', rescripted: '', rehearsals: [] } },
 			note: 'note'
 		})[tag];
 
@@ -170,7 +171,8 @@
 					kind: emptyKind(kind),
 					mood: kind === 'mood' ? value : null,
 					intensity: kind === 'mood' ? null : value,
-					incomplete: true
+					incomplete: true,
+					sensitive: kind === 'nightmare'
 				}
 			}),
 		tags_list: () => [...state.tags].sort((a, b) => a.name.localeCompare(b.name)),

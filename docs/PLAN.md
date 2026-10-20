@@ -129,7 +129,9 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Za
 
 ### Etap 13 (v1)
 - [x] **Raport PDF dla terapeuty (X-3)**: wybór okresu, rodzajów i tagów; frontend buduje model dokumentu (tłumaczenia), ten sam model jest podglądem i trafia do `core::report`, który składa A4 przez `printpdf` (łamanie tekstu po szerokościach glifów, podział na strony, stopka „nie jest zaszyfrowany” + numer strony); Noto Sans (OFL) osadzony w całości (~600 KB, podzbiór wymagałby ciężkiej funkcji `text_layout`); ostrzeżenie przed zapisem; zapis przez okno systemowe
-- [ ] Koszmar / IRT (E-5), kalendarz (E-14), „treść trudna” (E-16)
+- [x] **Koszmar / IRT (E-5)**: tworzenie (szybki wpis jednym stuknięciem), wyjaśnienie metody, treść koszmaru zwinięta przy ponownym otwarciu, nowa wersja, powtórki z datami; domyślnie „treść trudna”
+- [x] **„Treść trudna” (E-16)**: przełącznik w każdym formularzu; na osi czasu tylko rodzaj i godzina, odsłonięcie stuknięciem
+- [x] **Kalendarz (E-14)** we Wzorcach: miesiąc, odcień dnia wg średniego samopoczucia (jeden odcień, bez czerwieni), legenda, nawigacja po miesiącach; stuknięcie w dzień → oś czasu z filtrem tego dnia
 - [ ] Statystyki A-2–A-4
 - [ ] Przypomnienia (R-1–R-3)
 - [ ] Szybki wpis bez odblokowania (E-15)

@@ -10,7 +10,7 @@
 		Tag
 	} from '#lib/api/index.js';
 	import { EMOTIONS, SYMPTOMS, emptyKind, jsonCopy, kindTag } from '#lib/entries.js';
-	import { t } from '#lib/i18n/index.svelte.js';
+	import { locale, t } from '#lib/i18n/index.svelte.js';
 	import { fromLocalInput, toLocalInput, toRfc3339 } from '#lib/time.js';
 
 	import ChipSelect from './ChipSelect.svelte';
@@ -51,7 +51,16 @@
 	let bedtime = $state(sleep.bedtime ? toLocalInput(sleep.bedtime) : '');
 	let wake = $state(sleep.wake ? toLocalInput(sleep.wake) : '');
 
+	let sensitive = $state(initial.sensitive ?? false);
+	// An existing nightmare starts collapsed so it is not read by accident (E-5).
+	let showNightmare = $state(!nightmare.content.trim());
+	let dateFormat = $derived(new Intl.DateTimeFormat(locale(), { dateStyle: 'medium' }));
+
 	let busy = $state(false);
+
+	function rehearse() {
+		nightmare.rehearsals = [...nightmare.rehearsals, toRfc3339(new Date())];
+	}
 
 	function kind(): EntryKind {
 		switch (tag) {
@@ -90,7 +99,7 @@
 				tags: $state.snapshot(selectedTags),
 				note,
 				incomplete: false,
-				sensitive: initial.sensitive ?? false
+				sensitive
 			});
 		} finally {
 			busy = false;
@@ -194,13 +203,39 @@
 				{t('field.nightmare')}
 			</label>
 		{:else if tag === 'nightmare'}
-			<div>
-				<label for="content">{t('field.content')}</label>
-				<textarea id="content" bind:value={nightmare.content}></textarea>
-			</div>
+			<p class="muted small">{t('nightmare.intro')}</p>
+			{#if showNightmare}
+				<div>
+					<label for="content">{t('field.content')}</label>
+					<textarea id="content" bind:value={nightmare.content}></textarea>
+				</div>
+				{#if nightmare.content.trim()}
+					<button type="button" class="link" onclick={() => (showNightmare = false)}>
+						{t('nightmare.hideContent')}
+					</button>
+				{/if}
+			{:else}
+				<button type="button" class="secondary" onclick={() => (showNightmare = true)}>
+					{t('nightmare.showContent')}
+				</button>
+			{/if}
 			<div>
 				<label for="rescripted">{t('field.rescripted')}</label>
-				<textarea id="rescripted" bind:value={nightmare.rescripted}></textarea>
+				<textarea id="rescripted" class="tall" bind:value={nightmare.rescripted}></textarea>
+			</div>
+			<div>
+				<p class="eyebrow">{t('field.rehearsals')}</p>
+				{#if nightmare.rehearsals.length === 0}
+					<p class="muted small">{t('nightmare.noRehearsals')}</p>
+				{:else}
+					<ul class="rehearsals">
+						{#each nightmare.rehearsals as at, i (i)}
+							<li>{dateFormat.format(new Date(at))}</li>
+						{/each}
+					</ul>
+				{/if}
+				<button type="button" class="secondary" onclick={rehearse}>{t('nightmare.rehearse')}</button
+				>
 			</div>
 		{/if}
 
@@ -226,6 +261,14 @@
 
 		<TagPicker {tags} bind:selected={selectedTags} />
 
+		<label class="choice sensitive">
+			<input type="checkbox" bind:checked={sensitive} />
+			<span>
+				{t('field.sensitive')}
+				<span class="muted small hint">{t('field.sensitiveHint')}</span>
+			</span>
+		</label>
+
 		<div>
 			<label for="occurred-at">{t('field.occurredAt')}</label>
 			<input id="occurred-at" type="datetime-local" bind:value={occurredAt} />
@@ -238,6 +281,17 @@
 </form>
 
 <style>
+	.rehearsals {
+		margin: 0 0 0.5rem;
+		padding-left: 1.2rem;
+	}
+	.sensitive {
+		align-items: flex-start;
+	}
+	.sensitive .hint {
+		display: block;
+		font-weight: 400;
+	}
 	.tall {
 		min-height: 12rem;
 	}

@@ -95,6 +95,10 @@ fn quick_entry_and_delete() {
     assert_eq!(j.entry(&mood).unwrap().mood, Some(2));
     assert!(j.entry(&mood).unwrap().incomplete);
     assert!(j.quick_entry(EntryKindTag::Mood, Some(6), NOW).is_err());
+    let nightmare = j.quick_entry(EntryKindTag::Nightmare, None, NOW).unwrap();
+    assert!(nightmare.sensitive, "nightmares are hidden by default");
+    let nightmare = nightmare.id;
+    assert!(j.delete_entry(&nightmare).unwrap());
 
     assert!(j.delete_entry(&fear).unwrap());
     assert!(!j.delete_entry(&fear).unwrap());

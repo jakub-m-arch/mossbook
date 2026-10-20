@@ -164,7 +164,10 @@
 		"awakenings": "Liczba wybudzeń",
 		"nightmare": "Był koszmar",
 		"content": "Treść koszmaru",
-		"rescripted": "Nowa wersja"
+		"rescripted": "Nowa wersja",
+		"rehearsals": "Powtórki nowej wersji",
+		"sensitive": "Treść trudna",
+		"sensitiveHint": "Na osi czasu pokaż tylko rodzaj i godzinę, a treść dopiero po stuknięciu."
 	},
 	"entry": {
 		"new": "Nowy wpis",
@@ -174,7 +177,10 @@
 		"delete": "Usuń wpis",
 		"deleteConfirm": "Usunąć ten wpis? Tego nie da się cofnąć.",
 		"incomplete": "do uzupełnienia",
-		"notFound": "Nie ma takiego wpisu."
+		"notFound": "Nie ma takiego wpisu.",
+		"hidden": "Treść ukryta",
+		"reveal": "Pokaż treść",
+		"conceal": "Ukryj treść"
 	},
 	"quick": {
 		"open": "Szybki wpis",
@@ -196,7 +202,8 @@
 		"none": "Nic nie pasuje do filtrów.",
 		"button": "Filtry",
 		"active": "Filtry ({count})",
-		"apply": "Pokaż wpisy"
+		"apply": "Pokaż wpisy",
+		"day": "Wpisy z dnia {date}"
 	},
 	"tags": {
 		"title": "Tagi",
@@ -382,5 +389,23 @@
 		"avoidanceYes": "Było unikanie",
 		"avoidanceNo": "Bez unikania",
 		"sleepTime": "Sen: {from} – {to}"
+	},
+	"nightmare": {
+		"intro": "Zapisz koszmar, a potem jego nową wersję, spokojniejszą albo zakończoną inaczej. Możesz ją powtarzać w myślach i zaznaczać, kiedy to robisz.",
+		"showContent": "Pokaż treść koszmaru",
+		"hideContent": "Ukryj treść koszmaru",
+		"rehearse": "Ćwiczyłem/ćwiczyłam dziś",
+		"rehearsed": "Powtórka zapisana: {date}",
+		"noRehearsals": "Jeszcze bez powtórek."
+	},
+	"calendar": {
+		"title": "Kalendarz",
+		"hint": "Kolor dnia pokazuje średnią ocenę samopoczucia: im ciemniejszy, tym lepiej było tego dnia.",
+		"previous": "Poprzedni miesiąc",
+		"next": "Następny miesiąc",
+		"day": "{date}: średnio {average}",
+		"dayEmpty": "{date}: bez oceny",
+		"legendLow": "trudniej",
+		"legendHigh": "lepiej"
 	}
 }

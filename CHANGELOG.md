@@ -8,8 +8,10 @@ First desktop release (Linux, Windows, macOS).
 
 ### Journal
 - Entry types: mood (1–5 with weather pictograms, energy, emotions), event,
-  fear/trigger (symptoms, avoidance, strategy, intensity before and after), sleep
-  and free note.
+  fear/trigger (symptoms, avoidance, strategy, intensity before and after), sleep,
+  nightmare with a rescripted version and rehearsal dates (IRT), and free note.
+- "Difficult content": an entry can stay hidden on the timeline until tapped;
+  nightmares are hidden by default.
 - Quick entry in at most two taps, then straight to the entry's form.
 - Timeline grouped by day; filters by type, tag, date range and "to complete";
   search that ignores case and diacritics.
@@ -22,6 +24,7 @@ First desktop release (Linux, Windows, macOS).
 
 ### Patterns
 - Mood over time for a week, a month or three months, with a table view.
+- Calendar tinted by each day's average mood; tap a day to see its entries.
 
 ### Report for a therapist
 - PDF report for a chosen period, entry types and tags, with a preview that matches

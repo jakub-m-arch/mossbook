@@ -2,8 +2,15 @@
 
 import type { Emotion, Entry, EntryDraft, EntryKind, EntryKindTag, Symptom } from './api/index.js';
 
-/** Types offered when creating entries. Nightmare (IRT) arrives in v1 (E-5). */
-export const CREATABLE_KINDS: EntryKindTag[] = ['mood', 'fear', 'event', 'sleep', 'note'];
+/** Types offered when creating entries. */
+export const CREATABLE_KINDS: EntryKindTag[] = [
+	'mood',
+	'fear',
+	'event',
+	'sleep',
+	'nightmare',
+	'note'
+];
 
 export const EMOTIONS = [
 	'anxiety',
@@ -80,7 +87,16 @@ export function draftFromEntry(entry: Entry): EntryDraft {
 }
 
 export function newDraft(tag: EntryKindTag): EntryDraft {
-	return { kind: emptyKind(tag), mood: null, intensity: null, tags: [], note: '' };
+	const draft: EntryDraft = {
+		kind: emptyKind(tag),
+		mood: null,
+		intensity: null,
+		tags: [],
+		note: ''
+	};
+	// A nightmare's content is hidden on the timeline by default (E-5, E-16).
+	if (tag === 'nightmare') draft.sensitive = true;
+	return draft;
 }
 
 /** Free-text fields of an entry, in reading order. */

@@ -22,7 +22,7 @@
 	let busy = $state(false);
 
 	/** Kinds saved with the first tap: they have no rating to ask for. */
-	const ONE_TAP: EntryKindTag[] = ['sleep', 'note'];
+	const ONE_TAP: EntryKindTag[] = ['sleep', 'nightmare', 'note'];
 
 	export function open() {
 		kind = null;

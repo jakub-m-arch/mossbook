@@ -7,6 +7,7 @@
 
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { entriesList, tagsList } from '#lib/api/index.js';
 	import type { Entry, EntryFilter, EntryKindTag, Tag } from '#lib/api/index.js';
 	import EntryCard from '#lib/components/EntryCard.svelte';
@@ -29,8 +30,12 @@
 	let text = $state('');
 	let kinds = $state<EntryKindTag[]>([]);
 	let tagFilter = $state<string[]>([]);
-	let from = $state('');
-	let to = $state('');
+	// A day picked in the calendar (E-14) arrives as ?day=YYYY-MM-DD.
+	const pickedDay = /^\d{4}-\d{2}-\d{2}$/.test(page.url.searchParams.get('day') ?? '')
+		? (page.url.searchParams.get('day') as string)
+		: '';
+	let from = $state(pickedDay);
+	let to = $state(pickedDay);
 	let incompleteOnly = $state(false);
 
 	let tagMap = $derived(new Map(tags.map((tag) => [tag.id, tag])));
@@ -124,6 +129,12 @@
 			</button>
 		</div>
 
+		{#if from && from === to}
+			<div class="day-filter">
+				<span>{t('filter.day', { date: dayFormat.format(new Date(`${from}T12:00`)) })}</span>
+				<button type="button" class="link" onclick={clearFilters}>{t('filter.clear')}</button>
+			</div>
+		{/if}
 		{#if error}<p class="notice">{error}</p>{/if}
 
 		{#if loaded && entries.length === 0}
@@ -217,6 +228,15 @@
 </Sheet>
 
 <style>
+	.day-filter {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.25rem 0.25rem 0.25rem 1rem;
+		font-weight: 600;
+		background: var(--accent-soft);
+		border-radius: 999px;
+	}
 	.toolbar {
 		display: flex;
 		gap: 0.5rem;
