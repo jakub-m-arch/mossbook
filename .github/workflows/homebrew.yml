@@ -29,10 +29,10 @@ jobs:
             echo "::notice::HOMEBREW_TAP_TOKEN is not set; skipping the tap update."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
+      # The cask template comes from the default branch (it does not depend on the
+      # release and may be newer than the tag); only the checksums come from the release.
       - uses: actions/checkout@v4
         if: steps.token.outputs.skip != 'true'
-        with:
-          ref: ${{ env.TAG }}
       - name: Render the cask from the release checksums
         if: steps.token.outputs.skip != 'true'
         env:
