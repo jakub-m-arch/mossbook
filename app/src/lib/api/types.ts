@@ -245,6 +245,15 @@ export interface PatternStrategy {
 	count: number;
 }
 
+// ---- about ----
+
+export interface AppInfo {
+	version: string;
+	/** Unix seconds when this binary was built. */
+	built_at: number;
+	releases_url: string;
+}
+
 // ---- crisis lines (static, available without unlocking) ----
 
 export interface CrisisLine {

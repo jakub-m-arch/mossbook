@@ -68,6 +68,8 @@ async function invokedCommands(): Promise<string[]> {
 		() => api.clipboardClearIf('copied'),
 		() => api.crisisLines('PL'),
 		() => api.dial('112'),
+		api.appInfo,
+		api.openReleases,
 		api.backupExport,
 		api.backupPick,
 		() => api.backupImport('pw', 'password', 'merge'),

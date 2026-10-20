@@ -214,6 +214,15 @@
 			return null;
 		},
 		clipboard_clear_if: () => false,
+		app_info: () => ({
+			version: '0.1.0',
+			built_at: Math.floor(Date.now() / 1000) - 120 * 86400,
+			releases_url: 'https://github.com/jakub-m-arch/mossbook/releases'
+		}),
+		open_releases: () => {
+			window.__fake.calls.push('open_releases');
+			return null;
+		},
 		// Simplified mirror of core::query::patterns (tags, time of day, strategies).
 		stats_patterns: ({ range }) => {
 			if (state.vault !== 'unlocked') return fail('locked');

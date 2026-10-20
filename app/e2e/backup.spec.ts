@@ -68,3 +68,15 @@ test('change password, then delete all data', async ({ page }) => {
 		.click();
 	await expect(page.getByRole('heading', { name: 'Witaj w Mossbook' })).toBeVisible();
 });
+
+test('about: version, offline age hint, check for updates opens the browser', async ({ page }) => {
+	await createVault(page);
+	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await expect(page.getByText(/^Wersja 0\.1\.0 · zbudowana/)).toBeVisible();
+	await expect(page.getByText('Ta wersja ma już ponad 3 miesiące.')).toBeVisible();
+	await page.getByRole('button', { name: 'Sprawdź aktualizacje' }).click();
+	const calls = await page.evaluate(
+		() => (window as unknown as { __fake: { calls: string[] } }).__fake.calls
+	);
+	expect(calls).toContain('open_releases');
+});

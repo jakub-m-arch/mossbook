@@ -444,5 +444,13 @@
 		"times": "times: {count}",
 		"basis": "based on: {count}",
 		"none": "Nothing repeats in this period yet."
+	},
+	"about": {
+		"title": "About",
+		"version": "Version {version} · built {date}",
+		"check": "Check for updates",
+		"checkHint": "Opens the releases page in your browser. The app itself never connects to the internet.",
+		"old": "This version is more than 3 months old. A newer one may be available.",
+		"watch": "You can get notified of new versions on GitHub: Watch → Custom → Releases."
 	}
 }

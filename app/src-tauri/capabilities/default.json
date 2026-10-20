@@ -39,6 +39,8 @@
     "allow-clipboard-clear-if",
     "allow-crisis-lines",
     "allow-dial",
+    "allow-app-info",
+    "allow-open-releases",
     "allow-backup-export",
     "allow-backup-pick",
     "allow-backup-import",

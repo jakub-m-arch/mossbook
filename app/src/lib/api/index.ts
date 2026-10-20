@@ -6,6 +6,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 import type {
 	AppError,
+	AppInfo,
 	BackupSecret,
 	BackupSummary,
 	CrisisInfo,
@@ -119,6 +120,11 @@ export const clipboardClearIf = (text: string) => invoke<boolean>('clipboard_cle
 export const crisisLines = (country: string) => invoke<CrisisInfo>('crisis_lines', { country });
 /** Starts a call. Only crisis numbers and safety-plan contacts are allowed. */
 export const dial = (number: string) => invoke<void>('dial', { number });
+
+// ---- about and updates (no network: the browser opens the releases page) ----
+
+export const appInfo = () => invoke<AppInfo>('app_info');
+export const openReleases = () => invoke<void>('open_releases');
 
 // ---- backups (X-1, X-2) ----
 

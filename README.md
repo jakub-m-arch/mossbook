@@ -51,6 +51,18 @@ Download the installer for your system from
 - **macOS:** `.dmg` (Apple Silicon `aarch64`, Intel `x64`). The app is not notarized
   yet: right-click the app → *Open* the first time.
 
+### Updates
+
+Mossbook never connects to the internet, so it does not check for updates by itself.
+
+- **Settings → About → Check for updates** opens the releases page in your browser.
+  After three months, Settings also notes that the version is getting old (worked out
+  from the build date, offline).
+- **Get notified:** on [the repository](https://github.com/jakub-m-arch/mossbook),
+  *Watch → Custom → Releases*, and GitHub emails you when a new version is out.
+- To update, install the new version over the old one. Your journal stays where it
+  is; keeping a recent backup (Settings → Backup) is still a good idea.
+
 ## What it does
 
 - **Entry types**: mood (1–5 with emotions), event, fear or trigger (intensity before

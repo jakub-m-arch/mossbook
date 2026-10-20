@@ -420,6 +420,37 @@ pub fn stats_patterns(state: State<'_, AppState>, range: StatsRange) -> AppResul
     })
 }
 
+// ---- about and updates (no network, decision D-15) ----
+
+/// The only page the app ever opens in the browser.
+pub const RELEASES_URL: &str = "https://github.com/jakub-m-arch/mossbook/releases";
+
+#[derive(serde::Serialize)]
+pub struct AppInfo {
+    version: &'static str,
+    /// Unix seconds when this binary was built.
+    built_at: u64,
+    releases_url: &'static str,
+}
+
+#[tauri::command(async)]
+pub fn app_info() -> AppInfo {
+    AppInfo {
+        version: env!("CARGO_PKG_VERSION"),
+        built_at: env!("MOSSBOOK_BUILD_EPOCH").parse().unwrap_or(0),
+        releases_url: RELEASES_URL,
+    }
+}
+
+/// Opens the releases page in the user's browser. The app itself makes no
+/// connection; the URL is fixed so the web view cannot open arbitrary pages.
+#[tauri::command(async)]
+pub fn open_releases(app: AppHandle) -> AppResult<()> {
+    app.opener()
+        .open_url(RELEASES_URL, None::<&str>)
+        .map_err(|_| AppError::new("internal", "cannot open the browser"))
+}
+
 // ---- clipboard ----
 
 /// Clears the clipboard if it still holds `text`, copied from the app earlier

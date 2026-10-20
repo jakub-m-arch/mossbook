@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import Tag from '@lucide/svelte/icons/tag';
 	import { onMount } from 'svelte';
@@ -7,19 +8,21 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import {
+		appInfo,
 		backupExport,
+		openReleases,
 		settingsGet,
 		settingsSave,
 		vaultChangePassword,
 		vaultDestroy
 	} from '#lib/api/index.js';
-	import type { AutoLock, ImportOutcome, Settings } from '#lib/api/index.js';
+	import type { AppInfo, AutoLock, ImportOutcome, Settings } from '#lib/api/index.js';
 	import BackupImport from '#lib/components/BackupImport.svelte';
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import PasswordField from '#lib/components/PasswordField.svelte';
 	import StrengthMeter from '#lib/components/StrengthMeter.svelte';
 	import UnlockedShell from '#lib/components/UnlockedShell.svelte';
-	import { detectLocale, setLocale, t } from '#lib/i18n/index.svelte.js';
+	import { detectLocale, locale, setLocale, t } from '#lib/i18n/index.svelte.js';
 	import { MIN_PASSWORD_CHARS } from '#lib/password.js';
 	import { errorText, handleLocked } from '#lib/session.svelte.js';
 
@@ -33,6 +36,10 @@
 	];
 
 	let settings = $state<Settings | null>(null);
+	let info = $state<AppInfo | null>(null);
+	/** Offline nudge: no network, just the age of this build (D-15). */
+	const OLD_AFTER_DAYS = 90;
+	let isOld = $derived(!!info && Date.now() / 1000 - info.built_at > OLD_AFTER_DAYS * 86_400);
 	/** One message line per section. */
 	let messages = $state<Record<string, string>>({});
 
@@ -56,7 +63,12 @@
 		}
 	}
 
-	onMount(() => attempt('settings', async () => void (settings = await settingsGet())));
+	onMount(() => {
+		appInfo()
+			.then((i) => (info = i))
+			.catch(() => {});
+		return void attempt('settings', async () => void (settings = await settingsGet()));
+	});
 
 	function saveAutolock(value: AutoLock) {
 		if (!settings) return;
@@ -205,6 +217,30 @@
 				<button type="submit" disabled={!passwordReady}>{t('password.submit')}</button>
 				{#if messages.password}<p class="notice" aria-live="polite">{messages.password}</p>{/if}
 			</form>
+		</section>
+
+		<section class="card stack" aria-labelledby="about">
+			<h2 id="about">{t('about.title')}</h2>
+			{#if info}
+				<p class="muted">
+					{t('about.version', {
+						version: info.version,
+						date: new Intl.DateTimeFormat(locale(), { dateStyle: 'long' }).format(
+							new Date(info.built_at * 1000)
+						)
+					})}
+				</p>
+				{#if isOld}<p class="notice">{t('about.old')}</p>{/if}
+			{/if}
+			<button
+				type="button"
+				class="secondary"
+				onclick={() => attempt('about', async () => void (await openReleases()))}
+			>
+				<ExternalLink size={18} />{t('about.check')}
+			</button>
+			<p class="muted small">{t('about.checkHint')} {t('about.watch')}</p>
+			{#if messages.about}<p class="notice" aria-live="polite">{messages.about}</p>{/if}
 		</section>
 
 		<section class="card stack" aria-labelledby="destroy">

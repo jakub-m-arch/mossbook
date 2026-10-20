@@ -68,6 +68,8 @@ pub fn run() {
             commands::clipboard_clear_if,
             commands::crisis_lines,
             commands::dial,
+            commands::app_info,
+            commands::open_releases,
             commands::backup_export,
             commands::backup_pick,
             commands::backup_import,

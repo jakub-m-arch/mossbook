@@ -32,6 +32,8 @@ pub const COMMANDS: &[&str] = &[
     "clipboard_clear_if",
     "crisis_lines",
     "dial",
+    "app_info",
+    "open_releases",
     "backup_export",
     "backup_pick",
     "backup_import",

@@ -444,5 +444,13 @@
 		"times": "razy: {count}",
 		"basis": "podstawa: {count}",
 		"none": "W tym okresie nic się jeszcze nie powtarza."
+	},
+	"about": {
+		"title": "O aplikacji",
+		"version": "Wersja {version} · zbudowana {date}",
+		"check": "Sprawdź aktualizacje",
+		"checkHint": "Otworzy stronę z wydaniami w przeglądarce. Sama aplikacja nie łączy się z internetem.",
+		"old": "Ta wersja ma już ponad 3 miesiące. Możliwe, że jest dostępna nowsza.",
+		"watch": "Powiadomienia o nowych wersjach możesz dostawać z GitHuba: Watch → Custom → Releases."
 	}
 }
