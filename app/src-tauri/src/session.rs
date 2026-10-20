@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 use mossbook_core::backup::Backup;
 use mossbook_core::crypto::kdf::KdfParams;
-use mossbook_core::domain::AutoLock;
+use mossbook_core::domain::{AutoLock, EntryKindTag};
 use mossbook_core::journal::{ImportMode, ImportReport, Journal};
 use mossbook_core::vault::{self, DestroyError, PendingVault, UnlockThrottle, VaultError};
 use serde::{Deserialize, Serialize};
@@ -292,6 +292,20 @@ impl Session {
         Ok(true)
     }
 
+    /// Quick entry from the lock screen (E-15): sealed into the inbox without
+    /// the password; it appears in the journal after the next unlock.
+    pub fn quick_entry_locked(&self, kind: EntryKindTag, value: Option<u8>) -> AppResult<()> {
+        if !matches!(self.state, VaultState::Locked) {
+            return Err(AppError::invalid_state("the vault is not locked"));
+        }
+        Ok(Journal::quick_entry_locked(
+            &self.vault_path,
+            kind,
+            value,
+            self.now(),
+        )?)
+    }
+
     // ---- password management ----
 
     pub fn change_password(&mut self, old: &str, new: &str) -> AppResult<()> {
@@ -460,7 +474,7 @@ impl Session {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mossbook_core::domain::{EntryKindTag, Settings};
+    use mossbook_core::domain::Settings;
     use tempfile::TempDir;
 
     const PASSWORD: &str = "correct horse battery";
@@ -717,6 +731,29 @@ mod tests {
             .code,
             "locked"
         );
+    }
+
+    #[test]
+    fn quick_entry_from_the_lock_screen() {
+        let (_dir, mut s) = unlocked();
+        assert_eq!(
+            s.quick_entry_locked(EntryKindTag::Fear, Some(6))
+                .unwrap_err()
+                .code,
+            "invalid_state"
+        );
+        s.lock().unwrap();
+        s.quick_entry_locked(EntryKindTag::Fear, Some(6)).unwrap();
+        assert_eq!(
+            s.quick_entry_locked(EntryKindTag::Mood, Some(9))
+                .unwrap_err()
+                .code,
+            "invalid_field"
+        );
+        s.unlock(PASSWORD, Instant::now()).unwrap();
+        let entries = s.journal().unwrap().entries(&Default::default());
+        assert_eq!(entries.len(), 1);
+        assert!(entries[0].incomplete);
     }
 
     #[test]

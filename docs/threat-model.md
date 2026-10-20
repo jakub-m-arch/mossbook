@@ -28,6 +28,7 @@ It complements [`crypto.md`](crypto.md) (cryptography) and
 | Network exfiltration | A dependency phones home | No networking code; networking crates banned by `cargo deny`; strict CSP; no HTTP plugin | `deny.toml`, `tauri.conf.json` |
 | Compromised web view calling commands | Injected script | Only the app's own commands are granted; keys never reach the web view; dialing limited to crisis numbers and saved plan contacts | `capabilities/default.json`, `commands.rs` |
 | Content in logs | Crash or debug output | Logging macros forbidden by lints; redacted `Debug`; errors carry codes, not data | `clippy.toml`, `domain/`, `error.rs` |
+| Quick entry while locked | Writing down a moment without the password | Sealed box to the vault's public key: entries can be added but nothing can be read; validated on unlock | `crypto/sealed.rs`, `journal.rs` |
 | Clipboard | A copied sentence lingers | Cleared after 60 s if still unchanged | `commands.rs` (`clipboard_clear_if`) |
 | Memory after locking | Content left in RAM | Keys in `SecretBox`; decrypted content and domain objects zeroed on drop | `crypto/mod.rs`, `ZeroizeOnDrop` in `domain/` |
 
@@ -36,6 +37,7 @@ It complements [`crypto.md`](crypto.md) (cryptography) and
 Visible to someone with the vault file or a backup, by design:
 
 - the number of records, and how many of each type (entry, tag, plan, settings);
+- the number of quick entries waiting in the inbox until the next unlock;
 - the approximate size of each record;
 - the file's modification time;
 - the KDF parameters and that the file is a Mossbook vault.
@@ -56,6 +58,9 @@ Visible to someone with the vault file or a backup, by design:
 - **Platform web view.** The UI runs in the system web view (WebKitGTK, WebView2,
   WKWebView); its security updates come from the operating system.
 - **Old backups.** A backup opens with the password valid when it was made (D-9).
+- **Inbox injection.** Someone with write access to the vault file can append
+  quick entries (the public key is in the header). They can only become "to complete"
+  entries of a known type with an in-range value, which the user sees and can delete.
 - **Throttling** lives in memory: restarting the app resets the delay. The real
   protection against guessing is the cost of Argon2id.
 

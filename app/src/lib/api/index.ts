@@ -79,6 +79,9 @@ export const entryDelete = (id: Id) => invoke<boolean>('entry_delete', { id });
 /** Quick entry (E-10): mood rating 1–5 for `mood`, intensity 0–10 otherwise. */
 export const quickEntry = (kind: EntryKindTag, value: number | null) =>
 	invoke<Entry>('quick_entry', { kind, value });
+/** Quick entry while locked (E-15): sealed into the inbox, readable only after unlock. */
+export const quickEntryLocked = (kind: EntryKindTag, value: number | null) =>
+	invoke<void>('quick_entry_locked', { kind, value });
 
 // ---- tags ----
 

@@ -6,10 +6,14 @@ use crate::crypto::aead::{RecordType, open_record};
 use crate::crypto::kdf::derive_kek;
 use crate::crypto::recovery::RecoveryKey;
 use crate::crypto::wrap::unwrap_dek;
-use crate::crypto::{CryptoError, Dek};
+use crate::crypto::{CryptoError, Dek, random_bytes, sealed};
 use crate::store::Store;
 
-use super::{LoadedRecord, UnlockedVault, VaultError, VaultHeader, exists, validate_new_password};
+use super::create::new_inbox_key;
+use super::{
+    InboxItem, LoadedRecord, RecordId, UnlockedVault, VaultError, VaultHeader, exists,
+    validate_new_password,
+};
 
 /// Opens the vault with the password.
 pub fn unlock(path: &Path, password: &str) -> Result<UnlockedVault, VaultError> {
@@ -45,6 +49,22 @@ pub fn unlock_with_recovery(
     Ok(vault)
 }
 
+/// Appends a sealed quick entry while the vault is locked (E-15). Needs no
+/// password: it can add to the vault but read nothing.
+pub fn append_to_inbox(path: &Path, plaintext: &[u8]) -> Result<RecordId, VaultError> {
+    let mut store = open_existing(path)?;
+    let header = VaultHeader::load(&store)?;
+    let key = header.inbox_key.ok_or(VaultError::InboxUnavailable)?;
+    let sealed = sealed::seal(&key.public, plaintext)?;
+    let mut id = [0u8; 16];
+    random_bytes(&mut id)?;
+    id[6] = (id[6] & 0x0f) | 0x40;
+    id[8] = (id[8] & 0x3f) | 0x80;
+    store.inbox_put(&id, &sealed)?;
+    store.close()?;
+    Ok(id)
+}
+
 /// Derives `KEK_pwd` and unwraps the DEK; a failed unwrap means a wrong password.
 pub(crate) fn unwrap_with_password(
     header: &VaultHeader,
@@ -70,10 +90,15 @@ fn open_existing(path: &Path) -> Result<Store, VaultError> {
 /// out of everything else.
 pub(crate) fn load(
     path: &Path,
-    store: Store,
-    header: VaultHeader,
+    mut store: Store,
+    mut header: VaultHeader,
     dek: Dek,
 ) -> Result<UnlockedVault, VaultError> {
+    // Vaults from before E-15 get their inbox key pair now.
+    if header.inbox_key.is_none() {
+        header.inbox_key = Some(new_inbox_key(&dek, &header.vault_id)?);
+        header.save_inbox_key(&mut store)?;
+    }
     let scan = store.records_all()?;
     let mut loaded = Vec::with_capacity(scan.records.len());
     let mut unreadable = scan.malformed;
@@ -90,12 +115,26 @@ pub(crate) fn load(
             _ => unreadable += 1,
         }
     }
+    let mut inbox = Vec::new();
+    if let Some(key) = &header.inbox_key {
+        for row in store.inbox_all()? {
+            match sealed::open(&dek, &header.vault_id, &key.wrapped_secret, &row.blob) {
+                Ok(plaintext) => inbox.push(InboxItem {
+                    id: row.id,
+                    plaintext,
+                }),
+                // Left in place and counted; never trusted.
+                Err(_) => unreadable += 1,
+            }
+        }
+    }
     Ok(UnlockedVault {
         path: path.to_path_buf(),
         store,
         header,
         dek,
         loaded,
+        inbox,
         unreadable,
     })
 }

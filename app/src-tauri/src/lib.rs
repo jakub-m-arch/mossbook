@@ -53,6 +53,7 @@ pub fn run() {
             commands::entry_save,
             commands::entry_delete,
             commands::quick_entry,
+            commands::quick_entry_locked,
             commands::tags_list,
             commands::tag_create,
             commands::tag_save,

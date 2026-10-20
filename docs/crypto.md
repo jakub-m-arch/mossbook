@@ -171,10 +171,33 @@ add a migration and a migration test (see `CLAUDE.md`).
 `fixture password v1`, synthetic records). The test `opens_format_v1_fixture` must keep
 passing in every later build; add a new fixture for every new format version.
 
+## Inbox: quick entries while locked (E-15)
+
+The vault has an X25519 key pair for appending entries without the password:
+
+| key                   | value                                                          |
+|-----------------------|----------------------------------------------------------------|
+| `x25519_pub`          | 32 bytes, public key                                           |
+| `wrapped_x25519_priv` | 72 bytes, `AEAD(DEK, "mossbook/inbox-key/v1" ‖ vault_id, secret)` |
+
+- A quick entry from the lock screen is the CBOR of `InboxEntry { kind, value,
+  occurred_at }`, sealed with libsodium's `crypto_box_seal` (ephemeral X25519 +
+  XSalsa20-Poly1305) to `x25519_pub` and stored in `inbox(id, blob)`.
+  Interoperability is tested against PyNaCl.
+- On unlock the secret key is unwrapped with the DEK, each item is opened and
+  validated, stored as a regular encrypted entry under its inbox id ("to complete"),
+  and the inbox is cleared. Items that do not open or validate are counted as
+  unreadable and never trusted.
+- The payload is deliberately minimal: anyone with the file can append, so an
+  injected item can only become a "to complete" entry of a known type with an
+  in-range value.
+- Vaults created before the inbox existed get a key pair on their next unlock.
+  Backups do not carry the pair; a restored vault gets a new one.
+
 ## Backups
 
 The `.mossbook` backup format is specified in [`backup-format.md`](backup-format.md).
 
 ## Not covered yet
 
-- Sealed-box inbox for quick entries without unlocking and biometric unlock (v1, SPEC §6.4–6.5).
+- Biometric unlock (v1, SPEC §6.5).

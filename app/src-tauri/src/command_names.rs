@@ -17,6 +17,7 @@ pub const COMMANDS: &[&str] = &[
     "entry_save",
     "entry_delete",
     "quick_entry",
+    "quick_entry_locked",
     "tags_list",
     "tag_create",
     "tag_save",

@@ -96,8 +96,8 @@
 	}
 
 	/** After a quick entry, go straight to its form to add details (or leave). */
-	function onQuickSaved(entry: Entry) {
-		void goto(resolve('/entry/[id]', { id: entry.id }));
+	function onQuickSaved(entry: Entry | null) {
+		if (entry) void goto(resolve('/entry/[id]', { id: entry.id }));
 	}
 </script>
 

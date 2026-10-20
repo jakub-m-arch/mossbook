@@ -31,7 +31,8 @@
 		"backup_corrupted": "The backup file is damaged or was changed.",
 		"backup_too_large": "The file is too large to be a Mossbook backup.",
 		"io": "Could not read or write the file.",
-		"locked": "The journal is locked."
+		"locked": "The journal is locked.",
+		"inbox_unavailable": "Quick entry without the password works after the journal is unlocked once in this version of the app."
 	},
 	"strength": {
 		"label": "Password strength",
@@ -188,7 +189,9 @@
 		"chooseKind": "What do you want to note?",
 		"chooseValue": "How much?",
 		"saveWithout": "Save without a rating",
-		"done": "Saved. You can complete it later."
+		"done": "Saved. You can complete it later.",
+		"lockedDone": "Saved. The entry will appear in your journal after you unlock it.",
+		"lockedHint": "You can add an entry without the password. Nobody can read earlier entries."
 	},
 	"filter": {
 		"search": "Search",

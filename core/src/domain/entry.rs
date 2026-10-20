@@ -81,6 +81,34 @@ impl fmt::Debug for Entry {
     }
 }
 
+/// A quick entry written while the vault is locked (E-15). Deliberately minimal:
+/// anyone holding the vault file can append to the inbox, so it can only ever
+/// produce a "to complete" entry of a known type with an in-range value.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InboxEntry {
+    pub kind: EntryKindTag,
+    /// Mood rating 1..=5 for `mood`, intensity 0..=10 otherwise.
+    pub value: Option<u8>,
+    pub occurred_at: Timestamp,
+}
+
+impl InboxEntry {
+    /// The entry it becomes once the vault is unlocked.
+    pub fn into_entry(self, id: Id, received: OffsetDateTime) -> Result<Entry, DomainError> {
+        let mut e = Entry::new(EntryKind::empty(self.kind), received)?;
+        e.id = id;
+        e.occurred_at = self.occurred_at;
+        match self.kind {
+            EntryKindTag::Mood => e.mood = self.value,
+            _ => e.intensity = self.value,
+        }
+        e.incomplete = true;
+        e.sensitive = self.kind == EntryKindTag::Nightmare;
+        e.validate()?;
+        Ok(e)
+    }
+}
+
 /// An entry as submitted by the UI. The journal owns `id` (for new entries),
 /// `schema`, `created_at` and `updated_at`; the UI cannot set them.
 #[derive(Clone, Deserialize, Zeroize, ZeroizeOnDrop)]

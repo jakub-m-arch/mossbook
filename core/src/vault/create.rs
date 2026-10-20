@@ -13,10 +13,12 @@ use zeroize::Zeroizing;
 
 use crate::crypto::kdf::{CALIBRATION_TARGET, KdfParams, calibrate, derive_kek, generate_salt};
 use crate::crypto::recovery::{RecoveryKey, WORD_COUNT};
+use crate::crypto::sealed;
 use crate::crypto::wrap::wrap_dek;
 use crate::crypto::{Dek, VaultId, random_bytes};
 use crate::store::{RawRecord, Store};
 
+use super::header::InboxKey;
 use super::{UnlockedVault, VaultError, VaultHeader, exists, sidecar, validate_new_password};
 
 /// Number of words the user has to retype (V-1).
@@ -62,6 +64,7 @@ impl PendingVault {
             kdf_salt,
             wrapped_dek_pwd: wrap_dek(&kek_pwd, &vault_id, &dek)?,
             wrapped_dek_rec: wrap_dek(&recovery.derive_kek(), &vault_id, &dek)?,
+            inbox_key: Some(new_inbox_key(&dek, &vault_id)?),
         };
         Ok(Self {
             header,
@@ -135,6 +138,15 @@ pub(crate) fn write_new_vault(
     }
     fs::rename(&tmp, path)?;
     Ok(())
+}
+
+/// A fresh inbox key pair for quick entries while locked (E-15).
+pub(crate) fn new_inbox_key(dek: &Dek, vault_id: &VaultId) -> Result<InboxKey, VaultError> {
+    let (public, wrapped_secret) = sealed::generate(dek, vault_id)?;
+    Ok(InboxKey {
+        public,
+        wrapped_secret,
+    })
 }
 
 /// Random UUID v4 bytes for the vault id.

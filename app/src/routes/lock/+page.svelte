@@ -1,16 +1,20 @@
 <script lang="ts">
 	import LifeBuoy from '@lucide/svelte/icons/life-buoy';
+	import Plus from '@lucide/svelte/icons/plus';
 	import { onDestroy, onMount } from 'svelte';
 
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { isAppError, vaultStatus, vaultUnlock } from '#lib/api/index.js';
 	import Logo from '#lib/components/Logo.svelte';
+	import QuickEntry from '#lib/components/QuickEntry.svelte';
 	import PasswordField from '#lib/components/PasswordField.svelte';
 	import { t } from '#lib/i18n/index.svelte.js';
 	import { errorText } from '#lib/session.svelte.js';
 
 	let password = $state('');
+	let quick: QuickEntry;
+	let quickSaved = $state(false);
 	let error = $state('');
 	let busy = $state(false);
 	let waitUntil = $state(0);
@@ -85,10 +89,23 @@
 		</button>
 	</form>
 	<a class="button link forgot" href={resolve('/recover')}>{t('lock.forgot')}</a>
+	<!-- E-15: add without unlocking; nothing can be read. -->
+	<button type="button" class="secondary quick" onclick={() => quick.open()}>
+		<Plus size={18} />{t('quick.open')}
+	</button>
+	{#if quickSaved}<p class="notice" role="status">{t('quick.lockedDone')}</p>{/if}
 	<!-- P-3/P-4: crisis numbers and exercises without unlocking. -->
-	<a class="button secondary help" href={resolve('/help')}><LifeBuoy size={18} />{t('help.open')}</a
-	>
+	<a class="button secondary" href={resolve('/help')}><LifeBuoy size={18} />{t('help.open')}</a>
 </main>
+
+<QuickEntry
+	bind:this={quick}
+	locked
+	onsaved={() => {
+		quickSaved = true;
+		setTimeout(() => (quickSaved = false), 5000);
+	}}
+/>
 
 <style>
 	.status:empty {
@@ -100,7 +117,7 @@
 	.forgot {
 		align-self: center;
 	}
-	.help {
+	.quick {
 		margin-top: 1.5rem;
 	}
 </style>

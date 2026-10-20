@@ -13,6 +13,8 @@ First desktop release (Linux, Windows, macOS).
 - "Difficult content": an entry can stay hidden on the timeline until tapped;
   nightmares are hidden by default.
 - Quick entry in at most two taps, then straight to the entry's form.
+- Quick entry from the lock screen, without the password: it can add an entry but
+  read nothing; the entry appears after the next unlock.
 - Timeline grouped by day; filters by type, tag, date range and "to complete";
   search that ignores case and diacritics.
 - Tags: create, rename, recolor, delete, merge.

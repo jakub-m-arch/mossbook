@@ -187,6 +187,16 @@ pub fn quick_entry(
     })
 }
 
+/// Quick entry while locked (E-15): can add, cannot read.
+#[tauri::command(async)]
+pub fn quick_entry_locked(
+    state: State<'_, AppState>,
+    kind: EntryKindTag,
+    value: Option<u8>,
+) -> AppResult<()> {
+    state.session().quick_entry_locked(kind, value)
+}
+
 // ---- tags ----
 
 #[tauri::command(async)]

@@ -139,6 +139,8 @@ impl Backup {
                 .map_err(|_| BackupError::Corrupted)?,
             wrapped_dek_pwd: body.wrapped_dek_pwd,
             wrapped_dek_rec: body.wrapped_dek_rec,
+            // Not part of backups; a restored vault gets a new pair on unlock.
+            inbox_key: None,
         };
         if header.wrapped_dek_pwd.len() != WRAPPED_LEN
             || header.wrapped_dek_rec.len() != WRAPPED_LEN

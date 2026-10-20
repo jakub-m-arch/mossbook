@@ -59,6 +59,12 @@ impl fmt::Debug for RawRecord {
     }
 }
 
+/// A sealed quick entry in the `inbox` table (E-15).
+pub struct InboxRow {
+    pub id: [u8; 16],
+    pub blob: Vec<u8>,
+}
+
 /// Result of reading the `records` table.
 #[derive(Debug, Default)]
 pub struct RecordScan {
@@ -201,6 +207,44 @@ impl Store {
             }
         }
         Ok(scan)
+    }
+
+    /// Appends a sealed quick entry to the inbox (works while locked).
+    pub fn inbox_put(&mut self, id: &[u8; 16], blob: &[u8]) -> Result<(), StoreError> {
+        self.conn.execute(
+            "INSERT INTO inbox (id, blob) VALUES (?1, ?2)",
+            params![id.as_slice(), blob],
+        )?;
+        Ok(())
+    }
+
+    /// All inbox rows with a well-formed id.
+    pub fn inbox_all(&self) -> Result<Vec<InboxRow>, StoreError> {
+        let mut stmt = self.conn.prepare("SELECT id, blob FROM inbox")?;
+        let rows = stmt.query_map([], |row| {
+            Ok((row.get::<_, Vec<u8>>(0)?, row.get::<_, Vec<u8>>(1)?))
+        })?;
+        let mut out = Vec::new();
+        for row in rows {
+            let (id, blob) = row?;
+            if let Ok(id) = <[u8; 16]>::try_from(id.as_slice()) {
+                out.push(InboxRow { id, blob });
+            }
+        }
+        Ok(out)
+    }
+
+    /// Removes inbox rows in one transaction.
+    pub fn inbox_delete(&mut self, ids: &[[u8; 16]]) -> Result<(), StoreError> {
+        let tx = self.conn.transaction()?;
+        {
+            let mut stmt = tx.prepare("DELETE FROM inbox WHERE id = ?1")?;
+            for id in ids {
+                stmt.execute([id.as_slice()])?;
+            }
+        }
+        tx.commit()?;
+        Ok(())
     }
 
     /// Rewrites the file to drop freed pages; call after mass deletion (SPEC §7).

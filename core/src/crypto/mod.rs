@@ -6,6 +6,7 @@
 pub mod aead;
 pub mod kdf;
 pub mod recovery;
+pub mod sealed;
 pub mod wrap;
 
 use core::fmt;

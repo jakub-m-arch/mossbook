@@ -39,6 +39,7 @@ async function invokedCommands(): Promise<string[]> {
 		() => api.entrySave({ kind: 'note' }),
 		() => api.entryDelete('id'),
 		() => api.quickEntry('fear', 5),
+		() => api.quickEntryLocked('fear', 5),
 		api.tagsList,
 		() => api.tagCreate('n', '#000000'),
 		() => api.tagSave({ id: 'id', name: 'n', color: '#000000' }),

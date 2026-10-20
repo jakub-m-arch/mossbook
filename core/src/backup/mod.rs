@@ -83,7 +83,9 @@ impl UnlockedVault {
     /// Builds a backup of the whole vault as it is on disk.
     pub fn export_backup(&self) -> Result<Backup, BackupError> {
         let records = self.raw_records()?;
-        let header = self.header().clone();
+        let mut header = self.header().clone();
+        // The inbox key pair is not part of backups (see format.rs).
+        header.inbox_key = None;
         let manifest = aead::seal(
             self.dek().expose(),
             &manifest_aad(&header.vault_id),

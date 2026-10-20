@@ -35,6 +35,7 @@
 		tags: [],
 		settings: { autolock: 'immediately', locale: null, crisis_country: 'PL', reminders: [] },
 		pendingBackup: false,
+		inbox: [],
 		plan: {
 			warning_signs: [],
 			self_coping: [],
@@ -67,6 +68,10 @@
 		}
 		state.failures = 0;
 		state.vault = 'unlocked';
+		// Move quick entries written while locked into the journal (E-15).
+		for (const { kind, value } of state.inbox.splice(0)) {
+			commands.quick_entry({ kind, value });
+		}
 		save();
 		return Promise.resolve(null);
 	}
@@ -175,6 +180,11 @@
 					sensitive: kind === 'nightmare'
 				}
 			}),
+		quick_entry_locked: ({ kind, value }) => {
+			if (state.vault !== 'locked') return fail('invalid_state');
+			state.inbox.push({ kind, value });
+			return null;
+		},
 		tags_list: () => [...state.tags].sort((a, b) => a.name.localeCompare(b.name)),
 		tag_create: ({ name, color }) =>
 			commands.tag_save({ tag: { id: `tag-${nextId++}`, name, color }, create: true }),

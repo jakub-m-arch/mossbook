@@ -31,6 +31,7 @@ export type ErrorCode =
 	| 'backup_corrupted'
 	| 'backup_too_large'
 	| 'io'
+	| 'inbox_unavailable'
 	| 'internal';
 
 export interface AppError {

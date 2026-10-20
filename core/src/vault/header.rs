@@ -2,6 +2,7 @@
 
 use crate::crypto::VaultId;
 use crate::crypto::kdf::{KdfParams, SALT_LEN};
+use crate::crypto::sealed::{PUBLIC_LEN, WRAPPED_SECRET_LEN};
 use crate::crypto::wrap::WRAPPED_LEN;
 use crate::store::Store;
 
@@ -16,6 +17,17 @@ const K_KDF_PARAMS: &str = "kdf_params";
 const K_KDF_SALT: &str = "kdf_salt";
 const K_WRAPPED_DEK_PWD: &str = "wrapped_dek_pwd";
 const K_WRAPPED_DEK_REC: &str = "wrapped_dek_rec";
+const K_INBOX_PUBLIC: &str = "x25519_pub";
+const K_INBOX_SECRET: &str = "wrapped_x25519_priv";
+
+/// Inbox key pair for quick entries while locked (E-15). Optional: vaults
+/// created before it existed get one on their next unlock.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InboxKey {
+    pub public: [u8; PUBLIC_LEN],
+    /// Secret key wrapped under the DEK.
+    pub wrapped_secret: Vec<u8>,
+}
 
 /// Public, non-secret vault metadata. Every field is either random or ciphertext.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,6 +37,7 @@ pub struct VaultHeader {
     pub kdf_salt: [u8; SALT_LEN],
     pub wrapped_dek_pwd: Vec<u8>,
     pub wrapped_dek_rec: Vec<u8>,
+    pub inbox_key: Option<InboxKey>,
 }
 
 impl VaultHeader {
@@ -48,6 +61,21 @@ impl VaultHeader {
             kdf_salt: fixed(&get(K_KDF_SALT)?)?,
             wrapped_dek_pwd: get(K_WRAPPED_DEK_PWD)?,
             wrapped_dek_rec: get(K_WRAPPED_DEK_REC)?,
+            inbox_key: None,
+        };
+        let mut header = header;
+        header.inbox_key = match (
+            store.meta_get(K_INBOX_PUBLIC)?,
+            store.meta_get(K_INBOX_SECRET)?,
+        ) {
+            (Some(public), Some(wrapped_secret)) if wrapped_secret.len() == WRAPPED_SECRET_LEN => {
+                Some(InboxKey {
+                    public: fixed(&public)?,
+                    wrapped_secret,
+                })
+            }
+            (None, None) => None,
+            _ => return Err(VaultError::Corrupted),
         };
         if header.wrapped_dek_pwd.len() != WRAPPED_LEN
             || header.wrapped_dek_rec.len() != WRAPPED_LEN
@@ -59,6 +87,22 @@ impl VaultHeader {
 
     /// Writes the whole header in one transaction.
     pub fn save(&self, store: &mut Store) -> Result<(), VaultError> {
+        self.save_core(store)?;
+        self.save_inbox_key(store)
+    }
+
+    /// Writes the inbox key pair, if any.
+    pub fn save_inbox_key(&self, store: &mut Store) -> Result<(), VaultError> {
+        if let Some(k) = &self.inbox_key {
+            store.meta_set_all(&[
+                (K_INBOX_PUBLIC, &k.public),
+                (K_INBOX_SECRET, &k.wrapped_secret),
+            ])?;
+        }
+        Ok(())
+    }
+
+    fn save_core(&self, store: &mut Store) -> Result<(), VaultError> {
         store.meta_set_all(&[
             (K_FORMAT_VERSION, &FORMAT_VERSION.to_le_bytes()),
             (K_VAULT_ID, &self.vault_id),

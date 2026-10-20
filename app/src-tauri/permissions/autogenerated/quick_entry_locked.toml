@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-quick-entry-locked"
+description = "Enables the quick_entry_locked command without any pre-configured scope."
+commands.allow = ["quick_entry_locked"]
+
+[[permission]]
+identifier = "deny-quick-entry-locked"
+description = "Denies the quick_entry_locked command without any pre-configured scope."
+commands.deny = ["quick_entry_locked"]

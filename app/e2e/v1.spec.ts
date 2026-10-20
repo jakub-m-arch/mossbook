@@ -1,4 +1,4 @@
-import { SHOTS, createVault, expect, test } from './helpers';
+import { PASSWORD, SHOTS, createVault, expect, test } from './helpers';
 
 test('nightmare with a rescripted version, hidden on the timeline', async ({ page }) => {
 	await createVault(page);
@@ -47,4 +47,24 @@ test('calendar tints rated days and opens a day', async ({ page }) => {
 	await expect(page.getByRole('listitem')).toHaveCount(1);
 	await page.getByRole('button', { name: 'Wyczyść filtry' }).click();
 	await expect(page.getByText(/^Wpisy z dnia/)).toBeHidden();
+});
+
+test('quick entry from the lock screen arrives after unlocking', async ({ page }) => {
+	await createVault(page);
+	await page.getByRole('button', { name: 'Zablokuj' }).click();
+	await page.getByRole('button', { name: 'Szybki wpis' }).click();
+	await expect(page.getByText('Możesz dodać wpis bez hasła.')).toBeVisible();
+	await page.getByRole('dialog').getByRole('button', { name: 'Lęk / wyzwalacz' }).click();
+	await page.getByRole('dialog').getByRole('button', { name: '5', exact: true }).click();
+	await expect(
+		page.getByText('Zapisano. Wpis pojawi się w dzienniku po odblokowaniu.')
+	).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Dziennik jest zablokowany' })).toBeVisible();
+	await page.screenshot({ path: `${SHOTS}/23-locked-quick.png`, fullPage: true });
+
+	await page.getByLabel('Hasło', { exact: true }).fill(PASSWORD);
+	await page.getByRole('button', { name: 'Otwórz' }).click();
+	const card = page.getByRole('listitem').filter({ hasText: 'Lęk / wyzwalacz' });
+	await expect(card).toContainText('5/10');
+	await expect(card).toContainText('do uzupełnienia');
 });

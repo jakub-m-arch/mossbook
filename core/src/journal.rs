@@ -13,8 +13,8 @@ use time::OffsetDateTime;
 use crate::crypto::aead::RecordType;
 use crate::domain::entry::ENTRY_SCHEMA;
 use crate::domain::{
-    DomainError, Entry, EntryDraft, EntryKind, EntryKindTag, Id, SafetyPlan, Settings, Tag, decode,
-    encode,
+    DomainError, Entry, EntryDraft, EntryKind, EntryKindTag, Id, InboxEntry, SafetyPlan, Settings,
+    Tag, decode, encode,
 };
 use crate::query::stats::{MoodPoint, mood_by_day};
 use crate::query::{EntryFilter, Patterns, StatsRange};
@@ -143,13 +143,71 @@ impl Journal {
     pub fn open(mut vault: UnlockedVault) -> Self {
         let d = Decoded::from_records(vault.take_loaded());
         vault.add_unreadable(d.bad);
-        Self {
+        let mut journal = Self {
             vault,
             entries: d.entries,
             tags: d.tags,
             plan: d.plan.unwrap_or_default(),
             settings: d.settings.unwrap_or_default(),
+        };
+        journal.move_inbox_in(OffsetDateTime::now_utc());
+        journal
+    }
+
+    /// Moves quick entries written while locked into the journal (E-15). They
+    /// keep their inbox id, so a crash between storing and clearing only
+    /// re-stores the same entries next time.
+    fn move_inbox_in(&mut self, now: OffsetDateTime) {
+        let items = self.vault.take_inbox();
+        if items.is_empty() {
+            return;
         }
+        let mut entries = Vec::new();
+        let mut bad = 0;
+        for item in &items {
+            match decode::<InboxEntry>(&item.plaintext)
+                .and_then(|i| i.into_entry(Id::from_bytes(item.id), now))
+            {
+                Ok(e) => entries.push(e),
+                Err(_) => bad += 1,
+            }
+        }
+        let encoded: Result<Vec<_>, _> = entries.iter().map(encode).collect();
+        let Ok(encoded) = encoded else { return };
+        let puts: Vec<_> = entries
+            .iter()
+            .zip(&encoded)
+            .map(|(e, bytes)| (*e.id.as_bytes(), RecordType::Entry, bytes.as_slice()))
+            .collect();
+        if self.vault.write_batch(&puts, &[]).is_err() {
+            return; // left in the inbox for the next unlock
+        }
+        // Invalid items are dropped from the inbox too, after being counted.
+        let ids: Vec<_> = items.iter().map(|i| i.id).collect();
+        let _ = self.vault.clear_inbox(&ids);
+        self.vault.add_unreadable(bad);
+        for e in entries {
+            self.entries.insert(e.id, e);
+        }
+    }
+
+    /// Quick entry while the vault is locked (E-15): sealed into the inbox with
+    /// the vault's public key. It shows up in the journal after the next unlock.
+    pub fn quick_entry_locked(
+        path: &std::path::Path,
+        kind: EntryKindTag,
+        value: Option<u8>,
+        now: OffsetDateTime,
+    ) -> Result<(), JournalError> {
+        let item = InboxEntry {
+            kind,
+            value,
+            occurred_at: now.into(),
+        };
+        // Same validation as after unlock, so a bad value fails now, not later.
+        item.into_entry(Id::default(), now)?;
+        crate::vault::append_to_inbox(path, &encode(&item)?)?;
+        Ok(())
     }
 
     pub fn vault(&self) -> &UnlockedVault {

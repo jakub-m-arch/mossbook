@@ -64,6 +64,7 @@ impl From<VaultError> for AppError {
             VaultError::NotConfirmed => "not_confirmed",
             VaultError::UnsupportedFormat => "unsupported_format",
             VaultError::Corrupted => "vault_corrupted",
+            VaultError::InboxUnavailable => "inbox_unavailable",
             VaultError::Crypto(_) | VaultError::Storage(_) | VaultError::Io => "internal",
         };
         Self::new(code, e.to_string())

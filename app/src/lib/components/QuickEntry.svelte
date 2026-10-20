@@ -4,7 +4,7 @@
 	// be added now or later.
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 
-	import { quickEntry } from '#lib/api/index.js';
+	import { quickEntry, quickEntryLocked } from '#lib/api/index.js';
 	import type { Entry, EntryKindTag } from '#lib/api/index.js';
 	import { CREATABLE_KINDS } from '#lib/entries.js';
 	import { t } from '#lib/i18n/index.svelte.js';
@@ -14,7 +14,13 @@
 	import MoodIcon from './MoodIcon.svelte';
 	import Sheet from './Sheet.svelte';
 
-	let { onsaved }: { onsaved: (entry: Entry) => void } = $props();
+	interface Props {
+		/** From the lock screen (E-15): saved to the inbox, no form afterwards. */
+		locked?: boolean;
+		onsaved: (entry: Entry | null) => void;
+	}
+
+	let { locked = false, onsaved }: Props = $props();
 
 	let sheet: Sheet;
 	let kind = $state<EntryKindTag | null>(null);
@@ -35,11 +41,17 @@
 		busy = true;
 		error = '';
 		try {
-			const entry = await quickEntry(tag, value);
-			sheet.close();
-			onsaved(entry);
+			if (locked) {
+				await quickEntryLocked(tag, value);
+				sheet.close();
+				onsaved(null);
+			} else {
+				const entry = await quickEntry(tag, value);
+				sheet.close();
+				onsaved(entry);
+			}
 		} catch (e) {
-			if (!(await handleLocked(e))) error = errorText(e);
+			if (locked || !(await handleLocked(e))) error = errorText(e);
 		} finally {
 			busy = false;
 		}
@@ -57,6 +69,7 @@
 	onclose={() => (kind = null)}
 >
 	{#if !kind}
+		{#if locked}<p class="muted small hint">{t('quick.lockedHint')}</p>{/if}
 		<div class="kinds">
 			{#each CREATABLE_KINDS as tag (tag)}
 				<button type="button" class="kind" onclick={() => choose(tag)} disabled={busy}>
@@ -123,6 +136,9 @@
 	}
 	.kind:hover:not(:disabled) {
 		background: var(--surface-3);
+	}
+	.hint {
+		margin: 0;
 	}
 	.prompt {
 		margin: 0;

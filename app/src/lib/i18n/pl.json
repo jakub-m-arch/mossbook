@@ -31,7 +31,8 @@
 		"backup_corrupted": "Plik kopii jest uszkodzony albo został zmieniony.",
 		"backup_too_large": "Plik jest za duży, żeby był kopią Mossbook.",
 		"io": "Nie udało się odczytać ani zapisać pliku.",
-		"locked": "Dziennik jest zablokowany."
+		"locked": "Dziennik jest zablokowany.",
+		"inbox_unavailable": "Szybki wpis bez hasła zadziała po pierwszym odblokowaniu dziennika w tej wersji aplikacji."
 	},
 	"strength": {
 		"label": "Siła hasła",
@@ -188,7 +189,9 @@
 		"chooseKind": "Co chcesz zapisać?",
 		"chooseValue": "Jak bardzo?",
 		"saveWithout": "Zapisz bez oceny",
-		"done": "Zapisano. Możesz uzupełnić później."
+		"done": "Zapisano. Możesz uzupełnić później.",
+		"lockedDone": "Zapisano. Wpis pojawi się w dzienniku po odblokowaniu.",
+		"lockedHint": "Możesz dodać wpis bez hasła. Nikt nie odczyta wcześniejszych wpisów."
 	},
 	"filter": {
 		"search": "Szukaj",

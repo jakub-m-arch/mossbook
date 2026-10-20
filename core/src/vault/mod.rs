@@ -23,7 +23,7 @@ use crate::store::{RawRecord, Store, StoreError};
 pub use create::PendingVault;
 pub use header::{FORMAT_VERSION, VaultHeader};
 pub use throttle::UnlockThrottle;
-pub use unlock::{unlock, unlock_with_recovery};
+pub use unlock::{append_to_inbox, unlock, unlock_with_recovery};
 
 /// Minimum password length in characters (V-1).
 pub const MIN_PASSWORD_CHARS: usize = 8;
@@ -52,6 +52,9 @@ pub enum VaultError {
     UnsupportedFormat,
     /// The vault header is missing or damaged.
     Corrupted,
+    /// Quick entries while locked need the inbox key, which a vault gets on its
+    /// first unlock after an upgrade.
+    InboxUnavailable,
     Crypto(CryptoError),
     Storage(StoreError),
     /// File system error (creating, renaming or removing the vault file).
@@ -70,6 +73,7 @@ impl fmt::Display for VaultError {
             Self::NotConfirmed => f.write_str("recovery phrase not confirmed"),
             Self::UnsupportedFormat => f.write_str("unsupported vault format"),
             Self::Corrupted => f.write_str("vault file is damaged"),
+            Self::InboxUnavailable => f.write_str("quick entry while locked is not available yet"),
             Self::Crypto(e) => fmt::Display::fmt(e, f),
             Self::Storage(e) => fmt::Display::fmt(e, f),
             Self::Io => f.write_str("file system error"),
@@ -155,7 +159,15 @@ pub struct UnlockedVault {
     header: VaultHeader,
     dek: Dek,
     loaded: Vec<LoadedRecord>,
+    /// Quick entries written while locked, opened on unlock (E-15).
+    inbox: Vec<InboxItem>,
     unreadable: usize,
+}
+
+/// A quick entry from the inbox, decrypted on unlock.
+pub struct InboxItem {
+    pub id: RecordId,
+    pub plaintext: Zeroizing<Vec<u8>>,
 }
 
 impl fmt::Debug for UnlockedVault {
@@ -194,6 +206,16 @@ impl UnlockedVault {
     /// Hands out the records decrypted on unlock. Returns an empty list on later calls.
     pub fn take_loaded(&mut self) -> Vec<LoadedRecord> {
         std::mem::take(&mut self.loaded)
+    }
+
+    /// Hands out the inbox items opened on unlock. Returns an empty list later.
+    pub fn take_inbox(&mut self) -> Vec<InboxItem> {
+        std::mem::take(&mut self.inbox)
+    }
+
+    /// Removes processed inbox rows (after their entries were stored).
+    pub fn clear_inbox(&mut self, ids: &[RecordId]) -> Result<(), VaultError> {
+        Ok(self.store.inbox_delete(ids)?)
     }
 
     /// Records the caller could not decode (e.g. invalid CBOR), so

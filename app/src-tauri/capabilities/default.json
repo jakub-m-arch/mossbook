@@ -24,6 +24,7 @@
     "allow-entry-save",
     "allow-entry-delete",
     "allow-quick-entry",
+    "allow-quick-entry-locked",
     "allow-tags-list",
     "allow-tag-create",
     "allow-tag-save",
