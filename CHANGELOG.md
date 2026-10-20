@@ -2,6 +2,18 @@
 
 All notable changes to Mossbook. Versions follow [Semantic Versioning](https://semver.org).
 
+## 0.1.1 (2026-10-20)
+
+### Fixed
+- macOS: the app bundle is now signed (ad-hoc) as a whole. Downloaded 0.1.0 builds
+  were only linker-signed, so macOS reported them as damaged and offered to move
+  them to the Bin.
+
+### Added
+- Settings → About: version, build date and "Check for updates", which opens the
+  releases page in the browser (the app itself still never connects).
+- Homebrew: `brew install --cask jakub-m-arch/mossbook/mossbook`.
+
 ## 0.1.0 (2026-10-20)
 
 First desktop release (Linux, Windows, macOS).
