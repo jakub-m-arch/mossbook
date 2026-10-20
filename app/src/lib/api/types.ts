@@ -259,3 +259,32 @@ export interface ImportOutcome {
 	restored: boolean;
 	report: ImportReport;
 }
+
+// ---- report for a therapist (X-3) ----
+
+/** Document model rendered to PDF by Rust; all strings are final, translated text. */
+export interface ReportDoc {
+	title: string;
+	subtitle: string;
+	summary: string[];
+	sections: ReportSection[];
+	footer: string;
+	/** With `{page}` and `{pages}`. */
+	page_label: string;
+}
+
+export interface ReportSection {
+	heading: string;
+	items: ReportItem[];
+}
+
+export interface ReportItem {
+	title: string;
+	meta: string;
+	fields: ReportField[];
+}
+
+export interface ReportField {
+	label: string;
+	value: string;
+}

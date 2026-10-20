@@ -10,6 +10,7 @@ pub mod crypto;
 pub mod domain;
 pub mod journal;
 pub mod query;
+pub mod report;
 pub mod store;
 pub mod vault;
 

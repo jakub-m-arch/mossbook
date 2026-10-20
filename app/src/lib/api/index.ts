@@ -18,6 +18,7 @@ import type {
 	Id,
 	LockReason,
 	MoodPoint,
+	ReportDoc,
 	RecoveryAnswer,
 	RecoverySetup,
 	SafetyPlan,
@@ -97,6 +98,11 @@ export const settingsSave = (settings: Settings) => invoke<Settings>('settings_s
 // ---- patterns ----
 
 export const statsMood = (range: StatsRange) => invoke<MoodPoint[]>('stats_mood', { range });
+
+// ---- report (X-3) ----
+
+/** Renders the report to PDF and opens the save dialog. `false` if cancelled. */
+export const reportPdf = (report: ReportDoc) => invoke<boolean>('report_pdf', { report });
 
 // ---- clipboard ----
 

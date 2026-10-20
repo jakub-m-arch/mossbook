@@ -128,26 +128,9 @@ Stan na 2026-10-18 (macOS): jest Node 26 i npm, są Xcode Command Line Tools. Za
 - [ ] Ręczny test wersji release i utworzenie tagu `v0.1.0`
 
 ### Etap 13 (v1)
-Biometria, szybki wpis bez odblokowania (sealed box), IRT, PDF, A-2–A-4, przypomnienia, iOS, kalendarz, „treść trudna”.
-
----
-
-## 3. Decyzje i luki w specyfikacji
-
-Status: **przyjęte** (2026-10-18) albo **otwarte**. Przyjęte decyzje wiążą implementację tak samo jak SPEC.md.
-
-| ID | Status | Problem | Decyzja / propozycja |
-|---|---|---|---|
-| D-1 | przyjęte | **Licencja** | `GPL-3.0-or-later` + wyjątek z sekcji 7 na dystrybucję przez App Store / Google Play (`LICENSE-EXCEPTION.md`). Copyleft blokuje zamknięte forki z telemetrią; wyjątek usuwa znany konflikt GPL z regulaminem App Store. Wkłady przez DCO (`Signed-off-by`). Zależności muszą mieć licencje zgodne z GPL-3.0 (pilnuje `cargo deny`) |
-| D-2 | przyjęte | **Ustawienia przed odblokowaniem**: ekran blokady potrzebuje języka i kraju numerów kryzysowych, a `Settings` są zaszyfrowane (zasada 2) | Przed odblokowaniem: język i kraj z ustawień systemu. Ewentualnie jawne `ui_locale` w `meta`, udokumentowane jako akceptowany wyciek |
-| D-3 | przyjęte | **Moment utworzenia skarbca**: jeśli aplikacja zostanie zamknięta między `vault_create` a `vault_confirm_recovery`, powstaje skarbiec bez potwierdzonego klucza | Skarbiec powstaje w pamięci, a na dysk trafia dopiero po potwierdzeniu słów. Komenda `vault_create` zwraca frazę, `vault_confirm_recovery` zapisuje plik |
-| D-4 | przyjęte | **Import z innego skarbca**: AAD zawiera `vault_id`, więc rekordów z kopii innego skarbca nie da się po prostu skopiować | Import zawsze odszyfrowuje kluczem z kopii i szyfruje ponownie DEK bieżącego skarbca. Konflikt ID przy scalaniu: wygrywa nowsze `updated_at` |
-| D-5 | otwarte | **Licznik błędnych prób (V-8)**: trwały licznik na dysku to jawna metadana, a atakujący offline i tak go omija | Licznik tylko w pamięci procesu. Prawdziwą ochroną jest Argon2id, co opisujemy w threat-model |
-| D-6 | przyjęte | **Auto-blokada a okna systemowe**: okno zapisu kopii albo picker na Androidzie powoduje utratę fokusu lub przejście w tło, co zablokowałoby skarbiec w trakcie eksportu | Flaga „operacja systemowa w toku” w Ruście wstrzymuje blokadę „natychmiast”, ale nie timer bezczynności |
-| D-7 | przyjęte | **Typy TS**: ręczne utrzymywanie typów to ryzyko rozjazdu | `specta` + `tauri-specta` (generowanie `bindings.ts`), jeśli wersja zgodna z Tauri 2 jest stabilna; inaczej ręcznie + test snapshot |
-| D-8 | otwarte | **Kolumna `type` jawna** ujawnia liczbę wpisów w odróżnieniu od tagów | Akceptujemy i dopisujemy do listy wycieków w SPEC §2 (albo jeden typ „record” z typem tylko w AAD/treści) |
-| D-9 | przyjęte | **Stara kopia po zmianie hasła** otwiera się starym hasłem (zawiera DEK opakowany starym KEK) | Udokumentować w UI zmiany hasła i w `docs/backup-format.md` |
-| D-10 | otwarte | **Router frontendu**: SPEC wymienia `routes/` | SvelteKit + `adapter-static` (oficjalny szablon Tauri) |
-| D-11 | przyjęte | **Desktop „natychmiast po przejściu w tło”**: na desktopie utrata fokusu zdarza się ciągle | Desktop: domyślnie blokada przy minimalizacji/ukryciu + timer 5 min; utrata fokusu tylko zasłania okno |
-| D-12 | przyjęte | **Biblioteka wykresów**: SPEC wskazuje uPlot | Własny wykres SVG (~150 linii): jedna seria, ≤ 90 punktów; brak zależności, kolory ze zmiennych CSS (tryb ciemny bez przerysowania), dostępność (rola slider, tabela). uPlot wrócić do rozważenia przy A-2–A-4, jeśli wykresy się rozrosną |
-| D-13 | przyjęte | **UUIDv7 ujawnia czas utworzenia**: `records.id` jest zapisane jawnie (baza i kopia), a v7 zawiera znacznik czasu w ms, co łamie zasadę 2 (brak jawnych dat) | Nowe identyfikatory losowe (UUIDv4); sortowanie i tak po `occurred_at` z zaszyfrowanej treści. Istniejące v7 czytane bez zmian. SPEC §5 poprawiony |
+- [x] **Raport PDF dla terapeuty (X-3)**: wybór okresu, rodzajów i tagów; frontend buduje model dokumentu (tłumaczenia), ten sam model jest podglądem i trafia do `core::report`, który składa A4 przez `printpdf` (łamanie tekstu po szerokościach glifów, podział na strony, stopka „nie jest zaszyfrowany” + numer strony); Noto Sans (OFL) osadzony w całości (~600 KB, podzbiór wymagałby ciężkiej funkcji `text_layout`); ostrzeżenie przed zapisem; zapis przez okno systemowe
+- [ ] Koszmar / IRT (E-5), kalendarz (E-14), „treść trudna” (E-16)
+- [ ] Statystyki A-2–A-4
+- [ ] Przypomnienia (R-1–R-3)
+- [ ] Szybki wpis bez odblokowania (E-15)
+- [ ] Biometria, iOS, Android (odłożone)

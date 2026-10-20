@@ -33,4 +33,5 @@ pub const COMMANDS: &[&str] = &[
     "backup_export",
     "backup_pick",
     "backup_import",
+    "report_pdf",
 ];

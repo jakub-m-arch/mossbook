@@ -23,6 +23,10 @@ First desktop release (Linux, Windows, macOS).
 ### Patterns
 - Mood over time for a week, a month or three months, with a table view.
 
+### Report for a therapist
+- PDF report for a chosen period, entry types and tags, with a preview that matches
+  the file and a clear warning that the PDF is not encrypted.
+
 ### Privacy and security
 - Everything encrypted at rest (XChaCha20-Poly1305); key from the password via
   Argon2id; 24-word recovery key confirmed at setup.

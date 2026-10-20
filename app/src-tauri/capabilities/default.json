@@ -39,6 +39,7 @@
     "allow-dial",
     "allow-backup-export",
     "allow-backup-pick",
-    "allow-backup-import"
+    "allow-backup-import",
+    "allow-report-pdf"
   ]
 }

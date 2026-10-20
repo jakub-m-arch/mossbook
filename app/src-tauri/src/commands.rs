@@ -13,6 +13,7 @@ use mossbook_core::crisis::{self, CrisisDirectory};
 use mossbook_core::domain::{Entry, EntryDraft, EntryKindTag, Id, SafetyPlan, Settings, Tag};
 use mossbook_core::journal::ImportMode;
 use mossbook_core::query::{EntryFilter, MoodPoint, StatsRange};
+use mossbook_core::report::{ReportDoc, render_pdf};
 use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::DialogExt;
@@ -366,6 +367,39 @@ pub fn backup_import(
     with_session(&state, |s| {
         s.import_pending(&secret, kind, mode, Instant::now())
     })
+}
+
+// ---- report for a therapist (X-3) ----
+
+/// Renders the report and saves it where the user chooses. `false` if cancelled.
+/// The PDF is not encrypted; the UI warns before calling this.
+#[tauri::command(async)]
+pub fn report_pdf(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    report: ReportDoc,
+) -> AppResult<bool> {
+    let name = {
+        let session = state.session();
+        // Only an unlocked journal can produce a report.
+        session.journal()?;
+        format!("mossbook-report-{}.pdf", session.now().date())
+    };
+    let pdf = Zeroizing::new(
+        render_pdf(&report).map_err(|e| AppError::new("invalid_field", e.to_string()))?,
+    );
+    let target = with_dialog(&state, || {
+        app.dialog()
+            .file()
+            .add_filter("PDF", &["pdf"])
+            .set_file_name(name)
+            .blocking_save_file()
+    });
+    let Some(target) = target else {
+        return Ok(false);
+    };
+    write_file(&app, target, &pdf).map_err(|_| AppError::new("io", "cannot write the report"))?;
+    Ok(true)
 }
 
 // ---- clipboard ----

@@ -1,5 +1,8 @@
 <script lang="ts">
 	// Patterns (A-1): observations only, never clinical conclusions (SPEC §4.4).
+	import FileText from '@lucide/svelte/icons/file-text';
+
+	import { resolve } from '$app/paths';
 	import { statsMood } from '#lib/api/index.js';
 	import type { MoodPoint, StatsRange } from '#lib/api/index.js';
 	import { localToday, rangeDays } from '#lib/chart.js';
@@ -70,6 +73,9 @@
 		</section>
 
 		<p class="muted small">{t('patterns.note')}</p>
+		<a class="button secondary" href={resolve('/report')}
+			><FileText size={18} />{t('report.open')}</a
+		>
 	</div>
 </UnlockedShell>
 

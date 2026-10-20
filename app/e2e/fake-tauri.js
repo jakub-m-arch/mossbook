@@ -202,6 +202,11 @@
 			return null;
 		},
 		clipboard_clear_if: () => false,
+		report_pdf: ({ report }) => {
+			if (state.vault !== 'unlocked') return fail('locked');
+			window.__fake.reports.push(report);
+			return true;
+		},
 		stats_mood: ({ range }) => {
 			if (state.vault !== 'unlocked') return fail('locked');
 			const days = { week: 7, month: 30, three_months: 90 }[range];
@@ -343,6 +348,7 @@
 	/** Test hooks: simulate Rust-side events (auto-lock, focus loss). */
 	window.__fake = {
 		calls: [],
+		reports: [],
 		emit,
 		lockFromRust(reason) {
 			state.vault = 'locked';

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import FileText from '@lucide/svelte/icons/file-text';
 	import Tag from '@lucide/svelte/icons/tag';
 	import { onMount } from 'svelte';
 
@@ -103,6 +104,12 @@
 
 <UnlockedShell title={t('settings.title')}>
 	<div class="stack">
+		<a class="card link-row" href={resolve('/report')}>
+			<FileText size={20} />
+			<span>{t('report.open')}</span>
+			<ChevronRight size={20} />
+		</a>
+
 		<a class="card link-row" href={resolve('/tags')}>
 			<Tag size={20} />
 			<span>{t('settings.tags')}</span>

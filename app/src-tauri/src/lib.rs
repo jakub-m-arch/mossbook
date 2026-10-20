@@ -69,6 +69,7 @@ pub fn run() {
             commands::backup_export,
             commands::backup_pick,
             commands::backup_import,
+            commands::report_pdf,
         ])
         .build(tauri::generate_context!())
         .expect("error while building Mossbook")
