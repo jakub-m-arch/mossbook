@@ -466,6 +466,9 @@ pub fn report_pdf(
         render_pdf(&report, password.as_ref().map(|p| p.as_str())).map_err(|e| match e {
             ReportError::TooLarge => AppError::new("report_too_large", e.to_string()),
             ReportError::WeakPassword => AppError::new("report_password_short", e.to_string()),
+            ReportError::UnsupportedPassword => {
+                AppError::new("report_password_chars", e.to_string())
+            }
             ReportError::Font | ReportError::Encrypt => {
                 AppError::new("report_failed", e.to_string())
             }

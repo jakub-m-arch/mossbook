@@ -35,6 +35,7 @@
 		"inbox_unavailable": "Szybki wpis bez hasła zadziała po pierwszym odblokowaniu dziennika w tej wersji aplikacji.",
 		"report_too_large": "Raport jest za duży. Wybierz krótszy okres albo mniej wpisów.",
 		"report_password_short": "Hasło do PDF musi mieć co najmniej 12 znaków.",
+		"report_password_chars": "Hasło do PDF zawiera znaki, których pliki PDF nie obsługują (np. emoji). Użyj liter, cyfr i znaków interpunkcyjnych.",
 		"report_failed": "Nie udało się utworzyć pliku PDF. Spróbuj jeszcze raz."
 	},
 	"strength": {

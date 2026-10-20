@@ -287,6 +287,11 @@ fn encrypt_pdf(pdf: Vec<u8>, password: &str) -> Result<Vec<u8>, ReportError> {
     if password.chars().count() < MIN_REPORT_PASSWORD_CHARS {
         return Err(ReportError::WeakPassword);
     }
+    // PDF 2.0 prepares passwords with SASLprep; lopdf would otherwise fail later
+    // with a generic error that retrying cannot fix.
+    if stringprep::saslprep(password).is_err() {
+        return Err(ReportError::UnsupportedPassword);
+    }
     // The rendered PDF is plaintext until the objects are encrypted; wipe the
     // buffer as soon as the parser has copied what it needs.
     let pdf = Zeroizing::new(pdf);
@@ -421,6 +426,16 @@ mod tests {
             render_pdf(&sample(1), Some("")).unwrap_err(),
             ReportError::WeakPassword
         );
+    }
+
+    #[test]
+    fn passwords_pdf_cannot_hold_are_rejected() {
+        for password in ["twelve chars 🙂 here", "tab\tinside the password"] {
+            assert_eq!(
+                render_pdf(&sample(1), Some(password)).unwrap_err(),
+                ReportError::UnsupportedPassword
+            );
+        }
     }
 
     #[test]

@@ -35,6 +35,7 @@
 		"inbox_unavailable": "Quick entry without the password works after the journal is unlocked once in this version of the app.",
 		"report_too_large": "The report is too large. Choose a shorter period or fewer entries.",
 		"report_password_short": "The PDF password must be at least 12 characters.",
+		"report_password_chars": "The PDF password contains characters PDF files do not support (such as emoji). Use letters, digits and punctuation.",
 		"report_failed": "Could not create the PDF file. Please try again."
 	},
 	"strength": {

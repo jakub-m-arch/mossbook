@@ -32,6 +32,9 @@ pub enum ReportError {
     Font,
     /// The password is empty or shorter than [`MIN_REPORT_PASSWORD_CHARS`].
     WeakPassword,
+    /// The password contains characters that PDF 2.0 passwords cannot hold
+    /// (SASLprep rejects e.g. emoji, control characters and private-use code points).
+    UnsupportedPassword,
     /// The PDF could not be encrypted (a bug or a library problem).
     Encrypt,
 }
@@ -42,6 +45,7 @@ impl fmt::Display for ReportError {
             Self::TooLarge => "report is too large",
             Self::Font => "report font unavailable",
             Self::WeakPassword => "report password is too short",
+            Self::UnsupportedPassword => "report password has unsupported characters",
             Self::Encrypt => "report encryption failed",
         })
     }

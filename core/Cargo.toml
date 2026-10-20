@@ -21,6 +21,8 @@ lopdf = { version = "0.44.0", default-features = false }
 printpdf = { version = "0.12.8", default-features = false }
 rusqlite = { version = "0.40.2", features = ["bundled"] }
 secrecy = "0.10.3"
+# Already a dependency of lopdf; used to check report passwords before encrypting.
+stringprep = "0.1.5"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_bytes = "0.11.19"
 serde_json = "1.0.154"
