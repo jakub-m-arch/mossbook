@@ -30,7 +30,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          tag=$(gh release view --repo "${{ github.repository }}" --json tagName --jq .tagName)
+          # Releases are marked as pre-releases, so there is no "latest" release;
+          # take the newest published one instead.
+          tag=$(gh release list --repo "${{ github.repository }}" --exclude-drafts --limit 1 \
+            --json tagName --jq '.[0].tagName')
+          [ -n "$tag" ] || { echo "No published release found" >&2; exit 1; }
           echo "Latest release: $tag"
           site/render.sh "${tag#v}" _site
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
