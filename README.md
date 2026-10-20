@@ -10,6 +10,9 @@ anxiety and for people working with a therapist. Notes are written in seconds, k
 encrypted on your device, and can be shared with a therapist only if you choose to.
 
 **Website and downloads:** <https://jakub-m-arch.github.io/mossbook/en/>
+([po polsku](https://jakub-m-arch.github.io/mossbook/)). It walks through the app,
+explains what Mossbook protects and what it does not, and links the right installer
+for your system. The site has no cookies, analytics or third-party resources.
 
 <p align="center">
   <img src="site/img/en-timeline.png" width="250" alt="Timeline with mood, sleep and event entries">
@@ -164,6 +167,7 @@ mossbook/
 ├── docs/             architecture.md, crypto.md, backup-format.md, threat-model.md,
 │                     release.md, PLAN.md
 ├── packaging/        Homebrew cask template
+├── site/             the website (static HTML, CSS, local fonts, screenshots)
 ├── tools/            verify-vectors.py, read-backup.py, read-report.py (independent readers)
 └── SPEC.md           specification
 ```
@@ -228,6 +232,20 @@ npm run test:e2e
   in-browser stand-in for the Tauri backend.
 
 All test data is synthetic.
+
+### Website
+
+The website lives in [`site/`](site/README.md) and is plain HTML and CSS with no build
+step. [`.github/workflows/pages.yml`](.github/workflows/pages.yml) publishes it to
+GitHub Pages whenever `site/` changes on `main` and whenever a release is published,
+so the download links always point at the newest version. Preview it locally:
+
+```sh
+site/render.sh 0.1.2 /tmp/mossbook-site && python3 -m http.server -d /tmp/mossbook-site
+```
+
+The screenshots are taken from the app with made-up entries; regenerate them after UI
+changes with `npx playwright test -c playwright.site.config.ts` (from `app/`).
 
 ## Contributing
 
