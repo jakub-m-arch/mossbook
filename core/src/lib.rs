@@ -22,7 +22,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn version_matches_manifest() {
-        assert_eq!(VERSION, "0.1.0");
+    fn version_is_semver() {
+        // The release version itself is checked across Cargo, tauri.conf.json and
+        // package.json by the app crate's `versions_match` test.
+        let parts: Vec<&str> = VERSION.split('.').collect();
+        assert_eq!(parts.len(), 3, "{VERSION}");
+        assert!(parts.iter().all(|p| p.parse::<u32>().is_ok()), "{VERSION}");
     }
 }

@@ -16,13 +16,17 @@ cask "mossbook" do
 
   app "Mossbook.app"
 
+  # Mossbook is not notarized yet. Without this, macOS refuses to open the
+  # downloaded app ("damaged" or "cannot be verified"). Homebrew has already
+  # checked the download's SHA-256 against this cask before installing it.
+  postflight_steps do
+    run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{appdir}}/Mossbook.app"]
+  end
+
   # No `zap` stanza on purpose: the app's data folder is the user's journal and
   # must never be removed by an uninstall command.
 
   caveats <<~EOS
-    Mossbook is not notarized yet. The first time, right-click the app and choose
-    Open (or allow it in System Settings > Privacy & Security).
-
     Your journal stays in ~/Library/Application Support/io.github.jakubmarch.mossbook
     when you uninstall. Keep a backup (Settings > Backup) before deleting it by hand.
   EOS

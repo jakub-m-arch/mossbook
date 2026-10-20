@@ -48,13 +48,16 @@ Download the installer for your system from
 - **Linux:** `.AppImage` (make it executable) or `.deb`.
 - **Windows:** `.msi` or `-setup.exe`. SmartScreen may warn because the installer is
   not code-signed yet: *More info → Run anyway*.
-- **macOS:** `.dmg` (Apple Silicon `aarch64`, Intel `x64`). The app is not notarized
-  yet: right-click the app → *Open* the first time. Or with Homebrew, which also
+- **macOS:** the easiest way is Homebrew, which opens the app without warnings and
   updates it with `brew upgrade`:
 
   ```sh
   brew install --cask jakub-m-arch/mossbook/mossbook
   ```
+
+  Or the `.dmg` (Apple Silicon `aarch64`, Intel `x64`). The app is not notarized yet,
+  so macOS blocks the first launch: open it once, then choose *Open Anyway* in
+  *System Settings → Privacy & Security*.
 
 ### Updates
 
