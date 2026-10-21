@@ -50,6 +50,18 @@ gh attestation verify Mossbook_0.1.2_aarch64.dmg --repo jakub-m-arch/mossbook
 (Releases from 0.1.2 on.) The workflows pin every third-party GitHub Action to a commit
 SHA, so a moved tag cannot change what the release build runs.
 
+The Android APK (from 0.2.0) is signed with the Mossbook release key. Its
+certificate SHA-256 fingerprint is:
+
+```
+D6:E7:DB:BD:82:39:09:2D:C3:81:26:64:43:10:9C:F6:47:82:3C:1C:00:05:4D:EE:1E:13:BB:46:AE:E5:68:B2
+```
+
+Check a download with `apksigner verify --print-certs Mossbook_0.2.0_android.apk`
+(Android SDK build-tools), or compare it in Obtainium or AppVerifier. Android installs
+an update only when it carries the same signature, so a forged APK cannot replace an
+installed Mossbook.
+
 The cryptographic design can be checked independently: `tools/verify-vectors.py`
 recomputes the test vectors with libsodium and argon2-cffi, and `tools/read-backup.py`
 opens a backup without any Mossbook code (see `docs/crypto.md`).
