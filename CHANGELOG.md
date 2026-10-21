@@ -2,6 +2,13 @@
 
 All notable changes to Mossbook. Versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Fixed
+- Android with fingerprint unlock: after going to the background the journal could
+  stop locking when you left the app, until Mossbook was closed. The fingerprint
+  prompt is now shown only once you are back in the app.
+
 ## 0.3.0 (2026-10-21)
 
 ### Added

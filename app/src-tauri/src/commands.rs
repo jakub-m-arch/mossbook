@@ -244,9 +244,10 @@ pub fn vault_unlock_device(
 ) -> AppResult<bool> {
     check_prompt(&prompt)?;
     let file = with_session(&state, |s| s.device_key_file())?;
-    let key = with_dialog(&state, || {
-        device_key::open(&app, file.sealed_key(), &prompt)
-    });
+    // Not `with_dialog`: the journal is locked while the prompt is open, so there
+    // is nothing for the background lock to protect, and a prompt that never
+    // reports back must not keep that lock suspended after the next unlock.
+    let key = device_key::open(&app, file.sealed_key(), &prompt);
     match key {
         Ok(mut key) => {
             with_session(&state, |s| {

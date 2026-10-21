@@ -53,6 +53,29 @@ test('fingerprint: turn on in settings, unlock, fall back to the password', asyn
 	await expect(page.getByRole('button', { name: 'Otwórz odciskiem palca' })).toHaveCount(0);
 });
 
+test('fingerprint: a lock in the background asks only once the app is back', async ({ page }) => {
+	await createVault(page);
+	await enableFingerprint(page);
+	await nextPrompt(page, 'ok');
+
+	const setVisibility = (state: 'hidden' | 'visible') =>
+		page.evaluate((s) => {
+			Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => s });
+			document.dispatchEvent(new Event('visibilitychange'));
+		}, state);
+
+	// Android: the journal locks on the way to the background, where a system
+	// prompt cannot open (and would never report back).
+	await setVisibility('hidden');
+	await page.getByRole('button', { name: 'Zablokuj' }).click();
+	await expect(page.getByRole('heading', { name: 'Dziennik jest zablokowany' })).toBeVisible();
+	await page.waitForTimeout(300);
+	await expect(page.getByRole('heading', { name: 'Dziennik jest zablokowany' })).toBeVisible();
+
+	await setVisibility('visible');
+	await expect(page.getByRole('heading', { name: 'Twój dziennik' })).toBeVisible();
+});
+
 test('fingerprint: changed fingerprints turn it off and ask for the password', async ({ page }) => {
 	await createVault(page);
 	await enableFingerprint(page);

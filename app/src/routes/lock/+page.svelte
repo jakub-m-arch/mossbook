@@ -54,8 +54,18 @@
 		const device = await deviceUnlockStatus().catch(() => null);
 		fingerprint = !!device?.available && !!device.enabled;
 		// Ask for the fingerprint right away; the password stays one tap away.
-		if (fingerprint) await unlockWithFingerprint();
+		// Locking on the way to the background lands here while the app is
+		// hidden: the prompt waits until the user comes back.
+		if (!fingerprint) return;
+		if (document.visibilityState === 'visible') return unlockWithFingerprint();
+		document.addEventListener('visibilitychange', promptWhenVisible);
 	});
+
+	function promptWhenVisible() {
+		if (document.visibilityState !== 'visible') return;
+		document.removeEventListener('visibilitychange', promptWhenVisible);
+		void unlockWithFingerprint();
+	}
 
 	async function unlockWithFingerprint() {
 		if (busy) return;
@@ -84,7 +94,10 @@
 		}
 	}
 
-	onDestroy(() => clearInterval(timer));
+	onDestroy(() => {
+		clearInterval(timer);
+		document.removeEventListener('visibilitychange', promptWhenVisible);
+	});
 
 	async function unlock(event: SubmitEvent) {
 		event.preventDefault();

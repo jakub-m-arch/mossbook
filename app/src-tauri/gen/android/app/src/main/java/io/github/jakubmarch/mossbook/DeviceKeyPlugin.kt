@@ -159,6 +159,13 @@ class DeviceKeyPlugin(private val activity: Activity) : Plugin(activity) {
       return
     }
     activity.runOnUiThread {
+      // Once the app is on its way to the background, BiometricPrompt only logs
+      // "Called after onSaveInstanceState()" and never calls back, which would
+      // leave the command waiting forever.
+      if (fragmentActivity.supportFragmentManager.isStateSaved) {
+        invoke.reject("the app is in the background", "cancelled")
+        return@runOnUiThread
+      }
       val callback = object : BiometricPrompt.AuthenticationCallback() {
         override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
           val authenticated = result.cryptoObject?.cipher
