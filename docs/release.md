@@ -30,6 +30,11 @@ git tag -s v0.1.0 -m "Mossbook 0.1.0"   # or -a if you do not sign tags
 git push origin v0.1.0
 ```
 
+Push the tag from the command line; do not create the release in the GitHub web
+interface. A release made there is published at once, before any installer exists
+(so the `Homebrew` workflow fails), and nothing checks that the version in the code
+matches the tag.
+
 The `Release` workflow builds Linux, Windows and macOS (Apple Silicon and Intel)
 installers and attaches them with `SHA256SUMS` to a **draft** release.
 
@@ -40,6 +45,8 @@ installers and attaches them with `SHA256SUMS` to a **draft** release.
 - [ ] Review the release notes, then publish the draft. Publishing triggers the
       `Homebrew` workflow, which updates the cask in `jakub-m-arch/homebrew-mossbook`
       (needs the `HOMEBREW_TAP_TOKEN` secret; it is skipped with a notice otherwise).
+      When that workflow finishes, the `Website` workflow rebuilds the site so the
+      download links point at the new version.
 
 Installers are not code-signed yet: macOS Gatekeeper and Windows SmartScreen will
 warn on first launch (README, *Install*).

@@ -2,7 +2,7 @@
 
 All notable changes to Mossbook. Versions follow [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.1.3 (2026-10-21)
 
 ### Added
 - Therapist PDF reports can be protected with a password (AES-256, PDF 2.0). The

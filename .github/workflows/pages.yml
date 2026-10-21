@@ -1,15 +1,18 @@
 name: Website
 
 # Publishes site/ to GitHub Pages (https://jakub-m-arch.github.io/mossbook/).
-# Download links point at the latest published release, so the site is rebuilt
-# when a release is published as well as when site/ changes.
+# Download links point at the newest published release, so the site is rebuilt
+# after the Homebrew workflow (which runs when a release is published) as well as
+# when site/ changes. A `release` trigger would run on the tag, and the
+# github-pages environment only accepts deployments from main.
 # One-time setup: Settings → Pages → Source: GitHub Actions.
 on:
   push:
     branches: [main]
     paths: ['site/**', '.github/workflows/pages.yml']
-  release:
-    types: [published]
+  workflow_run:
+    workflows: [Homebrew]
+    types: [completed]
   workflow_dispatch:
 
 permissions:

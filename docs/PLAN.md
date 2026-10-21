@@ -126,6 +126,7 @@ Postponed on purpose (2026-10-19): the tools are missing (JDK, SDK, NDK) and sto
 - [x] Homebrew tap `jakub-m-arch/homebrew-mossbook`, updated by the `Homebrew` workflow on publish; clears quarantine because the app is not notarized
 - [x] `v0.1.1`: macOS bundle signed ad-hoc as a whole (0.1.0 was reported as "damaged" after download)
 - [x] `v0.1.2`: automatic backups, recovery key check, JSON export, first release with provenance attestations
+- [x] `v0.1.3`: optional password for the therapist PDF (AES-256), website on GitHub Pages
 - [ ] Enable private vulnerability reporting in the repository settings
 - [ ] Code signing: Apple Developer ID + notarisation (macOS), SignPath or Azure Trusted Signing (Windows)
 
