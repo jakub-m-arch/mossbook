@@ -61,7 +61,8 @@ app. **Losing the key means users must uninstall and restore from a backup**, so
 generated once and kept safe.
 
 ```sh
-"$(/usr/libexec/java_home -v 17)/bin/keytool" -genkeypair -v \
+# keytool comes with JDK 17; with Homebrew: /opt/homebrew/opt/openjdk@17/bin/keytool
+keytool -genkeypair -v \
   -keystore ~/mossbook-release.jks -alias mossbook \
   -keyalg RSA -keysize 4096 -validity 36500 -dname "CN=Mossbook"
 ```
@@ -75,7 +76,7 @@ Then:
       `ANDROID_KEYSTORE` = `base64 -i ~/mossbook-release.jks` (one line),
       `ANDROID_KEY_ALIAS` = `mossbook`, `ANDROID_KEY_PASSWORD` = the password.
 - [ ] Note the certificate fingerprint for `SECURITY.md` and the stores:
-      `keytool -list -v -keystore ~/mossbook-release.jks | grep SHA256`.
+      `keytool -list -v -keystore ~/mossbook-release.jks | grep SHA256` (same keytool).
 
 Without `ANDROID_KEYSTORE` the `Release` workflow skips the APK with a notice. With
 it, it builds a signed APK (arm64, armv7, x86_64), runs
