@@ -123,6 +123,7 @@ editable), an optional mood rating, intensity, tags and a text note.
 | E-15 | **Quick entry without unlocking**: adding an entry without being able to read existing ones (see §6.4) | v1 |
 | E-16 | Hiding the content of chosen entries until tapped ("difficult content") | v1 |
 | E-17 | An entry form being filled in survives a lock: kept encrypted and offered after unlocking, discarded when the form is left on purpose (D-20) | v1 |
+| E-18 | **Voice note**: up to 5 minutes recorded in the app, attached to an entry, encrypted like the rest and included in backups; no video or other files; recorded on every platform; the readable copy becomes a ZIP with the recordings (D-21) | v2 |
 
 ### 4.3. Plan for a hard moment
 
@@ -157,7 +158,7 @@ period) overviews are not shown.
 | X-1 | **Encrypted backup**: a single `.mossbook` file encrypted with the same key (opens with the password or the recovery key). Saved through the system file dialog | MVP |
 | X-2 | Importing a backup: merge (no duplicates, by id) or replace | MVP |
 | X-3 | **Report for a therapist (PDF)**: choice of period, types and tags; preview before saving; optional password protection (AES-256, PDF 2.0); a clear warning when the PDF is **not encrypted** and about sending the password through a different channel | v1 |
-| X-4 | Plain JSON export (full portability), with a warning | v1 |
+| X-4 | Plain JSON export (full portability), with a warning; with voice notes (E-18) a ZIP holding the JSON and the recordings (D-21) | v1 |
 | X-5 | Deleting all data (V-9) | MVP |
 | X-6 | **Automatic local backups** when the journal locks (daily, newest seven), plus a note in the settings of when a backup was last saved elsewhere (D-16) | v1 |
 | X-7 | **Checking the recovery key**: type the 24 words and see whether they open this journal, without changing anything | v1 |
