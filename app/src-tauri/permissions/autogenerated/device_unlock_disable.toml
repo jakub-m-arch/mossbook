@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-device-unlock-disable"
+description = "Enables the device_unlock_disable command without any pre-configured scope."
+commands.allow = ["device_unlock_disable"]
+
+[[permission]]
+identifier = "deny-device-unlock-disable"
+description = "Denies the device_unlock_disable command without any pre-configured scope."
+commands.deny = ["device_unlock_disable"]
