@@ -70,7 +70,7 @@ describe('buildReport', () => {
 		);
 		expect(item.fields).toEqual([
 			{ label: 'Co to wywołało', value: 'tłum w tramwaju' },
-			{ label: 'Objawy w ciele', value: 'kołatanie serca, zimne dłonie' },
+			{ label: 'Odczucia w ciele', value: 'kołatanie serca, zimne dłonie' },
 			{ label: 'Notatka', value: 'potem lepiej' }
 		]);
 		expect(doc.sections[0].items[0].meta).toBe('Samopoczucie: dobrze');

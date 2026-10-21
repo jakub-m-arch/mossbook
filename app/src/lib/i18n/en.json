@@ -142,7 +142,7 @@
 		"overwhelm": "overwhelm"
 	},
 	"symptom": {
-		"label": "Body symptoms",
+		"label": "Body sensations",
 		"racing_heart": "racing heart",
 		"shortness_of_breath": "shortness of breath",
 		"chest_tightness": "tight chest",
@@ -491,7 +491,9 @@
 		"check": "Check for updates",
 		"checkHint": "Opens the releases page in your browser. The app itself never connects to the internet.",
 		"old": "This version is more than 3 months old. A newer one may be available.",
-		"watch": "You can get notified of new versions on GitHub: Watch → Custom → Releases."
+		"watch": "You can get notified of new versions on GitHub: Watch → Custom → Releases.",
+		"legal": "Mossbook is free software under the GNU GPL version 3 or later. It comes with no warranty, to the extent permitted by law, so keep your own backups. It is not a medical device: it does not diagnose, recommend treatment or assess your health.",
+		"licenses": "Licences"
 	},
 	"recoveryCheck": {
 		"title": "Check your recovery key",

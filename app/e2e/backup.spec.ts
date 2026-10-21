@@ -130,3 +130,16 @@ test('backups: last saved copy, automatic copies, recovery key check, JSON expor
 	);
 	expect(exports).toBe(1);
 });
+
+test('about: no-warranty notice and licence texts', async ({ page }) => {
+	await createVault(page);
+	await page.getByRole('link', { name: 'Ustawienia' }).click();
+
+	await expect(page.getByText(/Jest udostępniany bez gwarancji/)).toBeVisible();
+	await expect(page.getByText(/Nie jest wyrobem medycznym/)).toBeVisible();
+	await page.getByText('Licencje', { exact: true }).click();
+	const licenses = page.locator('pre.licenses');
+	await expect(licenses).toContainText('GNU GENERAL PUBLIC LICENSE');
+	await expect(licenses).toContainText(/chacha20poly1305 \d/);
+	await page.screenshot({ path: `${SHOTS}/29-settings-about.png`, fullPage: true });
+});

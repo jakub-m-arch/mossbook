@@ -14,6 +14,9 @@ These are not negotiable (see also [`CLAUDE.md`](CLAUDE.md)):
 - **No telemetry**, analytics or remote error reporting.
 - **Calm wording.** Second person, plain and warm; no diagnoses, judgement,
   gamification or guilt.
+- **No health claims.** Mossbook is a journal, not a medical device. Texts in the app,
+  on the website and in store listings never promise that it treats, heals or reduces
+  anything, and do not present it as a clinical method.
 
 ## Workflow
 
@@ -23,9 +26,11 @@ How the code is organised is described in [`docs/architecture.md`](docs/architec
 2. Keep changes focused; add tests. Changes to `core/crypto`, `core/vault`,
    `core/backup` or a file format need negative tests too, and a format change
    needs a version bump, a migration and a fixture (see `docs/crypto.md`).
-3. Run the checks from the README (`cargo fmt`, `clippy`, `test`, `deny`,
+3. After adding or updating a dependency, run `python3 tools/licenses.py` and commit
+   `app/src/lib/assets/licenses.txt`; CI fails if the licence notices are out of date.
+4. Run the checks from the README (`cargo fmt`, `clippy`, `test`, `deny`,
    `npm run lint`, `check`, `test`, `test:e2e`). CI runs the same.
-4. Sign off every commit to certify the
+5. Sign off every commit to certify the
    [Developer Certificate of Origin](https://developercertificate.org):
    `git commit -s`.
 

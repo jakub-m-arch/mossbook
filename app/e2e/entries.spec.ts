@@ -55,8 +55,8 @@ test('full fear form, edit and delete', async ({ page }) => {
 		.getByText('8', { exact: true })
 		.click();
 	await page.getByRole('button', { name: 'kołatanie serca' }).click();
-	await page.getByLabel('Objawy w ciele: Dodaj własne').fill('zimne dłonie');
-	await page.getByLabel('Objawy w ciele: Dodaj własne').press('Enter');
+	await page.getByLabel('Odczucia w ciele: Dodaj własne').fill('zimne dłonie');
+	await page.getByLabel('Odczucia w ciele: Dodaj własne').press('Enter');
 	await expect(page.getByRole('button', { name: 'zimne dłonie ×' })).toBeVisible();
 	await page.getByLabel('Co zastosowałem/zastosowałam').fill('oddech pudełkowy');
 	await page

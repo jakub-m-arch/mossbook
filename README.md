@@ -5,8 +5,8 @@
 
 **A private, offline journal for mood, events, fears, sleep and nightmares.**
 
-Mossbook is built for everyone, with particular care for people living with PTSD or
-anxiety and for people working with a therapist. Notes are written in seconds, kept
+Mossbook is built for everyone, with particular care for people going through a hard
+time and for people who see a therapist. Notes are written in seconds, kept
 encrypted on your device, and can be shared with a therapist only if you choose to.
 
 **Website and downloads:** <https://jakub-m-arch.github.io/mossbook/en/>
@@ -21,14 +21,14 @@ for your system. The site has no cookies, analytics or third-party resources.
 </p>
 <p align="center"><sub>Screenshots with made-up entries.</sub></p>
 
-> **Nobody but you can read your entries.** There is no server, no account and no
+> **Your entries stay with you.** There is no server, no account and no
 > telemetry. Everything is encrypted on your device, and the code is open so anyone
 > can check.
 
 > [!IMPORTANT]
 > **Mossbook is not a medical device.** It does not diagnose, recommend treatment or
-> assess your health. It is a tool for writing down and organising your own
-> observations. If you are in danger, call your local emergency number (112 in the EU).
+> assess your health, and it is not a substitute for professional help. It is a tool for
+> writing down and organising your own observations. If you are in danger, call your local emergency number (112 in the EU).
 
 ---
 
@@ -37,7 +37,7 @@ for your system. The site has no cookies, analytics or third-party resources.
 **0.1 is out for desktop** (Linux, Windows, macOS). It is early software: keep a
 backup (Settings → Backup).
 
-- **Done:** every desktop feature of the MVP, and from v1 the PDF report, nightmares (IRT),
+- **Done:** every desktop feature of the MVP, and from v1 the PDF report, nightmares,
   difficult content, the mood calendar, overviews, and quick entry while locked.
 - **In progress:** Android. The app builds and runs on Android, with fingerprint
   unlock; there is no published APK yet.
@@ -83,11 +83,11 @@ Mossbook never connects to the internet, so it does not check for updates by its
 ## What it does
 
 - **Entry types**: mood (1–5 with emotions), event, fear or trigger (intensity before
-  and after a coping strategy), sleep, nightmare with a rescripted version (IRT), free note.
+  and after a coping strategy), sleep, nightmare with a rewritten version, free note.
 - **Quick entry** in at most two taps, to be completed later.
 - **Timeline** with filters by type, tag and date, and full-text search that ignores
   case and diacritics (searching `lodz` finds `Łódź`).
-- **Plan for a hard moment** based on the Stanley–Brown safety plan, with crisis
+- **Plan for a hard moment** you write yourself, with crisis
   phone numbers and grounding exercises available **without unlocking**.
 - **Patterns**: mood over time, a mood calendar and overviews (tags, triggers, sleep,
   time of day, strategies), shown as plain observations, never clinical conclusions.

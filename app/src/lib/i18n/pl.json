@@ -142,7 +142,7 @@
 		"overwhelm": "przytłoczenie"
 	},
 	"symptom": {
-		"label": "Objawy w ciele",
+		"label": "Odczucia w ciele",
 		"racing_heart": "kołatanie serca",
 		"shortness_of_breath": "duszność",
 		"chest_tightness": "ucisk w klatce",
@@ -491,7 +491,9 @@
 		"check": "Sprawdź aktualizacje",
 		"checkHint": "Otworzy stronę z wydaniami w przeglądarce. Sama aplikacja nie łączy się z internetem.",
 		"old": "Ta wersja ma już ponad 3 miesiące. Możliwe, że jest dostępna nowsza.",
-		"watch": "Powiadomienia o nowych wersjach możesz dostawać z GitHuba: Watch → Custom → Releases."
+		"watch": "Powiadomienia o nowych wersjach możesz dostawać z GitHuba: Watch → Custom → Releases.",
+		"legal": "Mossbook to wolne oprogramowanie na licencji GNU GPL w wersji 3 lub późniejszej. Jest udostępniany bez gwarancji, w granicach dozwolonych przez prawo, dlatego rób własne kopie zapasowe. Nie jest wyrobem medycznym: nie diagnozuje, nie doradza leczenia i nie ocenia zdrowia.",
+		"licenses": "Licencje"
 	},
 	"recoveryCheck": {
 		"title": "Sprawdź klucz odzyskiwania",

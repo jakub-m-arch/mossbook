@@ -1,13 +1,13 @@
-Mossbook to prywatny dziennik nastroju, wydarzeń, lęków, snu i koszmarów. Jest dla każdego, ze szczególną troską o osoby z PTSD albo lękiem i o osoby, które pracują z terapeutą.
+Mossbook to prywatny dziennik nastroju, wydarzeń, lęków, snu i koszmarów. Jest dla każdego, ze szczególną troską o osoby w trudnym okresie i o osoby, które chodzą na terapię.
 
-<b>Twoje wpisy przeczytasz tylko Ty.</b> Nie ma serwera, konta ani telemetrii. Wszystko jest zaszyfrowane na telefonie, a kod jest otwarty, więc każdy może to sprawdzić.
+<b>Twoje wpisy zostają u Ciebie.</b> Nie ma serwera, konta ani telemetrii. Wszystko jest zaszyfrowane na telefonie, a kod jest otwarty, więc każdy może to sprawdzić.
 
 <b>Zapis w kilka sekund</b>
 <ul>
 <li>Samopoczucie, lęk lub wyzwalacz, wydarzenie, sen, koszmar i notatka; szybki wpis jednym stuknięciem do uzupełnienia później</li>
 <li>Szybki wpis nawet przy zablokowanym dzienniku: można dodać, ale nie przeczytać</li>
 <li>Tagi, wyszukiwanie i filtry; wpisy oznaczone jako trudne pokazują tylko rodzaj, dopóki ich nie stukniesz</li>
-<li>Praca z koszmarami (IRT): nowa wersja snu i zapisane powtórki</li>
+<li>Koszmary: zapis nowej wersji snu, z innym zakończeniem, i każdego powrotu do niej</li>
 </ul>
 
 <b>Obserwacje, nie oceny</b>
@@ -35,4 +35,4 @@ Mossbook to prywatny dziennik nastroju, wydarzeń, lęków, snu i koszmarów. Je
 <li>Zaszyfrowane kopie zapisywane przez Ciebie, automatyczne kopie na telefonie i czytelny eksport JSON</li>
 </ul>
 
-Po polsku, angielsku i ukraińsku. Mossbook nie jest wyrobem medycznym: nie diagnozuje, nie doradza leczenia i nie ocenia zdrowia. W nagłym zagrożeniu dzwoń pod 112.
+Po polsku, angielsku i ukraińsku. Mossbook nie jest wyrobem medycznym i nie zastępuje pomocy specjalisty: nie diagnozuje, nie doradza leczenia i nie ocenia zdrowia. To wolne oprogramowanie udostępniane bez gwarancji (GPL-3.0-or-later). W nagłym zagrożeniu dzwoń pod 112.

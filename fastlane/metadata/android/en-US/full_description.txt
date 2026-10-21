@@ -1,13 +1,13 @@
-Mossbook is a private journal for mood, events, fears, sleep and nightmares. It is built for everyone, with particular care for people living with PTSD or anxiety and for people working with a therapist.
+Mossbook is a private journal for mood, events, fears, sleep and nightmares. It is built for everyone, with particular care for people going through a hard time and for people who see a therapist.
 
-<b>Nobody but you can read your entries.</b> There is no server, no account and no telemetry. Everything is encrypted on your phone, and the code is open so anyone can check.
+<b>Your entries stay with you.</b> There is no server, no account and no telemetry. Everything is encrypted on your phone, and the code is open so anyone can check.
 
 <b>Write it down in seconds</b>
 <ul>
 <li>Mood, fear or trigger, event, sleep, nightmare and free notes; a one-tap quick entry to finish later</li>
 <li>Quick entry even while the journal is locked: it can add, but not read</li>
 <li>Tags, search and filters; entries marked as difficult show only their type until you tap them</li>
-<li>Imagery rehearsal for nightmares: write a new version and keep your rehearsals</li>
+<li>Nightmares: write down a new version with a different ending and note each time you return to it</li>
 </ul>
 
 <b>See patterns, not judgements</b>
@@ -35,4 +35,4 @@ Mossbook is a private journal for mood, events, fears, sleep and nightmares. It 
 <li>Encrypted backups you save yourself, automatic backups on the phone, and a readable JSON export</li>
 </ul>
 
-In Polish, English and Ukrainian. Mossbook is not a medical device: it does not diagnose, recommend treatment or assess your health. If you are in danger, call your local emergency number (112 in the EU).
+In Polish, English and Ukrainian. Mossbook is not a medical device and not a substitute for professional help: it does not diagnose, recommend treatment or assess your health. It is free software provided without warranty (GPL-3.0-or-later). If you are in danger, call your local emergency number (112 in the EU).

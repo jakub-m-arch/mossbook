@@ -49,6 +49,13 @@
 	/** Offline nudge: no network, just the age of this build (D-15). */
 	const OLD_AFTER_DAYS = 90;
 	let isOld = $derived(!!info && Date.now() / 1000 - info.built_at > OLD_AFTER_DAYS * 86_400);
+	/** Licence texts (~0.8 MB), loaded only when the section is opened. */
+	let licenses = $state<string | null>(null);
+	async function loadLicenses(event: Event) {
+		if ((event.currentTarget as HTMLDetailsElement).open && licenses === null) {
+			licenses = (await import('#lib/assets/licenses.txt?raw')).default;
+		}
+	}
 	/** One message line per section. */
 	let messages = $state<Record<string, string>>({});
 
@@ -363,6 +370,11 @@
 			</button>
 			<p class="muted small">{t('about.checkHint')} {t('about.watch')}</p>
 			{#if messages.about}<p class="notice" aria-live="polite">{messages.about}</p>{/if}
+			<p class="muted small">{t('about.legal')}</p>
+			<details ontoggle={loadLicenses}>
+				<summary>{t('about.licenses')}</summary>
+				{#if licenses}<pre class="licenses">{licenses}</pre>{/if}
+			</details>
 		</section>
 
 		<section class="card stack" aria-labelledby="destroy">
@@ -387,6 +399,22 @@
 </UnlockedShell>
 
 <style>
+	summary {
+		min-height: var(--tap);
+		display: flex;
+		align-items: center;
+		color: var(--accent);
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.licenses {
+		max-height: 60vh;
+		overflow: auto;
+		margin: 0;
+		font-size: 0.75rem;
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+	}
 	.link-row {
 		display: flex;
 		align-items: center;
