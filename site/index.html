@@ -65,6 +65,7 @@
 							data-mac="Pobierz na macOS"
 							data-windows="Pobierz na Windows"
 							data-linux="Pobierz na Linuksa"
+							data-android="Pobierz na Androida"
 						>
 							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14" /></svg>
 							<span>Pobierz Mossbook</span>
@@ -72,7 +73,7 @@
 						<a class="quiet" href="#prywatnosc">Jak chronione są Twoje dane</a>
 					</div>
 					<p class="fine">
-						Bezpłatny i z otwartym kodem. Wersja {{version}} na macOS, Windows i Linuksa.
+						Bezpłatny i z otwartym kodem. Wersja {{version}} na <!--pre-android-->macOS, Windows i Linuksa<!--/pre-android--><!--android-->Androida, macOS, Windows i Linuksa<!--/android-->.
 						Po polsku, angielsku i ukraińsku.
 					</p>
 				</div>
@@ -218,7 +219,8 @@
 							<h3>Nie łączy się z internetem.</h3>
 							<p>
 								W aplikacji nie ma kodu sieciowego. Automatyczne sprawdzenie przy każdej zmianie
-								odrzuca biblioteki, które mogłyby go dodać.
+								odrzuca biblioteki, które mogłyby go dodać.<!--android--> Na Androidzie aplikacja nie ma nawet
+								uprawnienia do internetu, a każde wydanie jest pod tym kątem sprawdzane.<!--/android-->
 							</p>
 						</li>
 						<li>
@@ -272,11 +274,43 @@
 				<p class="label">Wersja {{version}}</p>
 				<h2 id="pobierz-h">Pobierz Mossbook</h2>
 				<p>
-					Bezpłatnie, na komputer. Wersja na Androida jest w przygotowaniu. Twój dziennik
+					<!--pre-android-->Bezpłatnie, na komputer. Wersja na Androida jest w przygotowaniu.<!--/pre-android--><!--android-->Bezpłatnie, na telefon z Androidem i na komputer.<!--/android--> Twój dziennik
 					zostaje na tym urządzeniu, a kopię przeniesiesz na inne jednym plikiem.
 				</p>
 
 				<div class="systems">
+					<!--android-->
+					<div class="system" id="get-android">
+						<div>
+							<h3>Android</h3>
+							<span class="yours">Twój system</span>
+						</div>
+						<div>
+							<ul class="files">
+								<li>
+									<a href="https://github.com/jakub-m-arch/mossbook/releases/download/v{{version}}/Mossbook_{{version}}_android.apk">Plik .apk <small>Android 7 lub nowszy</small></a>
+								</li>
+							</ul>
+							<ol class="steps">
+								<li>Pobierz plik .apk na telefonie i otwórz go z powiadomienia albo z folderu Pobrane.</li>
+								<li>
+									Telefon zapyta o zgodę na instalowanie aplikacji z przeglądarki albo menedżera
+									plików. Zezwól tylko tej jednej aplikacji, a po instalacji możesz to cofnąć.
+								</li>
+								<li>
+									Jeśli Play Protect ostrzeże o nieznanej aplikacji, wybierz <i>Więcej informacji →
+									Zainstaluj mimo to</i>. Mossbooka nie ma w Sklepie Play, więc Google go nie zna.
+								</li>
+							</ol>
+							<p class="note">
+								Aktualizacje: pobierz nowszy plik i zainstaluj go tak samo. Dziennik zostaje. Możesz
+								też użyć <a href="https://obtainium.imranr.dev/">Obtainium</a>, które samo zauważy
+								nowe wydanie na GitHubie. Aplikacja jest podpisana stale tym samym kluczem, więc
+								podrobiona wersja się nie zainstaluje jako aktualizacja.
+							</p>
+						</div>
+					</div>
+					<!--/android-->
 					<div class="system" id="get-mac">
 						<div>
 							<h3>macOS</h3>
@@ -396,9 +430,10 @@
 					<details>
 						<summary>Gdzie są moje dane?</summary>
 						<p>
-							W jednym zaszyfrowanym pliku na Twoim komputerze, a automatyczne kopie leżą w folderze
-							obok. Nigdzie indziej. Zmieniasz komputer? Zapisz kopię w ustawieniach i otwórz ją na
-							nowym.
+							W jednym zaszyfrowanym pliku na Twoim <!--pre-android-->komputerze<!--/pre-android--><!--android-->telefonie albo komputerze<!--/android-->, a automatyczne kopie leżą
+							obok. Nigdzie indziej. Zmieniasz urządzenie? Zapisz kopię w ustawieniach i otwórz ją na
+							nowym.<!--android--> Na Androidzie dane są w prywatnym katalogu aplikacji i nie trafiają do kopii
+							zapasowej Google ani na nowy telefon przy przenoszeniu danych.<!--/android-->
 						</p>
 					</details>
 					<details>
@@ -413,10 +448,24 @@
 					<details>
 						<summary>Czy jest wersja na telefon?</summary>
 						<p>
-							Jeszcze nie. Następna w kolejce jest wersja na Androida. Będzie działać tak samo: bez
-							internetu i nawet bez uprawnienia, żeby się z nim połączyć.
+							<!--pre-android-->Jeszcze nie. Następna w kolejce jest wersja na Androida. Będzie działać tak samo: bez
+							internetu i nawet bez uprawnienia, żeby się z nim połączyć.<!--/pre-android--><!--android-->Tak, na Androida (od wersji 7). Działa tak samo jak na komputerze: bez internetu i
+							nawet bez uprawnienia, żeby się z nim połączyć. Dodatkowo blokuje zrzuty i nagrywanie
+							ekranu, a klawiatura nie uczy się wpisywanych słów. Wersja na iPhone'a jeszcze
+							nie powstała.<!--/android-->
 						</p>
 					</details>
+					<!--android-->
+					<details>
+						<summary>Czy mogę otwierać dziennik odciskiem palca?</summary>
+						<p>
+							Tak, na Androidzie. Włączasz to w ustawieniach po wpisaniu hasła. Klucz zostaje w
+							bezpiecznym układzie telefonu i otwiera się dopiero po sprawdzeniu odcisku. Gdy ktoś
+							doda w telefonie nowy odcisk, klucz przestaje działać i Mossbook znów poprosi o hasło.
+							Hasło i 24 słowa zawsze działają, a na innym telefonie tylko one otworzą dziennik.
+						</p>
+					</details>
+					<!--/android-->
 					<details>
 						<summary>Ile to kosztuje?</summary>
 						<p>

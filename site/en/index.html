@@ -65,6 +65,7 @@
 							data-mac="Download for macOS"
 							data-windows="Download for Windows"
 							data-linux="Download for Linux"
+							data-android="Download for Android"
 						>
 							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14" /></svg>
 							<span>Download Mossbook</span>
@@ -72,7 +73,7 @@
 						<a class="quiet" href="#privacy">How your data is protected</a>
 					</div>
 					<p class="fine">
-						Free and open source. Version {{version}} for macOS, Windows and Linux. In English,
+						Free and open source. Version {{version}} for <!--pre-android-->macOS, Windows and Linux<!--/pre-android--><!--android-->Android, macOS, Windows and Linux<!--/android-->. In English,
 						Polish and Ukrainian.
 					</p>
 				</div>
@@ -216,7 +217,8 @@
 							<h3>It never goes online.</h3>
 							<p>
 								There is no networking code in the app. An automatic check on every change rejects
-								libraries that could add it.
+								libraries that could add it.<!--android--> On Android the app does not even hold the permission
+								to go online, and every release is checked for it.<!--/android-->
 							</p>
 						</li>
 						<li>
@@ -269,11 +271,43 @@
 				<p class="label">Version {{version}}</p>
 				<h2 id="download-h">Download Mossbook</h2>
 				<p>
-					Free, for your computer. An Android version is in the works. Your journal stays on this
+					<!--pre-android-->Free, for your computer. An Android version is in the works.<!--/pre-android--><!--android-->Free, for Android phones and computers.<!--/android--> Your journal stays on this
 					device, and a single backup file moves it to another one.
 				</p>
 
 				<div class="systems">
+					<!--android-->
+					<div class="system" id="get-android">
+						<div>
+							<h3>Android</h3>
+							<span class="yours">Your system</span>
+						</div>
+						<div>
+							<ul class="files">
+								<li>
+									<a href="https://github.com/jakub-m-arch/mossbook/releases/download/v{{version}}/Mossbook_{{version}}_android.apk">.apk file <small>Android 7 or newer</small></a>
+								</li>
+							</ul>
+							<ol class="steps">
+								<li>Download the .apk file on your phone and open it from the notification or the Downloads folder.</li>
+								<li>
+									The phone asks whether your browser or file manager may install apps. Allow it
+									for that one app only; you can turn it off again after installing.
+								</li>
+								<li>
+									If Play Protect warns about an unknown app, choose <i>More details → Install
+									anyway</i>. Mossbook is not on Google Play, so Google does not know it.
+								</li>
+							</ol>
+							<p class="note">
+								Updates: download the newer file and install it the same way; your journal stays.
+								<a href="https://obtainium.imranr.dev/">Obtainium</a> can also notice new releases on
+								GitHub for you. The app is always signed with the same key, so a forged version
+								cannot install as an update.
+							</p>
+						</div>
+					</div>
+					<!--/android-->
 					<div class="system" id="get-mac">
 						<div>
 							<h3>macOS</h3>
@@ -394,9 +428,10 @@
 					<details>
 						<summary>Where is my data?</summary>
 						<p>
-							In a single encrypted file on your computer, with the automatic backups in a folder
-							next to it. Nowhere else. Moving to a new computer? Save a backup in Settings and open
-							it on the new one.
+							In a single encrypted file on your <!--pre-android-->computer<!--/pre-android--><!--android-->phone or computer<!--/android-->, with the automatic backups
+							next to it. Nowhere else. Moving to a new device? Save a backup in Settings and open
+							it on the new one.<!--android--> On Android the data stays in the app's private storage and is
+							left out of Google backups and phone-to-phone transfers.<!--/android-->
 						</p>
 					</details>
 					<details>
@@ -411,10 +446,25 @@
 					<details>
 						<summary>Is there a phone version?</summary>
 						<p>
-							Not yet. Android is next. It will work the same way: offline, without even the
-							permission to go online.
+							<!--pre-android-->Not yet. Android is next. It will work the same way: offline, without even the
+							permission to go online.<!--/pre-android--><!--android-->Yes, for Android (version 7 and newer). It works the same way as on a computer:
+							offline, without even the permission to go online. It also blocks screenshots and
+							screen recording, and the keyboard does not learn from what you type. There is no
+							iPhone version yet.<!--/android-->
 						</p>
 					</details>
+					<!--android-->
+					<details>
+						<summary>Can I open the journal with my fingerprint?</summary>
+						<p>
+							Yes, on Android. Turn it on in Settings after entering your password. The key stays in
+							the phone's secure chip and opens only after a fingerprint check. If someone adds a
+							fingerprint to the phone, the key stops working and Mossbook asks for the password
+							again. The password and the 24 words always work, and on another phone only they open
+							the journal.
+						</p>
+					</details>
+					<!--/android-->
 					<details>
 						<summary>How much does it cost?</summary>
 						<p>

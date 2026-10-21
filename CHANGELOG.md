@@ -9,6 +9,8 @@ All notable changes to Mossbook. Versions follow [Semantic Versioning](https://s
   is excluded from system backups and device transfers, blocks screenshots and
   screen recording, and asks the keyboard not to learn from what you type. CI builds
   it and checks the permissions and the native library.
+- Website: Android download with installation steps, fingerprint unlock and the
+  Android privacy measures, shown once a release carries an APK.
 - Fingerprint unlock on Android (Settings, after the password). The key stays in the
   phone's secure hardware, opens only after a strong fingerprint check and stops
   working when the phone's fingerprints change; the password always works too.

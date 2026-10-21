@@ -1,0 +1,1 @@
+First Android release: the full journal, fingerprint unlock, no internet permission, screenshots blocked, no system backups.

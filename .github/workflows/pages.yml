@@ -39,7 +39,14 @@ jobs:
             --json tagName --jq '.[0].tagName')
           [ -n "$tag" ] || { echo "No published release found" >&2; exit 1; }
           echo "Latest release: $tag"
-          site/render.sh "${tag#v}" _site
+          # The Android download appears once the release carries an APK.
+          android=
+          if gh release view "$tag" --repo "${{ github.repository }}" --json assets --jq '.assets[].name' \
+            | grep -q '_android\.apk$'; then
+            android=android
+          fi
+          echo "Android APK: ${android:-none}"
+          site/render.sh "${tag#v}" _site $android
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

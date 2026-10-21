@@ -29,17 +29,20 @@
 
 	// Point the main button at the visitor's system, and mark its row.
 	const ua = navigator.userAgent;
-	const os = /Mac/.test(ua) && !/iPhone|iPad/.test(ua)
-		? 'mac'
-		: /Windows/.test(ua)
-			? 'windows'
-			: /Linux/.test(ua) && !/Android/.test(ua)
-				? 'linux'
-				: null;
+	const os = /Android/.test(ua)
+		? 'android'
+		: /Mac/.test(ua) && !/iPhone|iPad/.test(ua)
+			? 'mac'
+			: /Windows/.test(ua)
+				? 'windows'
+				: /Linux/.test(ua)
+					? 'linux'
+					: null;
 	const primary = document.querySelector('[data-primary]');
-	if (os && primary) {
-		const row = document.getElementById(`get-${os}`);
-		row?.classList.add('detected');
+	// No row for this system (e.g. a release without an APK): leave the button alone.
+	const row = os && document.getElementById(`get-${os}`);
+	if (row && primary) {
+		row.classList.add('detected');
 		const label = primary.dataset[os];
 		if (label) primary.querySelector('span').textContent = label;
 		primary.href = `#get-${os}`;

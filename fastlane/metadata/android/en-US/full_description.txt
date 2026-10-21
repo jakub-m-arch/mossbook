@@ -1,0 +1,38 @@
+Mossbook is a private journal for mood, events, fears, sleep and nightmares. It is built for everyone, with particular care for people living with PTSD or anxiety and for people working with a therapist.
+
+<b>Nobody but you can read your entries.</b> There is no server, no account and no telemetry. Everything is encrypted on your phone, and the code is open so anyone can check.
+
+<b>Write it down in seconds</b>
+<ul>
+<li>Mood, fear or trigger, event, sleep, nightmare and free notes; a one-tap quick entry to finish later</li>
+<li>Quick entry even while the journal is locked: it can add, but not read</li>
+<li>Tags, search and filters; entries marked as difficult show only their type until you tap them</li>
+<li>Imagery rehearsal for nightmares: write a new version and keep your rehearsals</li>
+</ul>
+
+<b>See patterns, not judgements</b>
+<ul>
+<li>Mood over time, a calendar tinted by mood, and overviews of sleep, time of day, tags and what helped</li>
+<li>Observations only: no scores, streaks or diagnoses</li>
+</ul>
+
+<b>For a hard moment</b>
+<ul>
+<li>A safety plan, crisis phone numbers and short breathing and grounding exercises, available from the lock screen without the password</li>
+</ul>
+
+<b>With your therapist, if you choose</b>
+<ul>
+<li>A PDF report for a period, types and tags you pick, optionally protected with a password</li>
+</ul>
+
+<b>Privacy you can check</b>
+<ul>
+<li>No internet permission at all; no ads, analytics or crash reports</li>
+<li>XChaCha20-Poly1305 encryption with a key from your password (Argon2id), plus a 24-word recovery key</li>
+<li>Optional fingerprint unlock: the key stays in the phone's secure hardware</li>
+<li>Screenshots and screen recording are blocked, the keyboard is asked not to learn what you type, and the app is excluded from system backups</li>
+<li>Encrypted backups you save yourself, automatic backups on the phone, and a readable JSON export</li>
+</ul>
+
+In Polish, English and Ukrainian. Mossbook is not a medical device: it does not diagnose, recommend treatment or assess your health. If you are in danger, call your local emergency number (112 in the EU).

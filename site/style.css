@@ -724,6 +724,17 @@ h2 em {
 	font-size: 0.85rem;
 }
 
+.system .steps {
+	margin: 0.9rem 0 0;
+	padding-left: 1.25rem;
+	font-size: 0.93rem;
+	max-width: 42rem;
+}
+
+.system .steps li + li {
+	margin-top: 0.35rem;
+}
+
 .system .note {
 	margin: 0.9rem 0 0;
 	font-size: 0.93rem;

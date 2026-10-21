@@ -1,0 +1,38 @@
+Mossbook to prywatny dziennik nastroju, wydarzeń, lęków, snu i koszmarów. Jest dla każdego, ze szczególną troską o osoby z PTSD albo lękiem i o osoby, które pracują z terapeutą.
+
+<b>Twoje wpisy przeczytasz tylko Ty.</b> Nie ma serwera, konta ani telemetrii. Wszystko jest zaszyfrowane na telefonie, a kod jest otwarty, więc każdy może to sprawdzić.
+
+<b>Zapis w kilka sekund</b>
+<ul>
+<li>Samopoczucie, lęk lub wyzwalacz, wydarzenie, sen, koszmar i notatka; szybki wpis jednym stuknięciem do uzupełnienia później</li>
+<li>Szybki wpis nawet przy zablokowanym dzienniku: można dodać, ale nie przeczytać</li>
+<li>Tagi, wyszukiwanie i filtry; wpisy oznaczone jako trudne pokazują tylko rodzaj, dopóki ich nie stukniesz</li>
+<li>Praca z koszmarami (IRT): nowa wersja snu i zapisane powtórki</li>
+</ul>
+
+<b>Obserwacje, nie oceny</b>
+<ul>
+<li>Nastrój w czasie, kalendarz zabarwiony nastrojem i przeglądy: sen, pora dnia, tagi i to, co pomagało</li>
+<li>Same obserwacje: bez punktów, serii i diagnoz</li>
+</ul>
+
+<b>Na trudną chwilę</b>
+<ul>
+<li>Plan na trudny moment, telefony zaufania i krótkie ćwiczenia oddechowe i uziemiające, dostępne z ekranu blokady bez hasła</li>
+</ul>
+
+<b>Z terapeutą, jeśli zechcesz</b>
+<ul>
+<li>Raport PDF z wybranego okresu, rodzajów wpisów i tagów, opcjonalnie zabezpieczony hasłem</li>
+</ul>
+
+<b>Prywatność, którą można sprawdzić</b>
+<ul>
+<li>Brak uprawnienia do internetu; bez reklam, analityki i raportów o błędach</li>
+<li>Szyfrowanie XChaCha20-Poly1305 kluczem z hasła (Argon2id) i 24 słowa klucza odzyskiwania</li>
+<li>Opcjonalne odblokowanie odciskiem palca: klucz zostaje w bezpiecznym układzie telefonu</li>
+<li>Blokada zrzutów i nagrywania ekranu, klawiatura nie uczy się wpisywanych słów, aplikacja nie trafia do kopii zapasowej systemu</li>
+<li>Zaszyfrowane kopie zapisywane przez Ciebie, automatyczne kopie na telefonie i czytelny eksport JSON</li>
+</ul>
+
+Po polsku, angielsku i ukraińsku. Mossbook nie jest wyrobem medycznym: nie diagnozuje, nie doradza leczenia i nie ocenia zdrowia. W nagłym zagrożeniu dzwoń pod 112.

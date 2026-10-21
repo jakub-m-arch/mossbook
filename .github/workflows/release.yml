@@ -76,9 +76,94 @@ jobs:
           prerelease: true
           args: ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
 
+  android:
+    name: Build Android (signed APK)
+    # After the desktop builds: tauri-action creates the draft release this job
+    # uploads to.
+    needs: build
+    runs-on: ubuntu-24.04
+    env:
+      ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Check the signing key
+        id: key
+        run: |
+          if [ -z "$ANDROID_KEYSTORE" ]; then
+            echo "::notice::ANDROID_KEYSTORE is not set; skipping the Android APK (docs/release.md)."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Tag matches the version in the code
+        if: steps.key.outputs.present == 'true'
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)
+          case "${{ github.ref_name }}" in
+            "v$version" | "v$version"-*) ;;
+            *) echo "::error::Tag ${{ github.ref_name }} does not match version $version"; exit 1 ;;
+          esac
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Java 17, the NDK and the Rust targets
+        if: steps.key.outputs.present == 'true'
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
+          echo "NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
+          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: steps.key.outputs.present == 'true'
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+        if: steps.key.outputs.present == 'true'
+        working-directory: app
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        if: steps.key.outputs.present == 'true'
+        with:
+          key: android-release
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        if: steps.key.outputs.present == 'true'
+        with:
+          tool: tauri-cli
+      - name: Signing key from secrets
+        if: steps.key.outputs.present == 'true'
+        env:
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        working-directory: app/src-tauri/gen/android
+        run: |
+          umask 077
+          echo "$ANDROID_KEYSTORE" | base64 --decode > "$RUNNER_TEMP/mossbook-release.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/mossbook-release.jks"
+            echo "keyAlias=$ANDROID_KEY_ALIAS"
+            echo "password=$ANDROID_KEY_PASSWORD"
+          } > keystore.properties
+      - name: Release APK
+        if: steps.key.outputs.present == 'true'
+        working-directory: app
+        run: cargo tauri android build --ci --apk --target aarch64 armv7 x86_64
+      - name: Check and upload the APK
+        if: steps.key.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          apk=app/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
+          tools/check-android-apk.sh "$apk"
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)
+          "$apksigner" verify --print-certs "$apk"
+          out="Mossbook_${VERSION}_android.apk"
+          cp "$apk" "$out"
+          gh release upload "${{ github.ref_name }}" "$out" --repo "${{ github.repository }}" --clobber
+      - name: Remove the signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/mossbook-release.jks" app/src-tauri/gen/android/keystore.properties
+
   checksums:
     name: SHA256SUMS and provenance
-    needs: build
+    needs: [build, android]
     runs-on: ubuntu-24.04
     # Attestations are signed with the workflow's OIDC identity and stored by GitHub,
     # so anyone can check that an installer was built here from this commit
