@@ -2,13 +2,13 @@
 
 All notable changes to Mossbook. Versions follow [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.2.0 (2026-10-21)
 
 ### Added
-- Android build (not published yet). The release APK holds no network permission,
-  is excluded from system backups and device transfers, blocks screenshots and
-  screen recording, and asks the keyboard not to learn from what you type. CI builds
-  it and checks the permissions and the native library.
+- Android (7 and newer): a signed APK on the release page. It holds no network
+  permission, is excluded from system backups and device transfers, blocks
+  screenshots and screen recording, and asks the keyboard not to learn from what you
+  type. CI checks the permissions and the native library of every build.
 - Website: Android download with installation steps, fingerprint unlock and the
   Android privacy measures, shown once a release carries an APK.
 - Fingerprint unlock on Android (Settings, after the password). The key stays in the

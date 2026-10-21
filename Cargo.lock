@@ -2765,7 +2765,7 @@ dependencies = [
 
 [[package]]
 name = "mossbook"
-version = "0.1.3"
+version = "0.2.0"
 dependencies = [
  "base64 0.22.1",
  "mossbook-core",
@@ -2784,7 +2784,7 @@ dependencies = [
 
 [[package]]
 name = "mossbook-core"
-version = "0.1.3"
+version = "0.2.0"
 dependencies = [
  "argon2",
  "bip39",
