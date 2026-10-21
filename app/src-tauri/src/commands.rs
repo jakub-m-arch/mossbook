@@ -332,9 +332,16 @@ pub fn backup_info(state: State<'_, AppState>) -> AppResult<BackupInfo> {
     with_session(&state, |s| s.backup_info())
 }
 
-/// Shows the newest automatic backup in the system file manager.
+/// Shows the newest automatic backup in the system file manager (desktop only;
+/// on mobile the backups are in the app's private storage).
 #[tauri::command(async)]
 pub fn backup_reveal(app: AppHandle, state: State<'_, AppState>) -> AppResult<()> {
+    if cfg!(mobile) {
+        return Err(AppError::new(
+            "not_found",
+            "no file manager on this platform",
+        ));
+    }
     let latest = {
         let session = state.session();
         session.journal()?;

@@ -1,0 +1,13 @@
+[env]
+# Android: wry pastes this into its generated RustWebView class. Every text field
+# in the web view asks the keyboard not to learn from what is typed (journal
+# entries, passwords, recovery words), as a keyboard in incognito mode would.
+# tauri-cli clears WRY_* codegen variables from its own environment; cargo still
+# sets this one for wry's build script. Ignored on desktop.
+WRY_RUSTWEBVIEW_CLASS_EXTENSION = """
+    override fun onCreateInputConnection(outAttrs: android.view.inputmethod.EditorInfo): android.view.inputmethod.InputConnection? {
+        val connection = super.onCreateInputConnection(outAttrs)
+        outAttrs.imeOptions = outAttrs.imeOptions or android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
+        return connection
+    }
+"""

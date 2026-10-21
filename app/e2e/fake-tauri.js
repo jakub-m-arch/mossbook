@@ -317,6 +317,7 @@
 						auto_latest: state.autoLatest,
 						auto_count: state.autoLatest ? 1 : 0,
 						auto_failed: false,
+						can_reveal: true,
 						last_export: state.settings.last_export
 					}
 				: fail('locked'),

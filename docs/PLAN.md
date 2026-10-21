@@ -14,7 +14,7 @@ Android SDK are not installed.**
 
 - [x] Rust: `rustup` (stable) + `rustfmt`, `clippy`
 - [x] `cargo install tauri-cli cargo-deny cargo-audit --locked`
-- [ ] (stage 11) JDK 17, Android Studio / SDK + NDK, `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`
+- [x] (stage 11) JDK 17, Android SDK command-line tools + NDK (no Android Studio needed), `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android i686-linux-android`
 - [ ] (v1, iOS) full Xcode
 
 ---
@@ -112,8 +112,20 @@ Android SDK are not installed.**
 - [x] Language setting: "as in the system", Polski, English, Українська; `Settings.locale` optional (old records with a string still load), applied after unlocking (D-2)
 - [x] Texts with numbers rephrased so they need no plural forms
 
-### Stage 11: Android — postponed
-Postponed on purpose (2026-10-19): the tools are missing (JDK, SDK, NDK) and store distribution is uncertain. When resuming: `cargo tauri android init`, a release manifest without `INTERNET`, `allowBackup=false` + `dataExtractionRules`, `FLAG_SECURE`, a manifest test and a check that the release `.so` contains no `reqwest`/`hyper`.
+### Stage 11: Android
+Resumed 2026-10-21 (postponed on 2026-10-19 while the tools were missing).
+- [x] `cargo tauri android init`; the project in `app/src-tauri/gen/android` is committed, with the Mossbook launcher icons
+- [x] Release manifest (`src/release/AndroidManifest.xml`) removes `INTERNET` and `ACCESS_NETWORK_STATE` with `tools:node="remove"`; the debug build keeps `INTERNET` for the dev server
+- [x] `allowBackup="false"`, `fullBackupContent="false"`, `dataExtractionRules` excluding every domain from cloud backup and device transfer; the FileProvider exposes only the cache
+- [x] `FLAG_SECURE` in `MainActivity` (no screenshots, recordings or app-switcher previews)
+- [x] Edge-to-edge: the web view gets no safe-area insets, so `MainActivity` pads the content by the system bars, the display cutout and the keyboard; the window background matches the page
+- [x] The keyboard is asked not to learn from anything typed (`IME_FLAG_NO_PERSONALIZED_LEARNING` on every input connection, via wry's `WRY_RUSTWEBVIEW_CLASS_EXTENSION` in `.cargo/config.toml`)
+- [x] "Show in folder" for automatic backups is desktop only (`BackupInfo.can_reveal`); on Android they stay in the app's private storage
+- [x] Tests: `android_project_keeps_the_hardening` (source manifests, backup rules, `FLAG_SECURE`); CI builds a release APK and `tools/check-android-apk.sh` checks the merged manifest (no network permissions, backups off) and that the native library imports no socket functions
+- [x] Emulator (Android 16, Pixel 7): create a journal, quick entry, lock on going to the background, unlock, save a backup through the system dialog (opened by `tools/read-backup.py`), crisis numbers open the dialer without calling; app files and WebView storage hold no typed secrets
+- [ ] Test on a real phone (USB debugging)
+- [ ] Release signing (upload key in GitHub secrets) and an APK in the `Release` workflow
+- [ ] Distribution: GitHub Releases, then IzzyOnDroid, then F-Droid
 
 ### Stage 12: Release 0.1 (desktop)
 - [x] `SECURITY.md`, `docs/threat-model.md` (threat → protection → place in code, accepted leaks, limitations), `CONTRIBUTING.md` (DCO, rules), `CHANGELOG.md`

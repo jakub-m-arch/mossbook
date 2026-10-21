@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FileProvider roots. Only the cache: nothing else of the app's storage can be
+     shared through a content URI. -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+  <cache-path name="cache" path="." />
+</paths>

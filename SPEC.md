@@ -414,9 +414,10 @@ idle timer lives in Rust; the frontend only resets it.
 | iOS | Data directory excluded from backups (`isExcludedFromBackup`); a curtain on `willResignActive`; file protection `NSFileProtectionComplete` |
 | Desktop | Window curtain on focus loss, data in the user's application data directory |
 
-To verify when the mobile builds are done: where exactly the native configuration
-lives in a Tauri 2 project (`gen/android`, `gen/apple`) and whether changes survive
-`tauri android init` / `tauri ios init`.
+Android: the native configuration lives in `app/src-tauri/gen/android`, which is
+committed. `tauri android init` regenerates it from a template and would drop these
+changes, so the project is edited in place and a test checks the hardening. To verify
+for iOS: the same for `gen/apple`.
 
 ### 8.5. UI and UX
 

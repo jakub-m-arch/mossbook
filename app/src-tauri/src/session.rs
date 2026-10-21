@@ -94,6 +94,9 @@ pub struct BackupInfo {
     pub auto_latest: Option<Timestamp>,
     pub auto_count: usize,
     pub auto_failed: bool,
+    /// Whether the system file manager can show the backups folder. Not on
+    /// mobile, where the backups live in the app's private storage.
+    pub can_reveal: bool,
     /// When the user last saved a backup themselves.
     pub last_export: Option<Timestamp>,
 }
@@ -354,6 +357,7 @@ impl Session {
             }),
             auto_count: backups.len(),
             auto_failed: self.auto_backup_failed,
+            can_reveal: cfg!(desktop),
             last_export: settings.last_export,
         })
     }

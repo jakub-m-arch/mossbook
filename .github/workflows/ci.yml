@@ -103,3 +103,36 @@ jobs:
           tool: tauri-cli
       - run: cargo tauri build --ci --no-bundle
         working-directory: app
+
+  android:
+    name: Build Android (release APK checks)
+    needs: [rust, frontend]
+    runs-on: ubuntu-24.04
+    # The runner image ships the Android SDK, an NDK and JDK 17.
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Java 17 and the NDK
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
+          echo "NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
+      - name: Rust Android target
+        run: rustup target add aarch64-linux-android
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+        working-directory: app
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: android
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: tauri-cli
+      - name: Release APK (unsigned)
+        # RUSTFLAGS would replace the Android linker flags that tauri-cli sets.
+        run: env -u RUSTFLAGS cargo tauri android build --ci --apk --target aarch64
+        working-directory: app
+      - name: No network permission, no backups, no socket imports
+        run: tools/check-android-apk.sh app/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk

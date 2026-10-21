@@ -173,6 +173,38 @@ mod tests {
         assert_eq!(npm["version"], env!("CARGO_PKG_VERSION"));
     }
 
+    /// Android hardening from SPEC §8.4 stays in the generated project: no network
+    /// permission in release, no system backups, no screenshots.
+    #[test]
+    fn android_project_keeps_the_hardening() {
+        let android = concat!(env!("CARGO_MANIFEST_DIR"), "/gen/android/app/src");
+        let read = |path: &str| std::fs::read_to_string(format!("{android}/{path}")).unwrap();
+
+        let release = read("release/AndroidManifest.xml");
+        for permission in ["INTERNET", "ACCESS_NETWORK_STATE"] {
+            assert!(
+                release.contains(&format!(
+                    "android.permission.{permission}\" tools:node=\"remove\""
+                )),
+                "release manifest must remove {permission}"
+            );
+        }
+
+        let main = read("main/AndroidManifest.xml");
+        assert!(main.contains("android:allowBackup=\"false\""));
+        assert!(main.contains("android:fullBackupContent=\"false\""));
+        assert!(main.contains("android:dataExtractionRules=\"@xml/data_extraction_rules\""));
+
+        let rules = read("main/res/xml/data_extraction_rules.xml");
+        assert!(!rules.contains("<include"));
+        for section in ["<cloud-backup>", "<device-transfer>"] {
+            assert!(rules.contains(section), "{section} missing");
+        }
+
+        let activity = read("main/java/io/github/jakubmarch/mossbook/MainActivity.kt");
+        assert!(activity.contains("FLAG_SECURE"));
+    }
+
     /// Every command in the list is registered in `generate_handler!`.
     #[test]
     fn handler_registers_every_command() {
@@ -221,6 +253,7 @@ mod ipc_shapes {
             auto_latest: Some(datetime!(2026-10-20 08:00 +02:00).into()),
             auto_count: 1,
             auto_failed: false,
+            can_reveal: true,
             last_export: None,
         };
         assert_eq!(
@@ -230,6 +263,7 @@ mod ipc_shapes {
                 "auto_latest": "2026-10-20T08:00:00+02:00",
                 "auto_count": 1,
                 "auto_failed": false,
+                "can_reveal": true,
                 "last_export": null
             })
         );

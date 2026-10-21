@@ -39,8 +39,10 @@ backup (Settings → Backup).
 
 - **Done:** every desktop feature of the MVP, and from v1 the PDF report, nightmares (IRT),
   difficult content, the mood calendar, overviews, and quick entry while locked.
-- **Not yet:** Android and iOS builds, biometric unlock, reminders (they come with the
-  mobile versions), and code-signed installers.
+- **In progress:** Android. The app builds and runs on Android; there is no published
+  APK yet.
+- **Not yet:** iOS, biometric unlock, reminders (they come with the mobile versions),
+  and code-signed installers.
 
 The specification is [`SPEC.md`](SPEC.md); the checklist and the decisions taken along
 the way are in [`docs/PLAN.md`](docs/PLAN.md).
@@ -103,7 +105,7 @@ Mossbook never connects to the internet, so it does not check for updates by its
 
 | Principle | How |
 |---|---|
-| Zero network | No networking code or dependencies (enforced by `cargo deny`). The Android release build will not even hold the `INTERNET` permission. |
+| Zero network | No networking code or dependencies (enforced by `cargo deny`). The Android release build does not even hold the `INTERNET` permission (checked in CI). |
 | Everything encrypted at rest | Every record, tag, date and setting is encrypted with XChaCha20-Poly1305. Nothing readable is stored on disk. |
 | Strong password hashing | The key is derived from your password with Argon2id (64 MiB, calibrated to ~0.75 s on your device). |
 | Recovery key | 24 words (BIP-39) generated when you create the journal. Without your password **and** this key, nobody can recover your entries, including us. |
@@ -161,14 +163,15 @@ mossbook/
 │   ├── migrations/   SQL schema
 │   └── tests/        integration tests and the format-v1 fixtures
 ├── app/
-│   ├── src-tauri/    Tauri commands, session, capabilities
+│   ├── src-tauri/    Tauri commands, session, capabilities; gen/android (Android project)
 │   ├── src/          Svelte UI (routes/, lib/api, lib/i18n, lib/components)
 │   └── e2e/          Playwright scenarios against a fake backend
 ├── docs/             architecture.md, crypto.md, backup-format.md, threat-model.md,
 │                     release.md, PLAN.md
 ├── packaging/        Homebrew cask template
 ├── site/             the website (static HTML, CSS, local fonts, screenshots)
-├── tools/            verify-vectors.py, read-backup.py, read-report.py (independent readers)
+├── tools/            independent readers (verify-vectors.py, read-backup.py, read-report.py),
+│                     check-android-apk.sh
 └── SPEC.md           specification
 ```
 
@@ -200,6 +203,26 @@ cargo tauri build        # release build and installers
 The journal is stored as `vault.db` in the platform's application data directory,
 for example `~/Library/Application Support/io.github.jakubmarch.mossbook/` on macOS
 or `~/.local/share/io.github.jakubmarch.mossbook/` on Linux.
+
+### Android
+
+You need JDK 17, the Android SDK command-line tools (platform-tools, a platform,
+build-tools) and an NDK, with `JAVA_HOME`, `ANDROID_HOME` and `NDK_HOME` set (see
+the [Tauri Android prerequisites](https://tauri.app/start/prerequisites/#android)),
+and the Rust targets:
+
+```sh
+rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android i686-linux-android
+cd app
+cargo tauri android dev                   # on a connected phone (USB debugging) or an emulator
+cargo tauri android build --apk           # release APK (unsigned)
+../tools/check-android-apk.sh src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk
+```
+
+The Android project lives in `app/src-tauri/gen/android` and is committed: its
+manifest, `MainActivity.kt` and resources carry the hardening from SPEC §8.4. Do not
+regenerate it with `cargo tauri android init` without carrying those changes over (a
+test in `app/src-tauri` checks them).
 
 ## Development
 

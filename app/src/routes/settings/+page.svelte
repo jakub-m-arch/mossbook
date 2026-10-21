@@ -259,7 +259,7 @@
 						: t('backup.autoNone')}
 				</p>
 				{#if backups.auto_failed}<p class="notice">{t('backup.autoFailed')}</p>{/if}
-				{#if backups.auto_latest}
+				{#if backups.auto_latest && backups.can_reveal}
 					<button
 						type="button"
 						class="secondary"

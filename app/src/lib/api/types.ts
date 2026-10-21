@@ -299,6 +299,8 @@ export interface BackupInfo {
 	auto_count: number;
 	/** The last automatic backup that was due could not be written. */
 	auto_failed: boolean;
+	/** The system file manager can show the folder (desktop only). */
+	can_reveal: boolean;
 	last_export: string | null;
 }
 
