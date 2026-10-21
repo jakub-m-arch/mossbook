@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod command_names;
 mod commands;
+mod device_key;
 mod error;
 mod session;
 
@@ -28,6 +29,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        // Fingerprint unlock (Android Keystore); a no-op on desktop.
+        .plugin(device_key::init())
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
@@ -49,6 +52,10 @@ pub fn run() {
             commands::vault_change_password,
             commands::vault_verify_recovery,
             commands::vault_destroy,
+            commands::vault_unlock_device,
+            commands::device_unlock_status,
+            commands::device_unlock_enable,
+            commands::device_unlock_disable,
             commands::entries_list,
             commands::entry_get,
             commands::entry_save,

@@ -35,7 +35,7 @@ command contract.
 |---|---|
 | `crypto/` | The only place that touches primitives: `kdf` (Argon2id, calibration, parameter bounds), `aead` (record encryption and AAD), `wrap` (DEK wrapping), `recovery` (BIP-39 + HKDF), `sealed` (X25519 sealed boxes for the inbox). Key types live in `SecretBox` and have redacted `Debug`. |
 | `store/` | SQLite access: opening with WAL and `secure_delete`, migrations by `user_version`, raw rows of `meta`, `records` and `inbox`. Knows bytes, not meaning. |
-| `vault/` | The vault life cycle on top of `store` and `crypto`: `PendingVault` (create in memory, write after the recovery words are confirmed), `unlock` / `unlock_with_recovery`, `UnlockedVault` (holds the DEK, encrypts on `put` / `write_batch`), `change_password` (rewrap), `destroy`, `append_to_inbox` (works while locked), and the in-memory `UnlockThrottle`. |
+| `vault/` | The vault life cycle on top of `store` and `crypto`: `PendingVault` (create in memory, write after the recovery words are confirmed), `unlock` / `unlock_with_recovery`, `UnlockedVault` (holds the DEK, encrypts on `put` / `write_batch`), `change_password` (rewrap), `destroy`, `append_to_inbox` (works while locked), `device_enrollment` / `unlock_with_device_key` with the `DeviceKeyFile` (fingerprint unlock), and the in-memory `UnlockThrottle`. |
 | `domain/` | Plain data types: `Entry`, `EntryKind`, `EntryDraft`, `InboxEntry`, `Tag`, `SafetyPlan`, `Settings`, `Id`, `Timestamp`. CBOR encoding, range validation, `ZeroizeOnDrop`, redacted `Debug`. |
 | `journal.rs` | `Journal`: the unlocked journal as domain objects (`HashMap`s of entries and tags, the plan, the settings) on top of an `UnlockedVault`. All mutations go through it: save, quick entry, tags (merge and delete in one transaction), import, and moving inbox entries in on open. |
 | `query/` | Read-only computations over the in-memory journal: `filter`, `search` (case- and diacritic-insensitive), `stats` (mood series), `patterns` (overviews A-2–A-4, with minimum data thresholds). |
@@ -89,6 +89,10 @@ place:
   the keyboard, because the web view gets no safe-area insets in edge-to-edge mode.
 - `.cargo/config.toml` adds an `onCreateInputConnection` override to wry's generated
   `RustWebView`, so every text field asks the keyboard not to learn from it.
+- `DeviceKeyPlugin.kt` (fingerprint unlock, V-7) keeps an AES-256-GCM key in the
+  Android Keystore and runs `BiometricPrompt`. It is registered by
+  `src/device_key.rs` and called only from Rust (`vault_unlock_device`,
+  `device_unlock_*`); on desktop the same module reports "unavailable".
 - Files and dialogs go through `tauri-plugin-dialog` and `tauri-plugin-fs`, which
   hand back content URIs; the vault and automatic backups stay in the app's private
   storage.

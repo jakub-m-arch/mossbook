@@ -116,8 +116,22 @@ secret_key_type!(
     Kek
 );
 
+secret_key_type!(
+    /// Device key: random, wraps the DEK for unlocking without the password (V-7).
+    /// It is itself encrypted by the platform's secure hardware (Android Keystore)
+    /// and only released after a strong biometric check.
+    DeviceKey
+);
+
 impl Dek {
     /// Generates a new random DEK.
+    pub fn generate() -> Result<Self, CryptoError> {
+        Key32::generate().map(Self)
+    }
+}
+
+impl DeviceKey {
+    /// Generates a new random device key.
     pub fn generate() -> Result<Self, CryptoError> {
         Key32::generate().map(Self)
     }

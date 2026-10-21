@@ -18,6 +18,8 @@ recovery key (256 bit) ──HKDF-SHA256──▶ KEK_rec ────┘
 - **DEK** is generated once with the OS CSPRNG and never changes. A password change
   re-wraps the DEK under a new `KEK_pwd` with a new salt; records are not re-encrypted.
 - The DEK is wrapped twice, once under each KEK. Either one unlocks the vault.
+- Optionally, on Android, a third wrap under a **device key** (fingerprint unlock,
+  below). It lives in a separate file on the device, never in the vault or a backup.
 
 ## Primitives and encodings
 
@@ -194,10 +196,48 @@ The vault has an X25519 key pair for appending entries without the password:
 - Vaults created before the inbox existed get a key pair on their next unlock.
   Backups do not carry the pair; a restored vault gets a new one.
 
+## Fingerprint unlock (V-7, D-18)
+
+```
+device key (random, 256 bit) ──wrap──▶ DEK
+Android Keystore AES-256-GCM key ──encrypts──▶ device key
+```
+
+- **Device key**: generated with the OS CSPRNG when fingerprint unlock is turned on
+  (after the password is re-checked). It wraps the DEK like a KEK, with its own AAD,
+  so a password wrap can never be read as a device wrap or the other way round:
+
+  ```
+  AAD     = "mossbook/wrap/device/v1" || vault_id (16 B)
+  wrapped = AEAD(device key, AAD, DEK)        -- 72 bytes
+  ```
+
+- **Keystore key** (`mossbook-device-key`, `DeviceKeyPlugin.kt`): AES-256-GCM in the
+  Android Keystore, StrongBox when the phone has one. `setUserAuthenticationRequired`
+  with a fresh class 3 (strong) biometric check for every use, and
+  `setInvalidatedByBiometricEnrollment`: adding or removing a fingerprint destroys it.
+  It never leaves the secure hardware; the device key is encrypted and decrypted
+  through a `BiometricPrompt` crypto object.
+- **File** `vault.db.device-key`, next to the vault (big-endian):
+
+  ```
+  magic "MBDK" | version 1 | vault_id (16) | wrapped DEK (72)
+               | sealed key length (2) | sealed key (IV 12 || GCM ciphertext and tag)
+  ```
+
+  A file of another vault, a damaged file or a key that does not open the wrap is
+  rejected and removed; the password still opens the journal. The file is removed
+  when fingerprint unlock is turned off and when the journal is deleted. A password
+  change or a recovery keeps it valid, because the DEK does not change.
+- The device key passes from Rust to Kotlin (in-process, base64) for encryption and
+  back after a fingerprint; the web view never sees it. The JVM copies of the base64
+  strings cannot be wiped reliably (see the threat model).
+- Test vector: `device_fixed_vector`, cross-checked by `tools/verify-vectors.py`.
+
 ## Backups
 
 The `.mossbook` backup format is specified in [`backup-format.md`](backup-format.md).
 
 ## Not covered yet
 
-- Biometric unlock (v1, SPEC §6.5).
+- Biometric unlock on iOS (SPEC §6.5).

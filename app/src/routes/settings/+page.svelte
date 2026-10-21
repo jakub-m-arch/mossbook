@@ -25,6 +25,7 @@
 	import type { AppInfo, AutoLock, BackupInfo, ImportOutcome, Settings } from '#lib/api/index.js';
 	import BackupImport from '#lib/components/BackupImport.svelte';
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
+	import FingerprintUnlock from '#lib/components/FingerprintUnlock.svelte';
 	import PasswordField from '#lib/components/PasswordField.svelte';
 	import StrengthMeter from '#lib/components/StrengthMeter.svelte';
 	import UnlockedShell from '#lib/components/UnlockedShell.svelte';
@@ -225,6 +226,8 @@
 			{/if}
 			{#if messages.settings}<p class="muted" aria-live="polite">{messages.settings}</p>{/if}
 		</section>
+
+		<FingerprintUnlock />
 
 		<section class="card stack" aria-labelledby="backup">
 			<h2 id="backup">{t('backup.title')}</h2>

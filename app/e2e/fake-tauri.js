@@ -43,6 +43,16 @@
 		},
 		autoLatest: null,
 		pendingBackup: false,
+		// Fingerprint unlock (V-7): off unless a test sets `fake-biometric`.
+		biometric: {
+			// Read on each call: tests set it in an init script that may run after this one.
+			get available() {
+				return window.localStorage.getItem('fake-biometric') === 'available';
+			},
+			enabled: window.localStorage.getItem('fake-biometric-enabled') === 'yes',
+			/** What the next system prompt does: 'ok', 'cancelled' or an error code. */
+			next: 'ok'
+		},
 		inbox: [],
 		plan: {
 			warning_signs: [],
@@ -333,6 +343,39 @@
 			password = next;
 			return null;
 		},
+		device_unlock_status: () => ({
+			available: state.biometric.available,
+			enrollable: window.localStorage.getItem('fake-biometric') === 'enrollable',
+			enabled: state.biometric.enabled
+		}),
+		device_unlock_enable: ({ password: given }) => {
+			if (state.vault !== 'unlocked') return fail('locked');
+			if (given !== password) return fail('wrong_password');
+			if (!state.biometric.available) return fail('biometric_unavailable');
+			const next = state.biometric.next;
+			if (next === 'cancelled') return false;
+			if (next !== 'ok') return fail(next);
+			state.biometric.enabled = true;
+			window.localStorage.setItem('fake-biometric-enabled', 'yes');
+			return true;
+		},
+		device_unlock_disable: () => {
+			state.biometric.enabled = false;
+			window.localStorage.removeItem('fake-biometric-enabled');
+			return null;
+		},
+		vault_unlock_device: () => {
+			if (state.vault !== 'locked') return fail('invalid_state');
+			if (!state.biometric.enabled) return fail('device_unlock_off');
+			const next = state.biometric.next;
+			if (next === 'cancelled') return false;
+			if (next === 'device_key_invalidated') {
+				commands.device_unlock_disable();
+				return fail(next);
+			}
+			if (next !== 'ok') return fail(next);
+			return unlockAttempt(true).then(() => true);
+		},
 		vault_destroy: (args) => {
 			if (args.password !== password) return fail('wrong_password');
 			state.vault = 'no_vault';
@@ -457,6 +500,10 @@
 		reportPasswords: [],
 		jsonExports: 0,
 		emit,
+		/** What the next fingerprint prompt does: 'ok', 'cancelled' or an error code. */
+		setBiometric(next) {
+			state.biometric.next = next;
+		},
 		lockFromRust(reason) {
 			state.vault = 'locked';
 			save();

@@ -23,6 +23,7 @@ EXPECTED = {
     "kdf": "42f38f1d97f523ad2170abeddfcd7c24fd8370c9b3c6408653337c0fd93896f6",
     "recovery": "a3f3d01aa17e8f009d0eee4c9d5f7293c9d4ad20b01e42b5c5e121453ff91968",
     "wrap": "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeffe0e1e2e3e4e5e6e768707b08629c217797673da14b330b9c0d294353112bcebeccfce6c742cb59561ccc9ba21acb4137910f3c513ee5177b",
+    "device_wrap": "d0d1d2d3d4d5d6d7d8d9dadbdcdddedfc0c1c2c3c4c5c6c71faae23383679a0c7993606b600db610e4e9e900ada3c7529393d63e4425ce497da1e16c5c151b7ff0798c134400ecfc",
 }
 
 
@@ -50,6 +51,9 @@ def compute() -> dict:
     # wrap.rs: AAD = "mossbook/wrap/v1" || vault_id
     nonce = bytes(0xF0 ^ i for i in range(24))
     out["wrap"] = nonce + xchacha_encrypt(b"\x02" * 32, b"mossbook/wrap/v1" + VAULT, nonce, b"\x01" * 32)
+    # wrap.rs: device key wrap (V-7), AAD = "mossbook/wrap/device/v1" || vault_id
+    nonce = bytes(0xD0 ^ i for i in range(24))
+    out["device_wrap"] = nonce + xchacha_encrypt(b"\x04" * 32, b"mossbook/wrap/device/v1" + VAULT, nonce, b"\x03" * 32)
     return {k: v.hex() for k, v in out.items()}
 
 

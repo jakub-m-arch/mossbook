@@ -2,17 +2,24 @@
 //!
 //! XChaCha20-Poly1305 with a random nonce and `AAD = "mossbook/wrap/v1" || vault_id`.
 //! Changing the password only re-wraps the DEK; records are never re-encrypted.
+//! The device key (V-7) wraps the same DEK with its own AAD,
+//! `"mossbook/wrap/device/v1" || vault_id`, so neither wrap can pose as the other.
 
 use super::aead::{self, OVERHEAD};
-use super::{CryptoError, Dek, KEY_LEN, Kek, VaultId};
+use super::{CryptoError, Dek, DeviceKey, KEY_LEN, Kek, VaultId};
 
 /// Length of a wrapped DEK in bytes.
 pub const WRAPPED_LEN: usize = KEY_LEN + OVERHEAD;
 
 const WRAP_AAD_PREFIX: &[u8] = b"mossbook/wrap/v1";
+const DEVICE_WRAP_AAD_PREFIX: &[u8] = b"mossbook/wrap/device/v1";
 
 fn wrap_aad(vault_id: &VaultId) -> Vec<u8> {
     [WRAP_AAD_PREFIX, vault_id.as_slice()].concat()
+}
+
+fn device_wrap_aad(vault_id: &VaultId) -> Vec<u8> {
+    [DEVICE_WRAP_AAD_PREFIX, vault_id.as_slice()].concat()
 }
 
 /// Wraps `dek` under `kek`.
@@ -22,10 +29,32 @@ pub fn wrap_dek(kek: &Kek, vault_id: &VaultId, dek: &Dek) -> Result<Vec<u8>, Cry
 
 /// Unwraps a DEK. A wrong password or recovery key surfaces as [`CryptoError::Decrypt`].
 pub fn unwrap_dek(kek: &Kek, vault_id: &VaultId, wrapped: &[u8]) -> Result<Dek, CryptoError> {
+    open_wrapped(kek.expose(), &wrap_aad(vault_id), wrapped)
+}
+
+/// Wraps `dek` under the device key (V-7).
+pub fn wrap_dek_device(
+    key: &DeviceKey,
+    vault_id: &VaultId,
+    dek: &Dek,
+) -> Result<Vec<u8>, CryptoError> {
+    aead::seal(key.expose(), &device_wrap_aad(vault_id), dek.expose())
+}
+
+/// Unwraps a DEK wrapped by [`wrap_dek_device`].
+pub fn unwrap_dek_device(
+    key: &DeviceKey,
+    vault_id: &VaultId,
+    wrapped: &[u8],
+) -> Result<Dek, CryptoError> {
+    open_wrapped(key.expose(), &device_wrap_aad(vault_id), wrapped)
+}
+
+fn open_wrapped(key: &[u8; KEY_LEN], aad: &[u8], wrapped: &[u8]) -> Result<Dek, CryptoError> {
     if wrapped.len() != WRAPPED_LEN {
         return Err(CryptoError::Malformed);
     }
-    let plain = aead::open(kek.expose(), &wrap_aad(vault_id), wrapped)?;
+    let plain = aead::open(key, aad, wrapped)?;
     let mut bytes: [u8; KEY_LEN] = plain
         .as_slice()
         .try_into()
@@ -162,6 +191,79 @@ mod tests {
         let note = open_record(&after, &VAULT, &[7; 16], RecordType::Entry, &record).unwrap();
         assert_eq!(note.as_slice(), b"note");
     }
+
+    fn device_key(byte: u8) -> DeviceKey {
+        DeviceKey::from_bytes(&mut [byte; KEY_LEN])
+    }
+
+    #[test]
+    fn device_wrap_round_trip_and_rejects_wrong_key_or_vault() {
+        let dek = Dek::generate().unwrap();
+        let wrapped = wrap_dek_device(&device_key(3), &VAULT, &dek).unwrap();
+        assert_eq!(wrapped.len(), WRAPPED_LEN);
+        assert_eq!(
+            unwrap_dek_device(&device_key(3), &VAULT, &wrapped)
+                .unwrap()
+                .expose(),
+            dek.expose()
+        );
+        assert_eq!(
+            unwrap_dek_device(&device_key(4), &VAULT, &wrapped).unwrap_err(),
+            CryptoError::Decrypt
+        );
+        assert_eq!(
+            unwrap_dek_device(&device_key(3), &[0x12; 16], &wrapped).unwrap_err(),
+            CryptoError::Decrypt
+        );
+        for i in 0..wrapped.len() {
+            let mut t = wrapped.clone();
+            t[i] ^= 0x01;
+            assert!(
+                unwrap_dek_device(&device_key(3), &VAULT, &t).is_err(),
+                "byte {i}"
+            );
+        }
+        assert_eq!(
+            unwrap_dek_device(&device_key(3), &VAULT, &wrapped[..WRAPPED_LEN - 1]).unwrap_err(),
+            CryptoError::Malformed
+        );
+    }
+
+    /// Same key bytes, different AAD: a password wrap does not open as a device
+    /// wrap, nor the other way round.
+    #[test]
+    fn device_and_password_wraps_are_domain_separated() {
+        let dek = Dek::generate().unwrap();
+        let by_password = wrap_dek(&kek(5), &VAULT, &dek).unwrap();
+        let by_device = wrap_dek_device(&device_key(5), &VAULT, &dek).unwrap();
+        assert_eq!(
+            unwrap_dek_device(&device_key(5), &VAULT, &by_password).unwrap_err(),
+            CryptoError::Decrypt
+        );
+        assert_eq!(
+            unwrap_dek(&kek(5), &VAULT, &by_device).unwrap_err(),
+            CryptoError::Decrypt
+        );
+    }
+
+    /// Fixed vector for the device wrap format.
+    #[test]
+    fn device_fixed_vector() {
+        let nonce: [u8; NONCE_LEN] = core::array::from_fn(|i| 0xd0 ^ i as u8);
+        let wrapped = seal_with_nonce(
+            &[0x03; KEY_LEN],
+            &nonce,
+            &device_wrap_aad(&VAULT),
+            &[0x04; KEY_LEN],
+        )
+        .unwrap();
+        assert_eq!(hex::encode(&wrapped), DEVICE_FIXED_VECTOR_HEX);
+        let dek = unwrap_dek_device(&device_key(0x03), &VAULT, &wrapped).unwrap();
+        assert_eq!(dek.expose(), &[0x04; KEY_LEN]);
+    }
+
+    /// Cross-checked with libsodium: `tools/verify-vectors.py`.
+    const DEVICE_FIXED_VECTOR_HEX: &str = "d0d1d2d3d4d5d6d7d8d9dadbdcdddedfc0c1c2c3c4c5c6c71faae23383679a0c7993606b600db610e4e9e900ada3c7529393d63e4425ce497da1e16c5c151b7ff0798c134400ecfc";
 
     /// Fixed vector for the wrap format.
     #[test]

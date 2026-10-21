@@ -36,7 +36,13 @@
 		"report_too_large": "Raport jest za duży. Wybierz krótszy okres albo mniej wpisów.",
 		"report_password_short": "Hasło do PDF musi mieć co najmniej 12 znaków.",
 		"report_password_chars": "Hasło do PDF zawiera znaki, których pliki PDF nie obsługują (np. emoji). Użyj liter, cyfr i znaków interpunkcyjnych.",
-		"report_failed": "Nie udało się utworzyć pliku PDF. Spróbuj jeszcze raz."
+		"report_failed": "Nie udało się utworzyć pliku PDF. Spróbuj jeszcze raz.",
+		"biometric_unavailable": "Odblokowanie odciskiem palca nie jest dostępne na tym urządzeniu.",
+		"biometric_lockout": "Za dużo prób odcisku. Wpisz hasło albo spróbuj za chwilę.",
+		"biometric_failed": "Nie udało się sprawdzić odcisku palca. Wpisz hasło.",
+		"device_key_invalidated": "Odciski palców w telefonie się zmieniły, więc odblokowanie odciskiem wyłączyło się. Wpisz hasło. Możesz je potem włączyć ponownie w Ustawieniach.",
+		"device_key_rejected": "Odcisk nie otworzył dziennika, więc odblokowanie odciskiem wyłączyło się. Wpisz hasło.",
+		"device_unlock_off": "Odblokowanie odciskiem palca jest wyłączone. Wpisz hasło."
 	},
 	"strength": {
 		"label": "Siła hasła",
@@ -76,7 +82,10 @@
 		"unlock": "Otwórz",
 		"wait": "Następna próba za {seconds} s",
 		"forgot": "Nie pamiętam hasła",
-		"subtitle": "Wpisz hasło, żeby otworzyć dziennik."
+		"subtitle": "Wpisz hasło, żeby otworzyć dziennik.",
+		"fingerprint": "Otwórz odciskiem palca",
+		"fingerprintTitle": "Otwórz dziennik",
+		"fingerprintCancel": "Użyj hasła"
 	},
 	"recover": {
 		"title": "Odzyskaj dostęp",
@@ -499,5 +508,18 @@
 		"submit": "Zapisz plik JSON",
 		"question": "Zapisać plik bez szyfrowania?",
 		"saved": "Plik zapisany."
+	},
+	"fingerprint": {
+		"title": "Odblokowanie odciskiem palca",
+		"intro": "Otwieraj dziennik odciskiem palca zamiast hasła. Klucz zostaje w bezpiecznym układzie telefonu i działa tylko na tym urządzeniu.",
+		"password": "Wpisz hasło, żeby włączyć",
+		"turnOn": "Włącz odblokowanie odciskiem",
+		"promptTitle": "Włącz odblokowanie odciskiem",
+		"on": "Włączone. Dziennik otworzysz odciskiem palca albo hasłem.",
+		"turnOff": "Wyłącz odblokowanie odciskiem",
+		"enabled": "Odblokowanie odciskiem palca jest włączone.",
+		"disabled": "Odblokowanie odciskiem palca jest wyłączone. Dziennik otworzysz hasłem.",
+		"reminder": "Hasło i 24 słowa klucza odzyskiwania to nadal jedyny sposób, żeby otworzyć dziennik na innym telefonie albo z kopii zapasowej. Warto dobrze zapamiętać hasło.",
+		"enrollHint": "Ten telefon ma czytnik odcisków palców, ale nie ma zapisanego żadnego odcisku. Dodaj go w ustawieniach telefonu (Zabezpieczenia → Odcisk palca), a potem wróć tutaj."
 	}
 }

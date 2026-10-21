@@ -1,11 +1,18 @@
 <script lang="ts">
+	import Fingerprint from '@lucide/svelte/icons/fingerprint-pattern';
 	import LifeBuoy from '@lucide/svelte/icons/life-buoy';
 	import Plus from '@lucide/svelte/icons/plus';
 	import { onDestroy, onMount } from 'svelte';
 
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { isAppError, vaultStatus, vaultUnlock } from '#lib/api/index.js';
+	import {
+		deviceUnlockStatus,
+		isAppError,
+		vaultStatus,
+		vaultUnlock,
+		vaultUnlockDevice
+	} from '#lib/api/index.js';
 	import Logo from '#lib/components/Logo.svelte';
 	import QuickEntry from '#lib/components/QuickEntry.svelte';
 	import PasswordField from '#lib/components/PasswordField.svelte';
@@ -20,6 +27,9 @@
 	let waitUntil = $state(0);
 	let now = $state(Date.now());
 	let timer: ReturnType<typeof setInterval> | undefined;
+
+	/** Fingerprint unlock is on for this journal and the device can do it (V-7). */
+	let fingerprint = $state(false);
 
 	let waitSeconds = $derived(Math.max(0, Math.ceil((waitUntil - now) / 1000)));
 
@@ -41,7 +51,38 @@
 			return goto(resolve('/setup'), { replace: true });
 		}
 		startWait(status?.retry_after_ms);
+		const device = await deviceUnlockStatus().catch(() => null);
+		fingerprint = !!device?.available && !!device.enabled;
+		// Ask for the fingerprint right away; the password stays one tap away.
+		if (fingerprint) await unlockWithFingerprint();
 	});
+
+	async function unlockWithFingerprint() {
+		if (busy) return;
+		busy = true;
+		error = '';
+		// Keep the keyboard out of the way of the system prompt.
+		if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+		try {
+			const opened = await vaultUnlockDevice({
+				title: t('lock.fingerprintTitle'),
+				subtitle: null,
+				cancel: t('lock.fingerprintCancel')
+			});
+			if (opened) await goto(resolve('/timeline'), { replace: true });
+		} catch (e) {
+			error = errorText(e);
+			// The key is gone (fingerprints changed) or was refused: password only.
+			if (
+				isAppError(e) &&
+				['device_key_invalidated', 'device_key_rejected', 'device_unlock_off'].includes(e.code)
+			) {
+				fingerprint = false;
+			}
+		} finally {
+			busy = false;
+		}
+	}
 
 	onDestroy(() => clearInterval(timer));
 
@@ -87,6 +128,11 @@
 		<button type="submit" disabled={busy || waitSeconds > 0 || password.length === 0}>
 			{busy ? t('common.working') : t('lock.unlock')}
 		</button>
+		{#if fingerprint}
+			<button type="button" class="secondary" onclick={unlockWithFingerprint} disabled={busy}>
+				<Fingerprint size={20} />{t('lock.fingerprint')}
+			</button>
+		{/if}
 	</form>
 	<a class="button link forgot" href={resolve('/recover')}>{t('lock.forgot')}</a>
 	<!-- E-15: add without unlocking; nothing can be read. -->

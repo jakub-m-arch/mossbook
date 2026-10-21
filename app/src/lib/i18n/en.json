@@ -36,7 +36,13 @@
 		"report_too_large": "The report is too large. Choose a shorter period or fewer entries.",
 		"report_password_short": "The PDF password must be at least 12 characters.",
 		"report_password_chars": "The PDF password contains characters PDF files do not support (such as emoji). Use letters, digits and punctuation.",
-		"report_failed": "Could not create the PDF file. Please try again."
+		"report_failed": "Could not create the PDF file. Please try again.",
+		"biometric_unavailable": "Fingerprint unlock is not available on this device.",
+		"biometric_lockout": "Too many fingerprint attempts. Enter your password or try again in a moment.",
+		"biometric_failed": "Could not check your fingerprint. Enter your password.",
+		"device_key_invalidated": "The fingerprints on this phone changed, so fingerprint unlock turned off. Enter your password. You can turn it on again in Settings.",
+		"device_key_rejected": "The fingerprint did not open the journal, so fingerprint unlock turned off. Enter your password.",
+		"device_unlock_off": "Fingerprint unlock is off. Enter your password."
 	},
 	"strength": {
 		"label": "Password strength",
@@ -76,7 +82,10 @@
 		"unlock": "Open",
 		"wait": "Next attempt in {seconds} s",
 		"forgot": "I forgot my password",
-		"subtitle": "Enter your password to open the journal."
+		"subtitle": "Enter your password to open the journal.",
+		"fingerprint": "Open with fingerprint",
+		"fingerprintTitle": "Open the journal",
+		"fingerprintCancel": "Use password"
 	},
 	"recover": {
 		"title": "Recover access",
@@ -499,5 +508,18 @@
 		"submit": "Save JSON file",
 		"question": "Save a file that is not encrypted?",
 		"saved": "File saved."
+	},
+	"fingerprint": {
+		"title": "Fingerprint unlock",
+		"intro": "Open the journal with your fingerprint instead of the password. The key stays in the phone’s secure chip and works only on this device.",
+		"password": "Enter your password to turn it on",
+		"turnOn": "Turn on fingerprint unlock",
+		"promptTitle": "Turn on fingerprint unlock",
+		"on": "On. You can open the journal with your fingerprint or your password.",
+		"turnOff": "Turn off fingerprint unlock",
+		"enabled": "Fingerprint unlock is on.",
+		"disabled": "Fingerprint unlock is off. You can open the journal with your password.",
+		"reminder": "Your password and the 24-word recovery key are still the only way to open the journal on another phone or from a backup. Keep your password well in mind.",
+		"enrollHint": "This phone has a fingerprint sensor, but no fingerprint is set up. Add one in the phone’s settings (Security → Fingerprint), then come back here."
 	}
 }

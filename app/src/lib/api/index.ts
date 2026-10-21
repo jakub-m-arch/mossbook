@@ -11,6 +11,7 @@ import type {
 	BackupSecret,
 	BackupSummary,
 	CrisisInfo,
+	DeviceUnlockStatus,
 	ImportMode,
 	ImportOutcome,
 	Entry,
@@ -23,6 +24,7 @@ import type {
 	Patterns,
 	ReportDoc,
 	RecoveryAnswer,
+	PromptText,
 	RecoverySetup,
 	SafetyPlan,
 	Settings,
@@ -65,6 +67,18 @@ export const vaultChangePassword = (old: string, next: string) =>
 export const vaultVerifyRecovery = (phrase: string) =>
 	invoke<void>('vault_verify_recovery', { phrase });
 export const vaultDestroy = (password: string) => invoke<void>('vault_destroy', { password });
+
+// ---- fingerprint unlock (V-7) ----
+
+/** Available without unlocking, for the lock screen. */
+export const deviceUnlockStatus = () => invoke<DeviceUnlockStatus>('device_unlock_status');
+/** Opens the journal with a fingerprint. `false` if the user closed the prompt. */
+export const vaultUnlockDevice = (prompt: PromptText) =>
+	invoke<boolean>('vault_unlock_device', { prompt });
+/** Turns fingerprint unlock on (password and one fingerprint). `false` if cancelled. */
+export const deviceUnlockEnable = (password: string, prompt: PromptText) =>
+	invoke<boolean>('device_unlock_enable', { password, prompt });
+export const deviceUnlockDisable = () => invoke<void>('device_unlock_disable');
 
 /** Fires whenever the vault locks (manually, in the background or when idle). */
 export const onVaultLocked = (handler: (reason: LockReason) => void): Promise<UnlistenFn> =>

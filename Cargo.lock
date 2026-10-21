@@ -2767,6 +2767,7 @@ dependencies = [
 name = "mossbook"
 version = "0.1.3"
 dependencies = [
+ "base64 0.22.1",
  "mossbook-core",
  "serde",
  "serde_json",

@@ -5,6 +5,7 @@
 //! memory) → dropped or [`UnlockedVault::lock`]ed (all secrets zeroed).
 
 pub(crate) mod create;
+mod device;
 mod header;
 mod rekey;
 mod throttle;
@@ -21,6 +22,9 @@ use crate::crypto::{CryptoError, Dek, VaultId};
 use crate::store::{RawRecord, Store, StoreError};
 
 pub use create::PendingVault;
+pub use device::{
+    DEVICE_KEY_FORMAT, DeviceEnrollment, DeviceKeyFile, MAX_SEALED_KEY_LEN, unlock_with_device_key,
+};
 pub use header::{FORMAT_VERSION, VaultHeader};
 pub use throttle::UnlockThrottle;
 pub use unlock::{append_to_inbox, unlock, unlock_with_recovery};
@@ -55,6 +59,8 @@ pub enum VaultError {
     /// Quick entries while locked need the inbox key, which a vault gets on its
     /// first unlock after an upgrade.
     InboxUnavailable,
+    /// The device key (fingerprint unlock, V-7) does not open this vault.
+    DeviceKeyRejected,
     Crypto(CryptoError),
     Storage(StoreError),
     /// File system error (creating, renaming or removing the vault file).
@@ -74,6 +80,7 @@ impl fmt::Display for VaultError {
             Self::UnsupportedFormat => f.write_str("unsupported vault format"),
             Self::Corrupted => f.write_str("vault file is damaged"),
             Self::InboxUnavailable => f.write_str("quick entry while locked is not available yet"),
+            Self::DeviceKeyRejected => f.write_str("device key does not open this vault"),
             Self::Crypto(e) => fmt::Display::fmt(e, f),
             Self::Storage(e) => fmt::Display::fmt(e, f),
             Self::Io => f.write_str("file system error"),
@@ -298,7 +305,7 @@ impl UnlockedVault {
     /// Permanently deletes the vault after re-checking the password (V-9).
     ///
     /// On a wrong password the vault is handed back unchanged, so the user stays
-    /// unlocked. Removes the database and its WAL/SHM files. Deleted files are not
+    /// unlocked. Removes the database, its WAL/SHM files and the device key file. Deleted files are not
     /// overwritten (pointless on flash storage); their content is ciphertext anyway.
     pub fn destroy(self, password: &str) -> Result<(), DestroyError> {
         if let Err(error) = self.verify_password(password) {
@@ -309,7 +316,12 @@ impl UnlockedVault {
         }
         let Self { path, store, .. } = self;
         store.close().map_err(|e| DestroyError::Failed(e.into()))?;
-        for file in [path.clone(), sidecar(&path, "-wal"), sidecar(&path, "-shm")] {
+        for file in [
+            path.clone(),
+            sidecar(&path, "-wal"),
+            sidecar(&path, "-shm"),
+            DeviceKeyFile::path_for(&path),
+        ] {
             match fs::remove_file(&file) {
                 Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
                     return Err(DestroyError::Failed(VaultError::Io));

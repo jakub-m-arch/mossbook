@@ -9,7 +9,9 @@ use mossbook_core::backup::{Backup, auto};
 use mossbook_core::crypto::kdf::KdfParams;
 use mossbook_core::domain::{AutoLock, EntryKindTag, Timestamp};
 use mossbook_core::journal::{ImportMode, ImportReport, Journal};
-use mossbook_core::vault::{self, DestroyError, PendingVault, UnlockThrottle, VaultError};
+use mossbook_core::vault::{
+    self, DestroyError, DeviceEnrollment, DeviceKeyFile, PendingVault, UnlockThrottle, VaultError,
+};
 use serde::{Deserialize, Serialize};
 use time::{OffsetDateTime, UtcOffset};
 
@@ -384,6 +386,76 @@ impl Session {
         Ok(())
     }
 
+    // ---- fingerprint unlock (V-7, D-18) ----
+
+    /// Whether a device key file is set up for this vault.
+    pub fn device_unlock_enabled(&self) -> bool {
+        DeviceKeyFile::path_for(&self.vault_path).exists()
+    }
+
+    /// Starts turning fingerprint unlock on: re-checks the password (it is
+    /// asked for even though the journal is open), then makes a fresh device key.
+    pub fn device_enrollment(&self, password: &str) -> AppResult<DeviceEnrollment> {
+        let vault = self.journal()?.vault();
+        vault.verify_password(password)?;
+        Ok(vault.device_enrollment()?)
+    }
+
+    /// Stores the device key file once the platform has encrypted the key.
+    pub fn save_device_key(&self, file: &DeviceKeyFile) -> AppResult<()> {
+        Ok(file.write(&self.vault_path)?)
+    }
+
+    /// Turns fingerprint unlock off on this side (the file).
+    pub fn forget_device_key(&self) -> AppResult<()> {
+        Ok(DeviceKeyFile::remove(&self.vault_path)?)
+    }
+
+    /// The device key file, for asking the platform to open its key. A damaged
+    /// file is removed: the password still opens the journal.
+    pub fn device_key_file(&self) -> AppResult<DeviceKeyFile> {
+        if !matches!(self.state, VaultState::Locked) {
+            return Err(AppError::invalid_state("not locked"));
+        }
+        match DeviceKeyFile::read(&self.vault_path) {
+            Ok(Some(file)) => Ok(file),
+            Ok(None) => Err(AppError::new(
+                "device_unlock_off",
+                "fingerprint unlock is off",
+            )),
+            Err(_) => {
+                self.forget_device_key()?;
+                Err(AppError::new(
+                    "device_unlock_off",
+                    "fingerprint unlock is off",
+                ))
+            }
+        }
+    }
+
+    /// Opens the journal with the device key released by the platform. `key` is
+    /// zeroed. A key that does not open this vault turns fingerprint unlock off.
+    /// Not throttled: the platform limits biometric attempts itself.
+    pub fn unlock_with_device_key(
+        &mut self,
+        file: &DeviceKeyFile,
+        key: &mut [u8],
+        now: Instant,
+    ) -> AppResult<()> {
+        if !matches!(self.state, VaultState::Locked) {
+            zeroize::Zeroize::zeroize(key);
+            return self.before_unlock(now);
+        }
+        match vault::unlock_with_device_key(&self.vault_path, file, key) {
+            Ok(v) => self.after_unlock(Ok(v), now),
+            Err(VaultError::DeviceKeyRejected) => {
+                self.forget_device_key()?;
+                Err(VaultError::DeviceKeyRejected.into())
+            }
+            Err(e) => Err(e.into()),
+        }
+    }
+
     /// Checks a written-down recovery phrase against the unlocked vault.
     pub fn verify_recovery(&self, phrase: &str) -> AppResult<()> {
         Ok(self.journal()?.vault().verify_recovery(phrase)?)
@@ -635,6 +707,78 @@ mod tests {
             state(&Session::new(dir.path().join("vault.db"))),
             StatusKind::Locked
         );
+    }
+
+    /// Fingerprint unlock with the platform stood in for: the sealed key is
+    /// kept as is, since only the platform can open it.
+    fn enable_device_unlock(s: &Session) -> Vec<u8> {
+        let enrollment = s.device_enrollment(PASSWORD).unwrap();
+        let key = enrollment.key_bytes().to_vec();
+        let file = enrollment.finish(vec![0x5a; 60]).unwrap();
+        s.save_device_key(&file).unwrap();
+        key
+    }
+
+    #[test]
+    fn device_unlock_needs_the_password_and_opens_the_journal() {
+        let (_dir, mut s) = unlocked();
+        assert!(!s.device_unlock_enabled());
+        assert_eq!(
+            s.device_enrollment("wrong password").unwrap_err().code,
+            "wrong_password"
+        );
+        let key = enable_device_unlock(&s);
+        assert!(s.device_unlock_enabled());
+        // Only a locked journal is opened with the device key.
+        assert_eq!(s.device_key_file().unwrap_err().code, "invalid_state");
+
+        s.lock().unwrap();
+        let file = s.device_key_file().unwrap();
+        let mut released = key.clone();
+        s.unlock_with_device_key(&file, &mut released, Instant::now())
+            .unwrap();
+        assert_eq!(state(&s), StatusKind::Unlocked);
+        assert!(released.iter().all(|&b| b == 0));
+    }
+
+    #[test]
+    fn a_rejected_device_key_turns_fingerprint_unlock_off() {
+        let (_dir, mut s) = unlocked();
+        let mut key = enable_device_unlock(&s);
+        s.lock().unwrap();
+        let file = s.device_key_file().unwrap();
+        key[0] ^= 1;
+        assert_eq!(
+            s.unlock_with_device_key(&file, &mut key, Instant::now())
+                .unwrap_err()
+                .code,
+            "device_key_rejected"
+        );
+        assert!(!s.device_unlock_enabled());
+        assert_eq!(state(&s), StatusKind::Locked);
+        assert_eq!(s.device_key_file().unwrap_err().code, "device_unlock_off");
+        s.unlock(PASSWORD, Instant::now()).unwrap();
+    }
+
+    #[test]
+    fn a_damaged_device_key_file_is_removed() {
+        let (dir, mut s) = unlocked();
+        enable_device_unlock(&s);
+        s.lock().unwrap();
+        std::fs::write(dir.path().join("vault.db.device-key"), b"damaged").unwrap();
+        assert_eq!(s.device_key_file().unwrap_err().code, "device_unlock_off");
+        assert!(!s.device_unlock_enabled());
+    }
+
+    #[test]
+    fn turning_device_unlock_off_and_destroying_remove_the_file() {
+        let (dir, mut s) = unlocked();
+        enable_device_unlock(&s);
+        s.forget_device_key().unwrap();
+        assert!(!s.device_unlock_enabled());
+        enable_device_unlock(&s);
+        s.destroy(PASSWORD).unwrap();
+        assert!(!dir.path().join("vault.db.device-key").exists());
     }
 
     #[test]

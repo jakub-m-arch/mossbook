@@ -51,6 +51,23 @@ export interface Status {
 	retry_after_ms?: number;
 }
 
+/** Fingerprint unlock (V-7): never available on desktop. */
+export interface DeviceUnlockStatus {
+	/** Strong biometrics are set up on this device. */
+	available: boolean;
+	/** A strong sensor, but no fingerprint is enrolled in the system yet. */
+	enrollable: boolean;
+	/** Fingerprint unlock is turned on for this journal. */
+	enabled: boolean;
+}
+
+/** Texts of the system biometric prompt, in the UI language. */
+export interface PromptText {
+	title: string;
+	subtitle?: string | null;
+	cancel: string;
+}
+
 export interface RecoverySetup {
 	words: string[];
 	/** 0-based positions the user has to retype. */

@@ -300,6 +300,8 @@ recovery key (24 words, 256 bit) ──────────────┘  
 - When enabled: the DEK is wrapped under a key from the system's secure storage
   (Android Keystore with `setUserAuthenticationRequired`, iOS Keychain with
   `biometryCurrentSet`), via `tauri-plugin-biometric` or a custom plugin.
+  Android: a custom plugin; a random device key wraps the DEK and the Keystore
+  encrypts the device key (details in `docs/crypto.md`, decision D-18).
 - Changing the enrolled fingerprints or faces invalidates the key and requires the
   password.
 - Desktop: no biometrics; password only.

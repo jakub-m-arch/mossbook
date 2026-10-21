@@ -69,6 +69,14 @@ Visible to someone with the vault file or a backup, by design:
 - **Inbox injection.** Someone with write access to the vault file can append
   quick entries (the public key is in the header). They can only become "to complete"
   entries of a known type with an in-range value, which the user sees and can delete.
+- **Fingerprint unlock (Android, D-18).** When it is on, anyone who can make the
+  phone accept a fingerprint opens the journal: a finger pressed on the sensor
+  under coercion, or a fingerprint someone added to the phone. Adding a fingerprint
+  needs the phone's screen lock and destroys Mossbook's key, so the second case asks
+  for the journal password again. Mossbook does not throttle fingerprint attempts;
+  Android does. The device key passes through the app's JVM memory as a string that
+  cannot be wiped. Turning it off in Settings removes the key file and the Keystore
+  key.
 - **Throttling** lives in memory: restarting the app resets the delay. The real
   protection against guessing is the cost of Argon2id.
 

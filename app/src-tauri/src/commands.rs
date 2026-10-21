@@ -21,6 +21,7 @@ use tauri_plugin_fs::{FilePath, FsExt, OpenOptions};
 use tauri_plugin_opener::OpenerExt;
 use zeroize::Zeroizing;
 
+use crate::device_key::{self, PlatformError, PromptText, Support};
 use crate::error::{AppError, AppResult};
 use crate::session::{
     BackupInfo, BackupSecret, BackupSummary, ImportOutcome, LockReason, RecoveryAnswer,
@@ -145,9 +146,119 @@ pub fn vault_verify_recovery(state: State<'_, AppState>, phrase: String) -> AppR
 }
 
 #[tauri::command(async)]
-pub fn vault_destroy(state: State<'_, AppState>, password: String) -> AppResult<()> {
+pub fn vault_destroy(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    password: String,
+) -> AppResult<()> {
     let password = Zeroizing::new(password);
-    with_session(&state, |s| s.destroy(&password))
+    with_session(&state, |s| s.destroy(&password))?;
+    // The device key file went with the vault; drop its Keystore key too.
+    device_key::forget(&app);
+    Ok(())
+}
+
+// ---- fingerprint unlock (V-7, D-18) ----
+
+#[derive(serde::Serialize)]
+pub struct DeviceUnlockStatus {
+    /// Strong biometrics are set up on this device (never on desktop).
+    available: bool,
+    /// The device has a strong sensor but no fingerprint enrolled yet.
+    enrollable: bool,
+    /// Fingerprint unlock is turned on for this journal.
+    enabled: bool,
+}
+
+fn platform_error(e: PlatformError) -> AppError {
+    AppError::new(e.code(), "fingerprint unlock did not complete")
+}
+
+fn check_prompt(prompt: &PromptText) -> AppResult<()> {
+    if prompt.is_valid() {
+        Ok(())
+    } else {
+        Err(AppError::new("invalid_field", "prompt"))
+    }
+}
+
+/// Available without unlocking: the lock screen shows the fingerprint button.
+#[tauri::command(async)]
+pub fn device_unlock_status(app: AppHandle, state: State<'_, AppState>) -> DeviceUnlockStatus {
+    let enabled = state.session().device_unlock_enabled();
+    let support = device_key::status(&app);
+    DeviceUnlockStatus {
+        available: support == Support::Ready,
+        enrollable: support == Support::NoneEnrolled,
+        enabled,
+    }
+}
+
+/// Turns fingerprint unlock on after re-checking the password and one
+/// fingerprint. `false` if the user closed the prompt.
+#[tauri::command(async)]
+pub fn device_unlock_enable(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    password: String,
+    prompt: PromptText,
+) -> AppResult<bool> {
+    let password = Zeroizing::new(password);
+    check_prompt(&prompt)?;
+    let enrollment = with_session(&state, |s| s.device_enrollment(&password))?;
+    // The mutex is not held while the system prompt is open.
+    let sealed = {
+        let key = enrollment.key_bytes();
+        with_dialog(&state, || device_key::seal(&app, &key, &prompt))
+    };
+    let sealed = match sealed {
+        Ok(sealed) => sealed,
+        Err(PlatformError::Cancelled) => return Ok(false),
+        Err(e) => return Err(platform_error(e)),
+    };
+    let file = enrollment.finish(sealed)?;
+    with_session(&state, |s| s.save_device_key(&file))?;
+    Ok(true)
+}
+
+#[tauri::command(async)]
+pub fn device_unlock_disable(app: AppHandle, state: State<'_, AppState>) -> AppResult<()> {
+    with_session(&state, |s| {
+        s.journal()?;
+        s.forget_device_key()
+    })?;
+    device_key::forget(&app);
+    Ok(())
+}
+
+/// Opens the journal with a fingerprint. `false` if the user closed the prompt.
+/// When the fingerprints on the device changed, the key is gone for good:
+/// fingerprint unlock turns off and the password is needed.
+#[tauri::command(async)]
+pub fn vault_unlock_device(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    prompt: PromptText,
+) -> AppResult<bool> {
+    check_prompt(&prompt)?;
+    let file = with_session(&state, |s| s.device_key_file())?;
+    let key = with_dialog(&state, || {
+        device_key::open(&app, file.sealed_key(), &prompt)
+    });
+    match key {
+        Ok(mut key) => {
+            with_session(&state, |s| {
+                s.unlock_with_device_key(&file, &mut key, Instant::now())
+            })?;
+            Ok(true)
+        }
+        Err(PlatformError::Cancelled) => Ok(false),
+        Err(e @ PlatformError::Invalidated) => {
+            with_session(&state, |s| s.forget_device_key())?;
+            Err(platform_error(e))
+        }
+        Err(e) => Err(platform_error(e)),
+    }
 }
 
 // ---- entries ----

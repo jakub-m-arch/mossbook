@@ -39,9 +39,9 @@ backup (Settings → Backup).
 
 - **Done:** every desktop feature of the MVP, and from v1 the PDF report, nightmares (IRT),
   difficult content, the mood calendar, overviews, and quick entry while locked.
-- **In progress:** Android. The app builds and runs on Android; there is no published
-  APK yet.
-- **Not yet:** iOS, biometric unlock, reminders (they come with the mobile versions),
+- **In progress:** Android. The app builds and runs on Android, with fingerprint
+  unlock; there is no published APK yet.
+- **Not yet:** iOS, reminders (they come with the mobile versions),
   and code-signed installers.
 
 The specification is [`SPEC.md`](SPEC.md); the checklist and the decisions taken along
