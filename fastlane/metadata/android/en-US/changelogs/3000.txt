@@ -1,0 +1,1 @@
+An entry you are writing is no longer lost when the journal locks (for example during a call): after unlocking you can continue it. Settings show the licence and the licences of included components.

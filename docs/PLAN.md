@@ -144,7 +144,7 @@ Resumed 2026-10-21 (postponed on 2026-10-19 while the tools were missing).
 - [x] `v0.1.2`: automatic backups, recovery key check, JSON export, first release with provenance attestations
 - [x] `v0.1.3`: optional password for the therapist PDF (AES-256), website on GitHub Pages
 - [x] `v0.2.0`: first Android release (signed APK), fingerprint unlock (2026-10-21)
-- [ ] `v0.3.0`: an entry form survives a lock (E-17, D-20); licence and no-warranty notice in the app (D-19)
+- [x] `v0.3.0`: an entry form survives a lock (E-17, D-20); licence and no-warranty notice in the app (D-19) (2026-10-21)
 - [ ] Enable private vulnerability reporting in the repository settings
 - [ ] Code signing: Apple Developer ID + notarisation (macOS), SignPath or Azure Trusted Signing (Windows)
 

@@ -1,0 +1,1 @@
+Pisany wpis nie ginie już przy blokadzie dziennika (np. przy połączeniu): po odblokowaniu możesz do niego wrócić. W ustawieniach informacja o licencji i licencje użytych komponentów.

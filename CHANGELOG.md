@@ -2,6 +2,21 @@
 
 All notable changes to Mossbook. Versions follow [Semantic Versioning](https://semver.org).
 
+## 0.3.0 (2026-10-21)
+
+### Added
+- An entry you are writing is no longer lost when the journal locks, for example
+  when a call comes in or you switch apps. It is kept encrypted while you type and,
+  after unlocking, the journal offers to continue it or discard it. Leaving the form
+  yourself still discards it.
+- Settings → About: the licence and no-warranty notice, a reminder that Mossbook is
+  not a medical device, and the licence texts of every component the app includes.
+
+### Changed
+- Website, README and store texts describe a journal, not a treatment: no condition
+  names as the audience and no clinical method names. "Body symptoms" is now "Body
+  sensations".
+
 ## 0.2.0 (2026-10-21)
 
 ### Added
