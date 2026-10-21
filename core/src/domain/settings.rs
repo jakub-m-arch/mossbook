@@ -6,7 +6,7 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-use super::{DomainError, Timestamp};
+use super::{DomainError, EntryDraft, Timestamp};
 
 /// Supported UI languages (SPEC §4.7).
 pub const LOCALES: [&str; 3] = ["pl", "en", "uk"];
@@ -34,6 +34,27 @@ pub struct Settings {
     /// by the UI (see `Journal::save_settings`).
     #[serde(default)]
     pub last_export: Option<Timestamp>,
+    /// The entry form that was open when the journal locked (decision D-20).
+    /// Set by the journal, never by the UI (see `Journal::keep_unsaved_entry`).
+    /// Left out when empty, so settings without one look as before.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unsaved_entry: Option<UnsavedEntry>,
+}
+
+/// An entry form kept while it is being filled in, so a lock does not lose it.
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Zeroize)]
+pub struct UnsavedEntry {
+    pub draft: EntryDraft,
+    /// When the form was last kept.
+    pub kept_at: Timestamp,
+}
+
+impl fmt::Debug for UnsavedEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("UnsavedEntry")
+            .field("draft", &self.draft)
+            .finish_non_exhaustive()
+    }
 }
 
 fn default_true() -> bool {
@@ -53,6 +74,7 @@ impl Default for Settings {
             reminders: Vec::new(),
             auto_backup: true,
             last_export: None,
+            unsaved_entry: None,
         }
     }
 }

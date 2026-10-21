@@ -10,7 +10,9 @@ use std::time::Instant;
 
 use mossbook_core::backup::{Backup, BackupError, MAX_BACKUP_BYTES};
 use mossbook_core::crisis::{self, CrisisDirectory};
-use mossbook_core::domain::{Entry, EntryDraft, EntryKindTag, Id, SafetyPlan, Settings, Tag};
+use mossbook_core::domain::{
+    Entry, EntryDraft, EntryKindTag, Id, SafetyPlan, Settings, Tag, UnsavedEntry,
+};
 use mossbook_core::journal::ImportMode;
 use mossbook_core::query::{EntryFilter, MoodPoint, Patterns, StatsRange};
 use mossbook_core::report::{ReportDoc, ReportError, render_pdf};
@@ -372,7 +374,12 @@ pub fn plan_save(state: State<'_, AppState>, plan: SafetyPlan) -> AppResult<Safe
 
 #[tauri::command(async)]
 pub fn settings_get(state: State<'_, AppState>) -> AppResult<Settings> {
-    with_session(&state, |s| Ok(s.journal()?.settings().clone()))
+    with_session(&state, |s| {
+        let mut settings = s.journal()?.settings().clone();
+        // The kept entry form has its own commands; the settings screen never needs it.
+        settings.unsaved_entry = None;
+        Ok(settings)
+    })
 }
 
 #[tauri::command(async)]
@@ -380,6 +387,26 @@ pub fn settings_save(state: State<'_, AppState>, settings: Settings) -> AppResul
     with_session(&state, |s| {
         Ok(s.journal_mut()?.save_settings(settings)?.clone())
     })
+}
+
+// ---- unsaved entry form (decision D-20) ----
+
+#[tauri::command(async)]
+pub fn unsaved_get(state: State<'_, AppState>) -> AppResult<Option<UnsavedEntry>> {
+    with_session(&state, |s| Ok(s.journal()?.unsaved_entry().cloned()))
+}
+
+#[tauri::command(async)]
+pub fn unsaved_keep(state: State<'_, AppState>, draft: EntryDraft) -> AppResult<()> {
+    with_session(&state, |s| {
+        let now = s.now();
+        Ok(s.journal_mut()?.keep_unsaved_entry(draft, now)?)
+    })
+}
+
+#[tauri::command(async)]
+pub fn unsaved_discard(state: State<'_, AppState>) -> AppResult<()> {
+    with_session(&state, |s| Ok(s.journal_mut()?.discard_unsaved_entry()?))
 }
 
 // ---- patterns ----

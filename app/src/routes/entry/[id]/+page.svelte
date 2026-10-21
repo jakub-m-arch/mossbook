@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	import { goto } from '$app/navigation';
+	import { beforeNavigate, goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { entryDelete, entryGet, entrySave, tagsList } from '#lib/api/index.js';
+	import { entryDelete, entryGet, entrySave, tagsList, unsavedGet } from '#lib/api/index.js';
 	import type { Entry, EntryDraft, Tag } from '#lib/api/index.js';
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import EntryForm from '#lib/components/EntryForm.svelte';
@@ -12,19 +12,32 @@
 	import { draftFromEntry, kindTag } from '#lib/entries.js';
 	import { t } from '#lib/i18n/index.svelte.js';
 	import { errorText, handleLocked } from '#lib/session.svelte.js';
+	import { keepUnsaved, leaveForm } from '#lib/unsaved.js';
+
+	// Continues the form kept when the journal locked (D-20).
+	const resume = page.state.resume === true;
 
 	let entry = $state<Entry | null>(null);
+	let resumed = $state<EntryDraft | null>(null);
 	let tags = $state<Tag[]>([]);
 	let missing = $state(false);
 	let error = $state('');
 
 	onMount(async () => {
 		try {
-			[entry, tags] = await Promise.all([entryGet(page.params.id ?? ''), tagsList()]);
+			const [found, list, kept] = await Promise.all([
+				entryGet(page.params.id ?? ''),
+				tagsList(),
+				resume ? unsavedGet().catch(() => null) : null
+			]);
+			if (kept?.draft.id === found.id) resumed = kept.draft;
+			[entry, tags] = [found, list];
 		} catch (e) {
 			if (!(await handleLocked(e))) missing = true;
 		}
 	});
+
+	beforeNavigate(({ to }) => leaveForm(to));
 
 	async function save(draft: EntryDraft) {
 		error = '';
@@ -53,7 +66,12 @@
 	{#if entry}
 		{#if entry.incomplete}<p class="notice" role="status">{t('quick.done')}</p>{/if}
 		{#key entry.id}
-			<EntryForm initial={draftFromEntry(entry)} {tags} onsave={save} />
+			<EntryForm
+				initial={resumed ?? draftFromEntry(entry)}
+				{tags}
+				onsave={save}
+				onchange={keepUnsaved}
+			/>
 		{/key}
 		<div class="danger">
 			<ConfirmAction

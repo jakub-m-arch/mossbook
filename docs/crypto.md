@@ -129,6 +129,11 @@ types in `core/src/domain/`:
 | 3 `plan`       | `SafetyPlan`                    | fixed `00000000-0000-0000-0000-000000000003` |
 | 4 `settings`   | `Settings`                      | fixed `00000000-0000-0000-0000-000000000004` |
 
+`Settings` may hold `unsaved_entry` (`{ draft, kept_at }`): the entry form that was
+open when the journal locked (E-17, decision D-20). It is encrypted like the rest of
+the record, travels inside backups with it, and is left out when empty, so settings
+without one encode as before.
+
 - Structs are CBOR maps keyed by snake_case field names; enums use serde's external
   tagging with snake_case variant names (`{"fear": {...}}`, `"note"`).
 - Ids are random UUIDs (v4) and are the only plain-text value per record, so they

@@ -485,6 +485,13 @@
 		"basis": "based on: {count}",
 		"none": "Nothing repeats in this period yet."
 	},
+	"unsaved": {
+		"title": "Unsaved entry",
+		"body": "{kind}, {time}. Mossbook kept it when the journal locked.",
+		"resume": "Continue writing",
+		"discard": "Discard",
+		"discardConfirm": "Discard this entry? This cannot be undone."
+	},
 	"about": {
 		"title": "About",
 		"version": "Version {version} · built {date}",

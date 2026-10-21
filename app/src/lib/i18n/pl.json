@@ -485,6 +485,13 @@
 		"basis": "podstawa: {count}",
 		"none": "W tym okresie nic się jeszcze nie powtarza."
 	},
+	"unsaved": {
+		"title": "Niezapisany wpis",
+		"body": "{kind}, {time}. Mossbook zachował go, gdy dziennik się zablokował.",
+		"resume": "Wróć do wpisu",
+		"discard": "Odrzuć",
+		"discardConfirm": "Odrzucić ten wpis? Tego nie da się cofnąć."
+	},
 	"about": {
 		"title": "O aplikacji",
 		"version": "Wersja {version} · zbudowana {date}",

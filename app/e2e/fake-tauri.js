@@ -43,6 +43,8 @@
 		},
 		autoLatest: null,
 		pendingBackup: false,
+		// The entry form kept across a lock (D-20).
+		unsaved: null,
 		// Fingerprint unlock (V-7): off unless a test sets `fake-biometric`.
 		biometric: {
 			// Read on each call: tests set it in an init script that may run after this one.
@@ -182,6 +184,8 @@
 			)
 				return fail('invalid_field');
 			state.entries = [...state.entries.filter((e) => e.id !== entry.id), entry];
+			// Like Rust: a saved form no longer needs its kept copy.
+			state.unsaved = null;
 			return entry;
 		},
 		entry_delete: ({ id }) => {
@@ -308,6 +312,17 @@
 				.map(([date, [sum, count]]) => ({ date, average: sum / count, count }));
 		},
 		settings_get: () => (state.vault === 'unlocked' ? state.settings : fail('locked')),
+		unsaved_get: () => (state.vault === 'unlocked' ? state.unsaved : fail('locked')),
+		unsaved_keep: ({ draft }) => {
+			if (state.vault !== 'unlocked') return fail('locked');
+			state.unsaved = { draft: { id: null, ...draft }, kept_at: new Date().toISOString() };
+			return null;
+		},
+		unsaved_discard: () => {
+			if (state.vault !== 'unlocked') return fail('locked');
+			state.unsaved = null;
+			return null;
+		},
 		settings_save: ({ settings }) => {
 			if (state.vault !== 'unlocked') return fail('locked');
 			// Like Rust: last_export is set only by backup_export.

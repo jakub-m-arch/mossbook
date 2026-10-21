@@ -70,6 +70,9 @@ async function invokedCommands(): Promise<string[]> {
 				auto_backup: true,
 				last_export: null
 			}),
+		api.unsavedGet,
+		() => api.unsavedKeep({ kind: 'note' }),
+		api.unsavedDiscard,
 		() => api.statsMood('week'),
 		() => api.statsPatterns('week'),
 		() => api.clipboardClearIf('copied'),

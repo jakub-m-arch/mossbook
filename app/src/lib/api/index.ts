@@ -30,7 +30,8 @@ import type {
 	Settings,
 	StatsRange,
 	Status,
-	Tag
+	Tag,
+	UnsavedEntry
 } from './types';
 
 export type * from './types';
@@ -117,6 +118,12 @@ export const planGet = () => invoke<SafetyPlan>('plan_get');
 export const planSave = (plan: SafetyPlan) => invoke<SafetyPlan>('plan_save', { plan });
 export const settingsGet = () => invoke<Settings>('settings_get');
 export const settingsSave = (settings: Settings) => invoke<Settings>('settings_save', { settings });
+
+// ---- unsaved entry form (D-20) ----
+
+export const unsavedGet = () => invoke<UnsavedEntry | null>('unsaved_get');
+export const unsavedKeep = (draft: EntryDraft) => invoke<null>('unsaved_keep', { draft });
+export const unsavedDiscard = () => invoke<null>('unsaved_discard');
 
 // ---- patterns ----
 

@@ -112,6 +112,9 @@ archive; the app does not import it.
 }
 ```
 
+`settings` never contains `unsaved_entry` (a form kept across a lock, D-20): a
+half-filled form is not part of the journal.
+
 `entries` (oldest first), `tags` (by name), `plan` and `settings` have exactly the
 shapes of the domain types in `core/src/domain/` (field names in `snake_case`,
 timestamps in RFC 3339 with the local offset, ids as UUID strings, entry kinds as

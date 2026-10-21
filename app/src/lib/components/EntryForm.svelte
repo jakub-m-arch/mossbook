@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 
 	import type {
 		Emotion,
@@ -12,6 +12,7 @@
 	import { EMOTIONS, SYMPTOMS, emptyKind, jsonCopy, kindTag } from '#lib/entries.js';
 	import { locale, t } from '#lib/i18n/index.svelte.js';
 	import { fromLocalInput, toLocalInput, toRfc3339 } from '#lib/time.js';
+	import { setFlush } from '#lib/unsaved.js';
 
 	import ChipSelect from './ChipSelect.svelte';
 	import MoodPicker from './MoodPicker.svelte';
@@ -22,9 +23,11 @@
 		initial: EntryDraft;
 		tags: Tag[];
 		onsave: (draft: EntryDraft) => Promise<void>;
+		/** Called with the form's state shortly after each change, so a lock does not lose it (D-20). */
+		onchange?: (draft: EntryDraft) => void;
 	}
 
-	let { initial: initialProp, tags, onsave }: Props = $props();
+	let { initial: initialProp, tags, onsave, onchange }: Props = $props();
 	// The form is created once per entry (the page keys it by id), so it reads
 	// the initial draft a single time and then owns its state.
 	const initial = untrack(() => $state.snapshot(initialProp) as EntryDraft);
@@ -85,22 +88,71 @@
 		}
 	}
 
+	function current(incomplete: boolean): EntryDraft {
+		return {
+			id: initial.id,
+			kind: $state.snapshot(kind()) as EntryKind,
+			occurred_at: occurredAt ? fromLocalInput(occurredAt) : undefined,
+			mood,
+			intensity: tag === 'fear' || tag === 'event' ? intensity : (initial.intensity ?? null),
+			tags: $state.snapshot(selectedTags),
+			note,
+			incomplete,
+			sensitive
+		};
+	}
+
+	/** Pause in typing after which the form is kept (D-20). */
+	const KEEP_AFTER_MS = 800;
+	let keepTimer: ReturnType<typeof setTimeout> | undefined;
+	let opened: string | undefined;
+	let changed = false;
+
+	function keepNow() {
+		clearTimeout(keepTimer);
+		keepTimer = undefined;
+		onchange?.(current(initial.incomplete ?? false));
+	}
+
+	// Any change after the form opened is kept once typing pauses.
+	$effect(() => {
+		const snapshot = JSON.stringify(current(false));
+		untrack(() => {
+			if (!onchange) return;
+			opened ??= snapshot;
+			if (!changed && snapshot === opened) return;
+			changed = true;
+			clearTimeout(keepTimer);
+			keepTimer = setTimeout(keepNow, KEEP_AFTER_MS);
+		});
+	});
+
+	onMount(() => {
+		if (!onchange) return;
+		const flush = () => {
+			if (keepTimer !== undefined) keepNow();
+		};
+		// Going to the background may lock the journal right away (V-3).
+		const onHidden = () => {
+			if (document.visibilityState === 'hidden') flush();
+		};
+		setFlush(flush);
+		document.addEventListener('visibilitychange', onHidden);
+		return () => {
+			clearTimeout(keepTimer);
+			setFlush(null);
+			document.removeEventListener('visibilitychange', onHidden);
+		};
+	});
+
 	async function submit(e: SubmitEvent) {
 		e.preventDefault();
 		if (busy) return;
 		busy = true;
+		clearTimeout(keepTimer);
+		keepTimer = undefined;
 		try {
-			await onsave({
-				id: initial.id,
-				kind: $state.snapshot(kind()) as EntryKind,
-				occurred_at: occurredAt ? fromLocalInput(occurredAt) : undefined,
-				mood,
-				intensity: tag === 'fear' || tag === 'event' ? intensity : (initial.intensity ?? null),
-				tags: $state.snapshot(selectedTags),
-				note,
-				incomplete: false,
-				sensitive
-			});
+			await onsave(current(false));
 		} finally {
 			busy = false;
 		}

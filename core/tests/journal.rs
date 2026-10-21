@@ -473,3 +473,131 @@ fn drafts_create_and_edit_but_cannot_forge_metadata() {
     let j = reopen(&fx, j);
     assert_eq!(j.entries(&EntryFilter::default()).len(), 1);
 }
+
+fn unsaved_draft(note: &str) -> mossbook_core::domain::EntryDraft {
+    serde_json::from_str(&format!(
+        r#"{{ "kind": {{ "fear": {{ "trigger": "synthetic trigger" }} }}, "intensity": 6, "note": "{note}" }}"#
+    ))
+    .unwrap()
+}
+
+#[test]
+fn unsaved_entry_survives_a_lock_until_the_form_is_saved() {
+    let (fx, mut j) = create();
+    assert!(j.unsaved_entry().is_none());
+    j.keep_unsaved_entry(unsaved_draft("first words"), NOW)
+        .unwrap();
+    let later = NOW + Duration::minutes(1);
+    j.keep_unsaved_entry(unsaved_draft("first words, more"), later)
+        .unwrap();
+
+    let mut j = reopen(&fx, j);
+    let kept = j.unsaved_entry().expect("kept across the lock").clone();
+    assert_eq!(kept.kept_at, Timestamp(later));
+    assert_eq!(kept.draft, unsaved_draft("first words, more"));
+    assert_eq!(
+        j.entries(&EntryFilter::default()).len(),
+        0,
+        "not an entry yet"
+    );
+
+    let saved = j.save_draft(&kept.draft, later).unwrap().clone();
+    assert_eq!(saved.note, "first words, more");
+    assert!(
+        j.unsaved_entry().is_none(),
+        "saving the form forgets the copy"
+    );
+    let j = reopen(&fx, j);
+    assert!(j.unsaved_entry().is_none());
+    assert_eq!(j.entries(&EntryFilter::default()).len(), 1);
+}
+
+#[test]
+fn unsaved_entry_can_be_discarded() {
+    let (fx, mut j) = create();
+    j.discard_unsaved_entry().unwrap();
+    j.keep_unsaved_entry(unsaved_draft("synthetic"), NOW)
+        .unwrap();
+    j.discard_unsaved_entry().unwrap();
+    assert!(j.unsaved_entry().is_none());
+    let j = reopen(&fx, j);
+    assert!(j.unsaved_entry().is_none());
+    assert_eq!(j.entries(&EntryFilter::default()).len(), 0);
+}
+
+#[test]
+fn a_failed_save_keeps_the_unsaved_entry() {
+    let (_fx, mut j) = create();
+    j.keep_unsaved_entry(unsaved_draft("synthetic"), NOW)
+        .unwrap();
+    let unknown: mossbook_core::domain::EntryDraft =
+        serde_json::from_str(r#"{ "id": "01890000-0000-7000-8000-000000000000", "kind": "note" }"#)
+            .unwrap();
+    assert!(j.save_draft(&unknown, NOW).is_err());
+    assert!(j.unsaved_entry().is_some());
+}
+
+#[test]
+fn settings_from_the_ui_cannot_set_or_erase_the_unsaved_entry() {
+    let (fx, mut j) = create();
+    // A forged copy on a journal without one is ignored.
+    let mut forged = j.settings().clone();
+    forged.unsaved_entry = Some(mossbook_core::domain::UnsavedEntry {
+        draft: unsaved_draft("forged"),
+        kept_at: Timestamp(NOW),
+    });
+    j.save_settings(forged).unwrap();
+    assert!(j.unsaved_entry().is_none());
+
+    // Settings sent without it (or with a stale copy) keep the stored one.
+    j.keep_unsaved_entry(unsaved_draft("real"), NOW).unwrap();
+    let mut settings = j.settings().clone();
+    settings.unsaved_entry = None;
+    settings.auto_backup = false;
+    j.save_settings(settings).unwrap();
+    let j = reopen(&fx, j);
+    assert_eq!(j.unsaved_entry().unwrap().draft, unsaved_draft("real"));
+    assert!(!j.settings().auto_backup);
+}
+
+#[test]
+fn settings_with_an_unsaved_entry_still_decode_in_older_builds() {
+    // Older builds have no `unsaved_entry` field; unknown fields are ignored, so
+    // their settings keep working (they drop the kept form on their next save).
+    #[derive(serde::Deserialize)]
+    struct OlderSettings {
+        autolock: AutoLock,
+        crisis_country: String,
+    }
+    let (_fx, mut j) = create();
+    j.keep_unsaved_entry(unsaved_draft("synthetic"), NOW)
+        .unwrap();
+    let bytes = encode(j.settings()).unwrap();
+    let older: OlderSettings = mossbook_core::domain::decode(&bytes).unwrap();
+    assert_eq!(older.autolock, AutoLock::Immediately);
+    assert_eq!(older.crisis_country, "PL");
+
+    // And settings written before the field existed decode without one.
+    #[derive(serde::Serialize)]
+    struct Before {
+        crisis_country: &'static str,
+    }
+    let before = encode(&Before {
+        crisis_country: "PL",
+    })
+    .unwrap();
+    let settings: Settings = mossbook_core::domain::decode(&before).unwrap();
+    assert!(settings.unsaved_entry.is_none());
+}
+
+#[test]
+fn json_export_leaves_out_the_unsaved_entry() {
+    let (_fx, mut j) = create();
+    j.keep_unsaved_entry(unsaved_draft("synthetic"), NOW)
+        .unwrap();
+    let bytes = j.export_json(NOW).unwrap();
+    let doc: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert!(doc["settings"].get("unsaved_entry").is_none());
+    assert!(!String::from_utf8_lossy(&bytes).contains("synthetic trigger"));
+    assert!(j.unsaved_entry().is_some(), "exporting does not discard it");
+}

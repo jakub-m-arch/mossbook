@@ -5,7 +5,10 @@ declare global {
 		// interface Error {}
 		// interface Locals {}
 		// interface PageData {}
-		// interface PageState {}
+		interface PageState {
+			/** Continue the entry form kept when the journal locked (D-20). */
+			resume?: boolean;
+		}
 		// interface Platform {}
 	}
 }

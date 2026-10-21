@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-unsaved-get"
+description = "Enables the unsaved_get command without any pre-configured scope."
+commands.allow = ["unsaved_get"]
+
+[[permission]]
+identifier = "deny-unsaved-get"
+description = "Denies the unsaved_get command without any pre-configured scope."
+commands.deny = ["unsaved_get"]

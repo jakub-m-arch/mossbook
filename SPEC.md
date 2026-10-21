@@ -122,6 +122,7 @@ editable), an optional mood rating, intensity, tags and a text note.
 | E-14 | Calendar view, each day tinted by its average mood | v1 |
 | E-15 | **Quick entry without unlocking**: adding an entry without being able to read existing ones (see §6.4) | v1 |
 | E-16 | Hiding the content of chosen entries until tapped ("difficult content") | v1 |
+| E-17 | An entry form being filled in survives a lock: kept encrypted and offered after unlocking, discarded when the form is left on purpose (D-20) | v1 |
 
 ### 4.3. Plan for a hard moment
 

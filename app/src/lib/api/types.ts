@@ -156,7 +156,7 @@ export interface Entry {
 
 /** What the UI submits; the core sets id (for new entries), schema and timestamps. */
 export interface EntryDraft {
-	id?: Id;
+	id?: Id | null;
 	kind: EntryKind;
 	occurred_at?: Timestamp;
 	mood?: number | null;
@@ -219,6 +219,12 @@ export interface Settings {
 	auto_backup: boolean;
 	/** When a backup was last saved by the user; set by Rust, ignored on save. */
 	last_export: string | null;
+}
+
+/** The entry form kept when the journal locked (D-20). */
+export interface UnsavedEntry {
+	draft: EntryDraft;
+	kept_at: Timestamp;
 }
 
 // ---- patterns ----

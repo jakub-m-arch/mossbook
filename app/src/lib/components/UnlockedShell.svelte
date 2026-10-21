@@ -14,6 +14,7 @@
 	import { settingsGet, vaultLock, vaultStatus } from '#lib/api/index.js';
 	import { detectLocale, setLocale, t } from '#lib/i18n/index.svelte.js';
 	import { toLockScreen } from '#lib/session.svelte.js';
+	import { flushUnsaved } from '#lib/unsaved.js';
 
 	interface Props {
 		title: string;
@@ -48,6 +49,8 @@
 	});
 
 	async function lock() {
+		// An open entry form is kept first, so locking in a hurry loses nothing (D-20).
+		await flushUnsaved();
 		// The `vault-locked` event also navigates; going there directly avoids a flash.
 		await vaultLock().catch(() => {});
 		await toLockScreen();

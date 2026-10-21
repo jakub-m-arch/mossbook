@@ -111,7 +111,8 @@ impl InboxEntry {
 
 /// An entry as submitted by the UI. The journal owns `id` (for new entries),
 /// `schema`, `created_at` and `updated_at`; the UI cannot set them.
-#[derive(Clone, Deserialize, Zeroize, ZeroizeOnDrop)]
+/// Serialized only as part of an unsaved entry (see `settings::UnsavedEntry`).
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct EntryDraft {
     /// `None` creates a new entry; `Some` edits an existing one.
     #[serde(default)]

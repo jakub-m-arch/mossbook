@@ -21,7 +21,7 @@ use crate::crypto::{CryptoError, random_bytes};
 
 pub use entry::{Emotion, Entry, EntryDraft, EntryKind, EntryKindTag, InboxEntry, Symptom};
 pub use plan::{Contact, SafetyPlan};
-pub use settings::{AutoLock, Reminder, Settings};
+pub use settings::{AutoLock, Reminder, Settings, UnsavedEntry};
 pub use tag::Tag;
 
 /// Domain-level error. Names the offending field, never its value.

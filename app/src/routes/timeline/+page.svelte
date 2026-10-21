@@ -8,21 +8,25 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { entriesList, tagsList } from '#lib/api/index.js';
-	import type { Entry, EntryFilter, EntryKindTag, Tag } from '#lib/api/index.js';
+	import { entriesList, tagsList, unsavedGet } from '#lib/api/index.js';
+	import type { Entry, EntryFilter, EntryKindTag, Tag, UnsavedEntry } from '#lib/api/index.js';
+	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import EntryCard from '#lib/components/EntryCard.svelte';
 	import QuickEntry from '#lib/components/QuickEntry.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
 	import UnlockedShell from '#lib/components/UnlockedShell.svelte';
-	import { CREATABLE_KINDS, groupByDay } from '#lib/entries.js';
+	import { CREATABLE_KINDS, groupByDay, kindTag } from '#lib/entries.js';
 	import { locale, t } from '#lib/i18n/index.svelte.js';
 	import { errorText, handleLocked } from '#lib/session.svelte.js';
 	import { endOfDay, startOfDay } from '#lib/time.js';
+	import { discardUnsaved } from '#lib/unsaved.js';
 
 	let entries = $state<Entry[]>([]);
 	let tags = $state<Tag[]>([]);
 	let loaded = $state(false);
 	let error = $state('');
+	/** An entry form kept when the journal locked (D-20). */
+	let unsaved = $state<UnsavedEntry | null>(null);
 	let quick: QuickEntry;
 	let filters: Sheet;
 
@@ -82,8 +86,23 @@
 	});
 
 	onMount(async () => {
-		tags = await tagsList().catch(() => []);
+		[tags, unsaved] = await Promise.all([
+			tagsList().catch(() => []),
+			unsavedGet().catch(() => null)
+		]);
 	});
+
+	function resumeUnsaved(kept: UnsavedEntry) {
+		const id = kept.draft.id;
+		const state = { resume: true };
+		if (id) void goto(resolve('/entry/[id]', { id }), { state });
+		else void goto(resolve(`/entry/new?kind=${kindTag(kept.draft.kind)}`), { state });
+	}
+
+	async function forgetUnsaved() {
+		await discardUnsaved();
+		unsaved = null;
+	}
 
 	const toggle = <T,>(list: T[], item: T) =>
 		list.includes(item) ? list.filter((i) => i !== item) : [...list, item];
@@ -136,6 +155,29 @@
 			</div>
 		{/if}
 		{#if error}<p class="notice">{error}</p>{/if}
+
+		{#if unsaved}
+			<section class="card stack" aria-labelledby="unsaved-title">
+				<h2 id="unsaved-title">{t('unsaved.title')}</h2>
+				<p class="muted">
+					{t('unsaved.body', {
+						kind: t(`kind.${kindTag(unsaved.draft.kind)}`),
+						time: new Intl.DateTimeFormat(locale(), {
+							dateStyle: 'medium',
+							timeStyle: 'short'
+						}).format(new Date(unsaved.kept_at))
+					})}
+				</p>
+				<button type="button" onclick={() => unsaved && resumeUnsaved(unsaved)}>
+					{t('unsaved.resume')}
+				</button>
+				<ConfirmAction
+					label={t('unsaved.discard')}
+					question={t('unsaved.discardConfirm')}
+					onconfirm={forgetUnsaved}
+				/>
+			</section>
+		{/if}
 
 		{#if loaded && entries.length === 0}
 			{#if filtered}

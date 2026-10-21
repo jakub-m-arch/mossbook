@@ -14,7 +14,7 @@ use crate::crypto::aead::RecordType;
 use crate::domain::entry::ENTRY_SCHEMA;
 use crate::domain::{
     DomainError, Entry, EntryDraft, EntryKind, EntryKindTag, Id, InboxEntry, SafetyPlan, Settings,
-    Tag, decode, encode,
+    Tag, UnsavedEntry, decode, encode,
 };
 use crate::query::stats::{MoodPoint, mood_by_day};
 use crate::query::{EntryFilter, Patterns, StatsRange};
@@ -290,7 +290,42 @@ impl Journal {
             None => Entry::new(draft.kind.clone(), now)?,
         };
         draft.apply_to(&mut entry);
-        self.save_entry(entry, now)
+        let id = self.save_entry(entry, now)?.id;
+        // The form is saved, so the copy kept for a lock is no longer needed.
+        self.discard_unsaved_entry()?;
+        Ok(&self.entries[&id])
+    }
+
+    // ---- unsaved entry form (decision D-20) ----
+
+    /// The entry form kept when the journal last locked, if any.
+    pub fn unsaved_entry(&self) -> Option<&UnsavedEntry> {
+        self.settings.unsaved_entry.as_ref()
+    }
+
+    /// Keeps the open entry form, encrypted with the rest of the settings, so a
+    /// lock does not lose it. Replaces any earlier one: there is one form at a time.
+    pub fn keep_unsaved_entry(
+        &mut self,
+        draft: EntryDraft,
+        now: OffsetDateTime,
+    ) -> Result<(), JournalError> {
+        let mut settings = self.settings.clone();
+        settings.unsaved_entry = Some(UnsavedEntry {
+            draft,
+            kept_at: now.into(),
+        });
+        self.store_settings(settings).map(drop)
+    }
+
+    /// Forgets the kept entry form. Does nothing if there is none.
+    pub fn discard_unsaved_entry(&mut self) -> Result<(), JournalError> {
+        if self.settings.unsaved_entry.is_none() {
+            return Ok(());
+        }
+        let mut settings = self.settings.clone();
+        settings.unsaved_entry = None;
+        self.store_settings(settings).map(drop)
     }
 
     /// Quick entry (E-10): type plus one value, marked as incomplete.
@@ -429,11 +464,13 @@ impl Journal {
         &self.settings
     }
 
-    /// Saves the settings. `last_export` is kept from the stored settings: it is
-    /// set only by [`Self::record_export`].
+    /// Saves the settings. `last_export` and `unsaved_entry` are kept from the
+    /// stored settings: they are set only by [`Self::record_export`] and
+    /// [`Self::keep_unsaved_entry`], never by the UI.
     pub fn save_settings(&mut self, mut settings: Settings) -> Result<&Settings, JournalError> {
         settings.validate()?;
         settings.last_export = self.settings.last_export;
+        settings.unsaved_entry = self.settings.unsaved_entry.clone();
         self.store_settings(settings)
     }
 
@@ -475,6 +512,9 @@ impl Journal {
         entries.sort_by_key(|e| (e.occurred_at, e.id));
         let mut tags: Vec<&Tag> = self.tags.values().collect();
         tags.sort_by(|a, b| a.name.cmp(&b.name).then(a.id.cmp(&b.id)));
+        // A half-filled form is not part of the journal (and would change the shape).
+        let mut settings = self.settings.clone();
+        settings.unsaved_entry = None;
         let export = Export {
             format: EXPORT_FORMAT,
             version: EXPORT_VERSION,
@@ -482,7 +522,7 @@ impl Journal {
             entries,
             tags,
             plan: &self.plan,
-            settings: &self.settings,
+            settings: &settings,
         };
         serde_json::to_vec_pretty(&export)
             .map(Zeroizing::new)

@@ -136,6 +136,13 @@ copies the header and encrypted records and seals a manifest → file written.
 (no vault yet) or merge/replace (re-encrypting under the current DEK, D-4).
 `export_json` writes the unencrypted JSON export (X-4) after the UI has warned.
 
+**Unsaved entry form (D-20).** While an entry form changes, the UI sends its state
+(`unsaved_keep`) once typing pauses, when the window is hidden and before a manual
+lock → `Journal::keep_unsaved_entry` stores it in the encrypted settings. Saving the
+entry clears it; leaving the form for another screen sends `unsaved_discard`; a lock
+keeps it. After unlocking, the timeline offers to continue or discard it
+(`unsaved_get`).
+
 **Lock.** Manual, background, idle or exit → if an automatic backup is due (D-16), one
 is written to `backups/` (best effort: a failure never blocks locking) → the `Journal`
 is dropped: the DEK and all
