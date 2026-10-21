@@ -153,7 +153,13 @@ jobs:
           apk=app/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
           tools/check-android-apk.sh "$apk"
           apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)
-          "$apksigner" verify --print-certs "$apk"
+          # The release key from SECURITY.md; another key could not update installs.
+          expected=d6e7dbbd8239092dc381266443109cf647823c1c00054dee1e13bb46aee568b2
+          "$apksigner" verify --print-certs "$apk" | tee certs.txt
+          if ! grep -qi "certificate SHA-256 digest: $expected" certs.txt; then
+            echo "::error::The APK is not signed with the Mossbook release key (SECURITY.md)"
+            exit 1
+          fi
           out="Mossbook_${VERSION}_android.apk"
           cp "$apk" "$out"
           gh release upload "${{ github.ref_name }}" "$out" --repo "${{ github.repository }}" --clobber
