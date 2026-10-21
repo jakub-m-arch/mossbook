@@ -123,12 +123,12 @@ Resumed 2026-10-21 (postponed on 2026-10-19 while the tools were missing).
 - [x] "Show in folder" for automatic backups is desktop only (`BackupInfo.can_reveal`); on Android they stay in the app's private storage
 - [x] Tests: `android_project_keeps_the_hardening` (source manifests, backup rules, `FLAG_SECURE`); CI builds a release APK and `tools/check-android-apk.sh` checks the merged manifest (no network permissions, backups off) and that the native library imports no socket functions
 - [x] Emulator (Android 16, Pixel 7): create a journal, quick entry, lock on going to the background, unlock, save a backup through the system dialog (opened by `tools/read-backup.py`), crisis numbers open the dialer without calling; app files and WebView storage hold no typed secrets
-- [ ] Test on a real phone (USB debugging)
+- [x] Test on a real phone (Redmi Note 13 Pro, Android 16, wireless debugging)
 - [x] Release signing from GitHub secrets (`keystore.properties`, never committed); the `Release` workflow builds a signed APK (arm64, armv7, x86_64), checks it (`check-android-apk.sh`, `apksigner verify`) and uploads it before `SHA256SUMS`; skipped with a notice without the key; checked locally with a throwaway key
 - [x] Website: Android download, installation steps, fingerprint unlock and Android privacy texts, rendered only when the release has an APK
 - [x] Store metadata in `fastlane/metadata/android` (en-US, pl-PL): descriptions, screenshots, icon, changelog for version code 2000
-- [ ] Generate the signing key and add the secrets (maintainer, `docs/release.md`)
-- [ ] Release 0.2.0 with the APK; test the signed release on a phone (fingerprint, black screenshots)
+- [x] Signing key generated and kept by the maintainer; secrets set; certificate fingerprint in `SECURITY.md` and pinned in the `Release` workflow
+- [x] Release 0.2.0 with the signed APK, tested on a Redmi Note 13 Pro before publishing: install, fingerprint unlock after R8, black screenshots and app-switcher preview
 - [ ] Distribution: IzzyOnDroid (same signature as GitHub), then F-Droid with a reproducible build
 
 ### Stage 12: Release 0.1 (desktop)
