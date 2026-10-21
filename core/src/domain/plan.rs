@@ -1,4 +1,4 @@
-//! "Plan for a hard moment", structured after the Stanley–Brown safety plan (P-1).
+//! "Plan for a hard moment" (P-1): lists and contacts the user writes in their own words.
 
 use core::fmt;
 

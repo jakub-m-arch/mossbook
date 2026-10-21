@@ -125,7 +125,8 @@ editable), an optional mood rating, intensity, tags and a text note.
 
 ### 4.3. Plan for a hard moment
 
-Based on the Stanley–Brown safety plan.
+A plan the user writes in their own words at a calmer time, to have at hand when
+things get hard. The sections and their wording are our own (D-19).
 
 | ID | Feature | Priority |
 |---|---|---|

@@ -1,5 +1,5 @@
 <script lang="ts">
-	// Plan for a hard moment, after the Stanley–Brown safety plan (P-1).
+	// Plan for a hard moment (P-1).
 	import Phone from '@lucide/svelte/icons/phone';
 	import { onMount } from 'svelte';
 

@@ -69,7 +69,7 @@ First desktop release (Linux, Windows, macOS).
 - Tags: create, rename, recolor, delete, merge.
 
 ### Hard moments
-- Safety plan after the Stanley–Brown model, with call buttons for contacts.
+- Plan for a hard moment, with call buttons for contacts.
 - Crisis numbers (Poland: 112, 116 123, 800 70 2222, 116 111) and grounding exercises
   (4-7-8 and box breathing, 5-4-3-2-1), available **without unlocking**.
 
