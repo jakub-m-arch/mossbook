@@ -129,7 +129,7 @@ Resumed 2026-10-21 (postponed on 2026-10-19 while the tools were missing).
 - [x] Store metadata in `fastlane/metadata/android` (en-US, pl-PL): descriptions, screenshots, icon, changelog for version code 2000
 - [x] Signing key generated and kept by the maintainer; secrets set; certificate fingerprint in `SECURITY.md` and pinned in the `Release` workflow
 - [x] Release 0.2.0 with the signed APK, tested on a Redmi Note 13 Pro before publishing: install, fingerprint unlock after R8, black screenshots and app-switcher preview
-- [ ] Distribution: IzzyOnDroid (same signature as GitHub), then F-Droid with a reproducible build
+- [x] Distribution: the signed APK on GitHub Releases and the website (updates by hand or with Obtainium). App stores (IzzyOnDroid, F-Droid) are not pursued for now (maintainer's decision, 2026-10-21); `fastlane/metadata/android` stays ready if that changes
 
 ### Stage 12: Release 0.1 (desktop)
 - [x] `SECURITY.md`, `docs/threat-model.md` (threat → protection → place in code, accepted leaks, limitations), `CONTRIBUTING.md` (DCO, rules), `CHANGELOG.md`
@@ -143,7 +143,7 @@ Resumed 2026-10-21 (postponed on 2026-10-19 while the tools were missing).
 - [x] `v0.1.1`: macOS bundle signed ad-hoc as a whole (0.1.0 was reported as "damaged" after download)
 - [x] `v0.1.2`: automatic backups, recovery key check, JSON export, first release with provenance attestations
 - [x] `v0.1.3`: optional password for the therapist PDF (AES-256), website on GitHub Pages
-- [ ] `v0.2.0`: first Android release (signed APK), fingerprint unlock
+- [x] `v0.2.0`: first Android release (signed APK), fingerprint unlock (2026-10-21)
 - [ ] Enable private vulnerability reporting in the repository settings
 - [ ] Code signing: Apple Developer ID + notarisation (macOS), SignPath or Azure Trusted Signing (Windows)
 
