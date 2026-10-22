@@ -162,6 +162,7 @@ period) overviews are not shown.
 | X-5 | Deleting all data (V-9) | MVP |
 | X-6 | **Automatic local backups** when the journal locks (daily, newest seven), plus a note in the settings of when a backup was last saved elsewhere (D-16) | v1 |
 | X-7 | **Checking the recovery key**: type the 24 words and see whether they open this journal, without changing anything | v1 |
+| X-8 | **The same journal on the user's devices**: each device writes an encrypted sync file into a folder Syncthing carries between them; Mossbook itself never connects. The newer edit wins, deletions travel, plan and settings too; pairing makes the second device take the first one's journal, password and recovery key (D-22) | v2 |
 
 ### 4.6. Reminders
 

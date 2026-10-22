@@ -167,7 +167,8 @@ Resumed 2026-10-21 (postponed on 2026-10-19 while the tools were missing).
 - [x] Folder on desktop: a path picked in the system dialog, kept in `meta` on this device; each device writes only its own `<device id>.mossbook-sync` (temporary dot-file, then rename), so Syncthing never sees two writers of one file; Syncthing's conflict copies and temporary files are ignored
 - [x] Folder on Android: `SyncFolderPlugin` (Kotlin): the system folder picker with a persisted permission, list/read/write/remove through the Storage Access Framework, files passed through the app's cache (already encrypted), written as a dot-file and renamed; checked on the emulator (release build): pick a folder, write on connect, pair a second journal from that file, read its file on unlock
 - [x] When: written on lock (skipped when the journal is unchanged, by the backup's fingerprint) and after pairing; read on unlock and when the app comes back while unlocked, only files that changed; the timeline reloads when something arrived; Settings → Sync shows the folder, the devices and when each file changed, the last sync and any problem; turning sync off keeps everything; destroying the journal removes this device's file
-- [ ] Docs: `sync-format.md`, `crypto.md`, threat model (what the folder reveals: device count, sizes, times of change), SPEC, README (setting up Syncthing)
+- [x] Docs: sync files in `backup-format.md` (a sync file is a backup), `crypto.md`, threat model (what the folder and `meta` reveal, clocks, joining), SPEC X-8, README (setting up Syncthing), CHANGELOG
+- [ ] On real devices with Syncthing (a phone and a computer) before the next release
 
 ### Stage 15: Voice notes (E-18, D-21)
 - [x] Manual check (2026-10-22): Android emulator (release build, R8; a format 1 journal migrated on open): record, play, save, lock in the background and unlock with the fingerprint; macOS app bundle: record and play

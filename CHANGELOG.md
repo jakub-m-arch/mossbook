@@ -12,6 +12,13 @@ All notable changes to Mossbook. Versions follow [Semantic Versioning](https://s
   a therapist mentions it without the audio. The first recording asks for access
   to the microphone.
 
+- The same journal on your phone and your computer: Settings → Sync. Mossbook
+  writes an encrypted file into a folder that Syncthing shares between your
+  devices and merges the other devices' changes; it still never connects to the
+  network itself. The newer change wins, and deletions, the plan and the settings
+  travel too. Joining asks for the other journal's password and keeps the
+  current journal in the automatic backups first.
+
 ### Changed
 - The readable copy in the settings is now a ZIP archive: the journal as JSON and
   the voice notes as Ogg audio files.

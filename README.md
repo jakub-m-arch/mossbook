@@ -94,12 +94,42 @@ Mossbook never connects to the internet, so it does not check for updates by its
 - **Encrypted backup** to a single `.mossbook` file; restore on a new device or merge.
   **Automatic backups** on this device every day, and a way to check that your
   written-down recovery key works.
-- **Your data stays portable**: export everything as readable JSON at any time.
+- **Voice notes** of up to five minutes, recorded in the app and encrypted like the
+  rest.
+- **The same journal on your phone and your computer** through a folder that
+  [Syncthing](https://syncthing.net) shares between them (see below); Mossbook itself
+  still never connects anywhere.
+- **Your data stays portable**: export everything as a readable ZIP (JSON and your
+  voice notes) at any time.
 - **Report for your therapist** as a PDF for a chosen period, types and tags,
   optionally protected with a password (AES-256).
 - **Quick entry from the lock screen** without the password: it can add, never read.
 - **Languages**: Polish, English and Ukrainian from the first release.
 - **Calm by design**: no streaks, points, badges or guilt-inducing notifications.
+
+## Using Mossbook on more than one device
+
+Mossbook never connects to the network, so it does not sync by itself. It writes one
+encrypted file per device into a folder of your choice, and
+[Syncthing](https://syncthing.net) (free, open source, device to device, no cloud)
+carries that folder between your phone and your computer.
+
+1. Install Syncthing on both devices and share one folder between them, for example
+   `MossbookSync`.
+2. On the device whose journal you want to keep (its password and 24-word recovery key
+   stay), open Settings → Sync → *Choose folder* and pick that folder.
+3. Wait until Syncthing has copied its file to the other device. There, choose the same
+   folder in Settings → Sync. Mossbook finds the other journal and offers to join it:
+   type **that** journal's password. The entries of this device are added to it, and
+   from then on both devices have the same journal, password and recovery key. The
+   journal this device had before is kept in its automatic backups.
+
+Each device writes its file when the journal locks and reads the others' changes when
+it unlocks or comes back to the screen. If you change the same entry on both devices,
+the newer change stays; deletions travel too. The file is encrypted like a backup;
+whoever can see the folder learns how many devices there are, how big each file is and
+when it changed, nothing more. The details are in
+[`docs/backup-format.md`](docs/backup-format.md) (*Sync files*).
 
 ## Privacy and security
 

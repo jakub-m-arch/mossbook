@@ -35,6 +35,8 @@ It complements [`crypto.md`](crypto.md) (cryptography) and
 | Losing the journal file | Disk error, a crash mid-write, deleting something by mistake | Automatic encrypted backups on lock (daily, newest seven, D-16); a reminder in the settings of when a backup was last saved elsewhere; a way to check the written-down recovery key | `core/src/backup/auto.rs`, `routes/settings/` |
 | Memory after locking | Content left in RAM | Keys in `SecretBox`; decrypted content and domain objects zeroed on drop | `crypto/mod.rs`, `ZeroizeOnDrop` in `domain/` |
 | Voice notes outside the journal | A plaintext copy in the gallery, a temporary file, a cloud-synced folder | Recorded only inside the app (no import); encoded in memory and stored encrypted like records; decrypted one at a time for playback into an object URL that is revoked when the player goes away; never written to a file; the archive has no metadata or timestamps; recordings nothing points to are deleted on lock | `app/src/lib/voice/`, `journal.rs`, `vault/mod.rs` |
+| Sync between devices (D-22) | The sync folder is copied by Syncthing, read by another app on the phone, or a file in it is replaced | Each file is a full encrypted backup under the journal's key: unreadable without it, and a changed, cut or foreign file is refused (manifest over records, recordings and the password wrap; vault id checked). An old file replayed cannot undo a newer edit, a deletion or a password change (newer `updated_at` and `password_epoch` win). Mossbook never connects; Syncthing does, between the user's own devices | `core/src/journal/sync.rs`, `backup/`, `app/src-tauri/src/sync.rs` |
+| Joining another device's journal | Someone puts their own journal file into the folder | Joining needs that journal's password, is throttled like unlocking, warns that the password and recovery key change, and keeps this device's journal in its automatic backups first | `session.rs` (`sync_join`), Settings → Sync |
 | A web view asking for more | Script asking for the camera or location | The web view is allowed the microphone (voice notes) and refused every other permission; Android declares only `RECORD_AUDIO`, asked on the first recording | `app/src-tauri/src/lib.rs`, `AndroidManifest.xml` |
 
 ## Accepted metadata leaks
@@ -43,6 +45,9 @@ Visible to someone with the vault file or a backup, by design:
 
 - the number of records, and how many of each type (entry, tag, plan, settings);
 - the number of voice notes and the size of each, which hints at its length;
+- with sync on: in `meta`, this device's random id and the location of the sync
+  folder; in the folder, how many devices there are, the size of each one's file and
+  when it changed (when that device last locked with something new);
 - the number of quick entries waiting in the inbox until the next unlock;
 - the approximate size of each record;
 - the file's modification time, and those of the automatic backups, which show on
@@ -88,6 +93,13 @@ Visible to someone with the vault file or a backup, by design:
   which cannot be wiped, like typed text. The operating system shows that the
   microphone is in use; Mossbook does not record in the background (leaving the app
   ends the recording).
+- **Sync and clocks.** Which of two edits is newer comes from each device's clock: a
+  device whose clock is far ahead can make its older edit win. A sync file holds the
+  whole journal, so anyone who can open the folder can copy it, though not read it;
+  removing the folder from Syncthing on a lost device is up to the user. Joining
+  makes both devices open with the first one's password and recovery key; the
+  second device's previous key stops working (its old journal stays in its
+  automatic backups, which still open with its old password).
 - **Throttling** lives in memory: restarting the app resets the delay. The real
   protection against guessing is the cost of Argon2id.
 
