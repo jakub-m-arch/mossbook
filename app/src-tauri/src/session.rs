@@ -555,7 +555,10 @@ impl Session {
         };
         match &mut self.state {
             VaultState::Unlocked(journal) => {
-                let report = journal.import(opened.decrypt()?, mode)?;
+                let voice = |id: &mossbook_core::domain::Id| {
+                    opened.open_media(id.as_bytes()).ok().flatten()
+                };
+                let report = journal.import(opened.decrypt()?, &voice, mode)?;
                 Ok(ImportOutcome {
                     restored: false,
                     report,

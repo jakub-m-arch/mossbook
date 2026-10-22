@@ -103,7 +103,9 @@ pub(crate) fn load(
     let mut loaded = Vec::with_capacity(scan.records.len());
     let mut unreadable = scan.malformed;
     for raw in scan.records {
-        let opened = RecordType::from_code(raw.type_code).map(|rt| {
+        // A media type in `records` is out of place: counted, never opened.
+        let record_type = RecordType::from_code(raw.type_code).filter(|rt| !rt.is_media());
+        let opened = record_type.map(|rt| {
             open_record(&dek, &header.vault_id, &raw.id, rt, &raw.blob).map(|pt| (rt, pt))
         });
         match opened {

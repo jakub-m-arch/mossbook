@@ -103,7 +103,7 @@ impl PendingVault {
         if !self.confirmed {
             return Err(VaultError::NotConfirmed);
         }
-        write_new_vault(path, &self.header, &[])?;
+        write_new_vault(path, &self.header, &[], &[])?;
         let store = Store::open(path)?;
         let Self { header, dek, .. } = self;
         super::unlock::load(path, store, header, dek)
@@ -118,6 +118,7 @@ pub(crate) fn write_new_vault(
     path: &Path,
     header: &VaultHeader,
     records: &[RawRecord],
+    media: &[RawRecord],
 ) -> Result<(), VaultError> {
     if exists(path) {
         return Err(VaultError::AlreadyExists);
@@ -131,7 +132,7 @@ pub(crate) fn write_new_vault(
     }
     let mut store = Store::create(&tmp)?;
     header.save(&mut store)?;
-    store.apply(records, &[])?;
+    store.apply_with_media(records, &[], media, &[])?;
     store.close()?;
     if exists(path) {
         return Err(VaultError::AlreadyExists);

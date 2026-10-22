@@ -163,8 +163,8 @@ Resumed 2026-10-21 (postponed on 2026-10-19 while the tools were missing).
 
 ### Stage 15: Voice notes (E-18, D-21)
 - [ ] Spike: record (`MediaRecorder`) and play back in the Android WebView, WKWebView (macOS), WebView2 (Windows) and WebKitGTK (Linux); which container and codec each produces and which of them the others can play; microphone permission on Android (`RECORD_AUDIO` asked on first use) and macOS (`NSMicrophoneUsageDescription`)
-- [ ] Core: `media` table (SQL migration), record type 5 `voice`, lazy decryption, size limit, deleting with the entry, removing orphans; tests incl. negative ones (wrong id/type/vault in the AAD, oversized blob, orphans)
-- [ ] Vault `format_version` 2 + migration test; backup body version 2 (`media` array, manifest over both arrays) + fixture, version 1 still imports
+- [x] Core: `media` table (SQL migration 2), record type 5 `voice`, decrypted only for playback, Ogg Opus checked by the journal (structure, CRC, ≤ 5 min, ≤ 4 MiB; length from the last granule), deleted with the entry or when replaced, orphans removed on lock/unlock/discard; tests incl. negative ones (blob under another id or among records, foreign files, over the limits, shared or missing recording)
+- [x] Vault `format_version` 2 + migration test (frozen `vault-v1.db`, new `vault-v2.db`); backup version 2 (`media` array, manifest over both lists with AAD `mossbook/backup/v2`, so it cannot pass as version 1) + `backup-v2.mossbook`, version 1 still imports; import re-encrypts recordings one at a time; `tools/read-backup.py` reads both versions
 - [ ] Tauri: raw-bytes commands `voice_save` / `voice_get` (no base64, no file on disk)
 - [ ] UI: record (5:00 limit with a visible countdown), stop, listen, re-record, delete; playback from an object URL revoked on lock; a recording in progress is dropped on lock
 - [ ] Unsaved form (E-17): a finished recording is stored at once and survives a lock with the form

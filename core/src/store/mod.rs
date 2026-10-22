@@ -156,22 +156,80 @@ impl Store {
 
     /// Upserts `puts` and deletes `deletes` in one transaction.
     pub fn apply(&mut self, puts: &[RawRecord], deletes: &[[u8; 16]]) -> Result<(), StoreError> {
+        self.apply_with_media(puts, deletes, &[], &[])
+    }
+
+    /// Like [`Self::apply`], and also upserts `media_puts` and deletes
+    /// `media_deletes` in the `media` table, all in one transaction.
+    pub fn apply_with_media(
+        &mut self,
+        puts: &[RawRecord],
+        deletes: &[[u8; 16]],
+        media_puts: &[RawRecord],
+        media_deletes: &[[u8; 16]],
+    ) -> Result<(), StoreError> {
         let tx = self.conn.transaction()?;
-        {
-            let mut put = tx.prepare(
-                "INSERT INTO records (id, type, blob) VALUES (?1, ?2, ?3)
-                 ON CONFLICT(id) DO UPDATE SET type = excluded.type, blob = excluded.blob",
-            )?;
+        for (table, puts, deletes) in [
+            ("records", puts, deletes),
+            ("media", media_puts, media_deletes),
+        ] {
+            let mut put = tx.prepare(&format!(
+                "INSERT INTO {table} (id, type, blob) VALUES (?1, ?2, ?3)
+                 ON CONFLICT(id) DO UPDATE SET type = excluded.type, blob = excluded.blob"
+            ))?;
             for r in puts {
                 put.execute(params![r.id.as_slice(), r.type_code, r.blob])?;
             }
-            let mut delete = tx.prepare("DELETE FROM records WHERE id = ?1")?;
+            let mut delete = tx.prepare(&format!("DELETE FROM {table} WHERE id = ?1"))?;
             for id in deletes {
                 delete.execute([id.as_slice()])?;
             }
         }
         tx.commit()?;
         Ok(())
+    }
+
+    /// Inserts or replaces a row of the `media` table.
+    pub fn media_put(&mut self, record: &RawRecord) -> Result<(), StoreError> {
+        self.apply_with_media(&[], &[], std::slice::from_ref(record), &[])
+    }
+
+    /// One row of the `media` table, if it exists and is well-formed.
+    pub fn media_get(&self, id: &[u8; 16]) -> Result<Option<RawRecord>, StoreError> {
+        let row = self
+            .conn
+            .query_row(
+                "SELECT type, blob FROM media WHERE id = ?1",
+                [id.as_slice()],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, Vec<u8>>(1)?)),
+            )
+            .optional()?;
+        Ok(row.and_then(|(type_code, blob)| {
+            Some(RawRecord {
+                id: *id,
+                type_code: u8::try_from(type_code).ok()?,
+                blob,
+            })
+        }))
+    }
+
+    /// Ids of every row of the `media` table (the blobs are not read).
+    pub fn media_ids(&self) -> Result<Vec<[u8; 16]>, StoreError> {
+        let mut stmt = self.conn.prepare("SELECT id FROM media")?;
+        let rows = stmt.query_map([], |row| row.get::<_, Vec<u8>>(0))?;
+        let mut ids = Vec::new();
+        for row in rows {
+            // A malformed id cannot be referenced by an entry; it is left alone.
+            if let Ok(id) = <[u8; 16]>::try_from(row?.as_slice()) {
+                ids.push(id);
+            }
+        }
+        Ok(ids)
+    }
+
+    /// Every well-formed row of the `media` table, e.g. for a backup.
+    pub fn media_all(&self) -> Result<RecordScan, StoreError> {
+        self.scan("SELECT id, type, blob FROM media")
     }
 
     /// Deletes a record. Returns whether it existed.
@@ -186,7 +244,11 @@ impl Store {
     ///
     /// A malformed row must not lock the user out of every other entry.
     pub fn records_all(&self) -> Result<RecordScan, StoreError> {
-        let mut stmt = self.conn.prepare("SELECT id, type, blob FROM records")?;
+        self.scan("SELECT id, type, blob FROM records")
+    }
+
+    fn scan(&self, sql: &str) -> Result<RecordScan, StoreError> {
+        let mut stmt = self.conn.prepare(sql)?;
         let rows = stmt.query_map([], |row| {
             Ok((
                 row.get::<_, Vec<u8>>(0)?,
@@ -406,6 +468,48 @@ mod tests {
         let scan = store.records_all().unwrap();
         assert_eq!(scan.records, vec![record(1, 1, b"ok")]);
         assert_eq!(scan.malformed, 2);
+    }
+
+    #[test]
+    fn media_crud_and_atomic_batch() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut store = Store::create(&dir.path().join("vault.db")).unwrap();
+        assert_eq!(store.media_get(&[1; 16]).unwrap(), None);
+        store.media_put(&record(1, 5, b"voice")).unwrap();
+        store.media_put(&record(2, 5, b"other")).unwrap();
+        assert_eq!(
+            store.media_get(&[1; 16]).unwrap(),
+            Some(record(1, 5, b"voice"))
+        );
+        let mut ids = store.media_ids().unwrap();
+        ids.sort();
+        assert_eq!(ids, vec![[1; 16], [2; 16]]);
+        // Media rows never show up as records.
+        assert!(store.records_all().unwrap().records.is_empty());
+
+        store
+            .apply_with_media(&[record(9, 1, b"entry")], &[], &[], &[[1; 16]])
+            .unwrap();
+        assert_eq!(store.media_ids().unwrap(), vec![[2; 16]]);
+        assert_eq!(store.records_all().unwrap().records.len(), 1);
+
+        // A failing media delete rolls back the record write in the same batch.
+        store
+            .conn()
+            .execute_batch(
+                "CREATE TRIGGER fail BEFORE DELETE ON media BEGIN SELECT RAISE(ABORT, 'x'); END;",
+            )
+            .unwrap();
+        assert!(
+            store
+                .apply_with_media(&[record(8, 1, b"e")], &[], &[], &[[2; 16]])
+                .is_err()
+        );
+        assert_eq!(store.records_all().unwrap().records.len(), 1);
+        assert_eq!(
+            store.media_all().unwrap().records,
+            vec![record(2, 5, b"other")]
+        );
     }
 
     #[test]

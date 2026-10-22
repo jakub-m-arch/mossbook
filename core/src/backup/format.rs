@@ -4,10 +4,11 @@
 //! "MOSSBOOK" (8 B) || format version (u16 LE) || CBOR body
 //! ```
 //!
-//! The body carries the vault header and the encrypted records exactly as they
-//! are stored in `vault.db`, plus a manifest: SHA-256 over all records, sealed
-//! with the DEK. Records are authenticated one by one; the manifest also makes
-//! removing, adding or reordering records detectable.
+//! The body carries the vault header, the encrypted records and (version 2)
+//! the encrypted recordings exactly as they are stored in `vault.db`, plus a
+//! manifest: SHA-256 over all of them, sealed with the DEK. Records are
+//! authenticated one by one; the manifest also makes removing, adding or
+//! reordering records or recordings detectable.
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -23,13 +24,17 @@ use super::BackupError;
 
 /// File signature.
 pub const MAGIC: &[u8; 8] = b"MOSSBOOK";
-/// Backup format version written by this build.
-pub const BACKUP_VERSION: u16 = 1;
+/// Backup format version written by this build. Version 1 (no recordings) is
+/// still read.
+pub const BACKUP_VERSION: u16 = 2;
 /// Largest file accepted on import, as a guard against memory exhaustion.
 pub const MAX_BACKUP_BYTES: usize = 512 * 1024 * 1024;
 
-/// AAD prefix of the sealed manifest.
-pub(super) const MANIFEST_AAD_PREFIX: &[u8] = b"mossbook/backup/v1";
+/// AAD prefix of the sealed manifest, per backup version. A separate label for
+/// version 2 means a version 2 backup cannot be passed off as version 1 with
+/// its recordings cut out.
+const MANIFEST_AAD_V1: &[u8] = b"mossbook/backup/v1";
+const MANIFEST_AAD_V2: &[u8] = b"mossbook/backup/v2";
 
 #[derive(Serialize, Deserialize)]
 struct Body {
@@ -46,7 +51,10 @@ struct Body {
     #[serde(with = "serde_bytes")]
     wrapped_dek_rec: Vec<u8>,
     records: Vec<BodyRecord>,
-    /// `nonce || AEAD(DEK, manifest AAD, SHA-256 of the records)`.
+    /// Recordings from the `media` table (version 2; absent in version 1).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    media: Vec<BodyRecord>,
+    /// `nonce || AEAD(DEK, manifest AAD, SHA-256 of the records and recordings)`.
     #[serde(with = "serde_bytes")]
     manifest: Vec<u8>,
 }
@@ -66,6 +74,10 @@ struct BodyRecord {
 pub struct Backup {
     pub header: VaultHeader,
     pub records: Vec<RawRecord>,
+    /// Encrypted recordings (E-18); always empty in a version 1 backup.
+    pub media: Vec<RawRecord>,
+    /// The format version the file was read in (or is written in).
+    pub(super) version: u16,
     pub(super) manifest: Vec<u8>,
 }
 
@@ -73,6 +85,7 @@ impl core::fmt::Debug for Backup {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Backup")
             .field("records", &self.records.len())
+            .field("media", &self.media.len())
             .finish_non_exhaustive()
     }
 }
@@ -88,21 +101,15 @@ impl Backup {
             kdf_salt: h.kdf_salt.to_vec(),
             wrapped_dek_pwd: h.wrapped_dek_pwd.clone(),
             wrapped_dek_rec: h.wrapped_dek_rec.clone(),
-            records: self
-                .records
-                .iter()
-                .map(|r| BodyRecord {
-                    id: r.id.to_vec(),
-                    type_code: r.type_code,
-                    blob: r.blob.clone(),
-                })
-                .collect(),
+            records: self.records.iter().map(BodyRecord::from).collect(),
+            media: self.media.iter().map(BodyRecord::from).collect(),
             manifest: self.manifest.clone(),
         };
         let mut out = Vec::with_capacity(
             16 + self
                 .records
                 .iter()
+                .chain(&self.media)
                 .map(|r| r.blob.len() + 32)
                 .sum::<usize>(),
         );
@@ -121,12 +128,19 @@ impl Backup {
             .strip_prefix(MAGIC.as_slice())
             .ok_or(BackupError::NotABackup)?;
         let (version, body) = rest.split_at_checked(2).ok_or(BackupError::Corrupted)?;
-        if u16::from_le_bytes([version[0], version[1]]) != BACKUP_VERSION {
+        let version = u16::from_le_bytes([version[0], version[1]]);
+        // Each backup version comes from exactly one vault format.
+        let vault_format = match version {
+            1 => 1,
+            2 => VAULT_FORMAT_VERSION,
+            _ => return Err(BackupError::UnsupportedVersion),
+        };
+        let body: Body = ciborium::from_reader(body).map_err(|_| BackupError::Corrupted)?;
+        if body.vault_format != vault_format {
             return Err(BackupError::UnsupportedVersion);
         }
-        let body: Body = ciborium::from_reader(body).map_err(|_| BackupError::Corrupted)?;
-        if body.vault_format != VAULT_FORMAT_VERSION {
-            return Err(BackupError::UnsupportedVersion);
+        if version == 1 && !body.media.is_empty() {
+            return Err(BackupError::Corrupted);
         }
         let fixed = |v: &[u8]| -> Result<[u8; 16], BackupError> {
             v.try_into().map_err(|_| BackupError::Corrupted)
@@ -147,21 +161,26 @@ impl Backup {
         {
             return Err(BackupError::Corrupted);
         }
-        let records = body
-            .records
-            .into_iter()
-            .map(|r| {
-                RecordType::from_code(r.type_code).ok_or(BackupError::Corrupted)?;
-                Ok(RawRecord {
-                    id: fixed(&r.id)?,
-                    type_code: r.type_code,
-                    blob: r.blob,
+        // Records hold only record types and recordings only media types.
+        let rows = |rows: Vec<BodyRecord>, media: bool| {
+            rows.into_iter()
+                .map(|r| {
+                    RecordType::from_code(r.type_code)
+                        .filter(|rt| rt.is_media() == media)
+                        .ok_or(BackupError::Corrupted)?;
+                    Ok(RawRecord {
+                        id: fixed(&r.id)?,
+                        type_code: r.type_code,
+                        blob: r.blob,
+                    })
                 })
-            })
-            .collect::<Result<Vec<_>, BackupError>>()?;
+                .collect::<Result<Vec<_>, BackupError>>()
+        };
         Ok(Self {
             header,
-            records,
+            records: rows(body.records, false)?,
+            media: rows(body.media, true)?,
+            version,
             manifest: body.manifest,
         })
     }
@@ -171,19 +190,45 @@ impl Backup {
     }
 }
 
-/// SHA-256 over every record, length-prefixed so the encoding is unambiguous.
-pub(super) fn records_digest(records: &[RawRecord]) -> [u8; 32] {
+impl From<&RawRecord> for BodyRecord {
+    fn from(r: &RawRecord) -> Self {
+        Self {
+            id: r.id.to_vec(),
+            type_code: r.type_code,
+            blob: r.blob.clone(),
+        }
+    }
+}
+
+/// SHA-256 over every record and, from version 2, every recording. Each list
+/// is length-prefixed and each blob too, so the encoding is unambiguous.
+pub(super) fn manifest_digest(
+    version: u16,
+    records: &[RawRecord],
+    media: &[RawRecord],
+) -> [u8; 32] {
+    fn list(hash: &mut Sha256, rows: &[RawRecord]) {
+        hash.update((rows.len() as u64).to_le_bytes());
+        for r in rows {
+            hash.update(r.id);
+            hash.update([r.type_code]);
+            hash.update((r.blob.len() as u64).to_le_bytes());
+            hash.update(&r.blob);
+        }
+    }
     let mut hash = Sha256::new();
-    hash.update((records.len() as u64).to_le_bytes());
-    for r in records {
-        hash.update(r.id);
-        hash.update([r.type_code]);
-        hash.update((r.blob.len() as u64).to_le_bytes());
-        hash.update(&r.blob);
+    list(&mut hash, records);
+    if version >= 2 {
+        list(&mut hash, media);
     }
     hash.finalize().into()
 }
 
-pub(super) fn manifest_aad(vault_id: &VaultId) -> Vec<u8> {
-    [MANIFEST_AAD_PREFIX, vault_id.as_slice()].concat()
+pub(super) fn manifest_aad(version: u16, vault_id: &VaultId) -> Vec<u8> {
+    let prefix = if version >= 2 {
+        MANIFEST_AAD_V2
+    } else {
+        MANIFEST_AAD_V1
+    };
+    [prefix, vault_id.as_slice()].concat()
 }

@@ -20,10 +20,12 @@ use crate::crypto::{CryptoError, Dek};
 use crate::store::{RawRecord, Store};
 use crate::vault::create::write_new_vault;
 use crate::vault::unlock::{load, unwrap_with_password};
-use crate::vault::{LoadedRecord, UnlockedVault, VaultError, VaultHeader};
+use crate::vault::{LoadedRecord, RecordId, UnlockedVault, VaultError, VaultHeader};
+
+use zeroize::Zeroizing;
 
 pub use format::{BACKUP_VERSION, Backup, MAGIC, MAX_BACKUP_BYTES};
-use format::{manifest_aad, records_digest};
+use format::{manifest_aad, manifest_digest};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BackupError {
@@ -84,17 +86,20 @@ impl UnlockedVault {
     /// Builds a backup of the whole vault as it is on disk.
     pub fn export_backup(&self) -> Result<Backup, BackupError> {
         let records = self.raw_records()?;
+        let media = self.raw_media()?;
         let mut header = self.header().clone();
         // The inbox key pair is not part of backups (see format.rs).
         header.inbox_key = None;
         let manifest = aead::seal(
             self.dek().expose(),
-            &manifest_aad(&header.vault_id),
-            &records_digest(&records),
+            &manifest_aad(BACKUP_VERSION, &header.vault_id),
+            &manifest_digest(BACKUP_VERSION, &records, &media),
         )?;
         Ok(Backup {
             header,
             records,
+            media,
+            version: BACKUP_VERSION,
             manifest,
         })
     }
@@ -105,12 +110,14 @@ pub struct OpenedBackup {
     header: VaultHeader,
     dek: Dek,
     records: Vec<RawRecord>,
+    media: Vec<RawRecord>,
 }
 
 impl fmt::Debug for OpenedBackup {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("OpenedBackup")
             .field("records", &self.records.len())
+            .field("media", &self.media.len())
             .finish_non_exhaustive()
     }
 }
@@ -141,18 +148,23 @@ impl Backup {
     fn verified(self, dek: Dek) -> Result<OpenedBackup, BackupError> {
         let digest = aead::open(
             dek.expose(),
-            &manifest_aad(&self.header.vault_id),
+            &manifest_aad(self.version, &self.header.vault_id),
             &self.manifest,
         )?;
-        if digest.as_slice() != records_digest(&self.records) {
+        if digest.as_slice() != manifest_digest(self.version, &self.records, &self.media) {
             return Err(BackupError::Corrupted);
         }
         let opened = OpenedBackup {
             header: self.header,
             dek,
             records: self.records,
+            media: self.media,
         };
         opened.decrypt()?;
+        // One recording at a time, so a large backup is never all in memory.
+        for r in &opened.media {
+            opened.open_media(&r.id)?;
+        }
         Ok(opened)
     }
 }
@@ -160,6 +172,29 @@ impl Backup {
 impl OpenedBackup {
     pub fn record_count(&self) -> usize {
         self.records.len()
+    }
+
+    /// Ids of the recordings in the backup.
+    pub fn media_ids(&self) -> Vec<RecordId> {
+        self.media.iter().map(|r| r.id).collect()
+    }
+
+    /// Decrypts one recording with the backup's own key; `None` if absent.
+    pub fn open_media(&self, id: &RecordId) -> Result<Option<Zeroizing<Vec<u8>>>, BackupError> {
+        let Some(r) = self.media.iter().find(|r| &r.id == id) else {
+            return Ok(None);
+        };
+        let record_type = RecordType::from_code(r.type_code)
+            .filter(|rt| rt.is_media())
+            .ok_or(BackupError::Corrupted)?;
+        let plaintext = open_record(
+            &self.dek,
+            &self.header.vault_id,
+            &r.id,
+            record_type,
+            &r.blob,
+        )?;
+        Ok(Some(plaintext))
     }
 
     /// Decrypts every record with the backup's own key.
@@ -188,7 +223,7 @@ impl OpenedBackup {
     /// Restores the backup as a new vault at `path` (no vault there yet). The
     /// vault keeps the backup's password, recovery key and identity.
     pub fn restore(self, path: &Path) -> Result<UnlockedVault, BackupError> {
-        write_new_vault(path, &self.header, &self.records)?;
+        write_new_vault(path, &self.header, &self.records, &self.media)?;
         let store = Store::open(path).map_err(VaultError::from)?;
         Ok(load(path, store, self.header, self.dek)?)
     }

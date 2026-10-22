@@ -385,7 +385,7 @@ fn tampered_records_are_isolated() {
 
 #[test]
 fn tampered_header_is_detected() {
-    let cases: [(&str, &str, VaultError); 4] = [
+    let cases: [(&str, &str, VaultError); 5] = [
         (
             "UPDATE meta SET value = randomblob(16) WHERE key = 'vault_id'",
             "vault_id",
@@ -397,8 +397,14 @@ fn tampered_header_is_detected() {
             VaultError::Corrupted,
         ),
         (
-            "UPDATE meta SET value = x'0200' WHERE key = 'format_version'",
-            "version",
+            "UPDATE meta SET value = x'0300' WHERE key = 'format_version'",
+            "newer version",
+            VaultError::UnsupportedFormat,
+        ),
+        (
+            // Schema 2 always comes with format 2; a mismatch is not guessed at.
+            "UPDATE meta SET value = x'0100' WHERE key = 'format_version'",
+            "older version label",
             VaultError::UnsupportedFormat,
         ),
         (
@@ -422,8 +428,8 @@ fn tampered_header_is_detected() {
     }
 }
 
-/// A vault file written by format version 1 must keep opening in every later build.
-/// Regenerate only on purpose: `cargo test -p mossbook-core -- --ignored generate_v1_fixture`.
+/// A vault file written by format version 1 (Mossbook 0.1–0.3) must keep
+/// opening in every later build. Frozen: this build writes version 2.
 const FIXTURE_V1: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/vault-v1.db");
 const FIXTURE_PASSWORD: &str = "fixture password v1";
 
@@ -443,21 +449,110 @@ fn opens_format_v1_fixture() {
         records[&[2; 16]],
         (RecordType::Settings, b"fixture settings".to_vec())
     );
+    // Migrated to format 2 on open: the recordings table exists and works.
+    v.put_media([3; 16], RecordType::Voice, b"synthetic recording")
+        .unwrap();
+    v.lock().unwrap();
+    let conn = rusqlite::Connection::open(&path).unwrap();
+    let schema: u32 = conn
+        .pragma_query_value(None, "user_version", |r| r.get(0))
+        .unwrap();
+    let format: Vec<u8> = conn
+        .query_row(
+            "SELECT value FROM meta WHERE key = 'format_version'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(schema, 2);
+    assert_eq!(format, 2u16.to_le_bytes());
+    drop(conn);
+    let v = vault::unlock(&path, FIXTURE_PASSWORD).unwrap();
+    assert_eq!(
+        v.open_media(&[3; 16]).unwrap().unwrap().as_slice(),
+        b"synthetic recording"
+    );
 }
 
 #[test]
-#[ignore = "writes tests/fixtures/vault-v1.db"]
-fn generate_v1_fixture() {
+fn a_vault_from_a_newer_build_is_refused_untouched() {
+    let (fx, v) = create_vault();
+    v.lock().unwrap();
+    let conn = rusqlite::Connection::open(&fx.path).unwrap();
+    conn.pragma_update(None, "user_version", 3).unwrap();
+    drop(conn);
+    let before = std::fs::read(&fx.path).unwrap();
+    assert!(vault::unlock(&fx.path, PASSWORD).is_err());
+    assert_eq!(std::fs::read(&fx.path).unwrap(), before);
+}
+
+#[test]
+fn recordings_are_bound_to_their_place() {
+    let (fx, mut v) = create_vault();
+    v.put_media([1; 16], RecordType::Voice, b"synthetic recording A")
+        .unwrap();
+    // Only media types go into the media table.
+    assert!(v.put_media([2; 16], RecordType::Entry, b"x").is_err());
+    v.lock().unwrap();
+    let conn = rusqlite::Connection::open(&fx.path).unwrap();
+    // The same blob under another id, and as a record.
+    conn.execute(
+        "INSERT INTO media (id, type, blob) SELECT x'09090909090909090909090909090909', type, blob FROM media",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO records (id, type, blob) SELECT id, type, blob FROM media WHERE id = x'01010101010101010101010101010101'",
+        [],
+    )
+    .unwrap();
+    drop(conn);
+
+    let mut v = vault::unlock(&fx.path, PASSWORD).unwrap();
+    assert_eq!(v.unreadable_records(), 1, "a recording among the records");
+    assert!(v.take_loaded().is_empty());
+    assert_eq!(
+        v.open_media(&[1; 16]).unwrap().unwrap().as_slice(),
+        b"synthetic recording A"
+    );
+    assert_eq!(v.open_media(&[9; 16]), Err(VaultError::Corrupted));
+    assert_eq!(v.open_media(&[7; 16]), Ok(None));
+}
+
+/// A vault file written by format version 2 (voice notes, E-18).
+/// Regenerate only on purpose: `cargo test -p mossbook-core -- --ignored generate_v2_fixture`.
+const FIXTURE_V2: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/vault-v2.db");
+const FIXTURE_V2_PASSWORD: &str = "fixture password v2";
+
+#[test]
+fn opens_format_v2_fixture() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("vault.db");
-    let mut pending = PendingVault::with_kdf_params(FIXTURE_PASSWORD, fast()).unwrap();
+    std::fs::copy(FIXTURE_V2, &path).unwrap();
+    let mut v = vault::unlock(&path, FIXTURE_V2_PASSWORD).unwrap();
+    assert_eq!(v.unreadable_records(), 0);
+    assert_eq!(
+        loaded(&mut v)[&[1; 16]],
+        (RecordType::Entry, b"fixture entry".to_vec())
+    );
+    assert_eq!(
+        v.open_media(&[3; 16]).unwrap().unwrap().as_slice(),
+        b"fixture recording"
+    );
+}
+
+#[test]
+#[ignore = "writes tests/fixtures/vault-v2.db"]
+fn generate_v2_fixture() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("vault.db");
+    let mut pending = PendingVault::with_kdf_params(FIXTURE_V2_PASSWORD, fast()).unwrap();
     let phrase = pending.recovery_phrase().to_string();
     confirm(&mut pending, &phrase);
     let mut v = pending.write(&path).unwrap();
     v.put([1; 16], RecordType::Entry, b"fixture entry").unwrap();
-    v.put([2; 16], RecordType::Settings, b"fixture settings")
+    v.put_media([3; 16], RecordType::Voice, b"fixture recording")
         .unwrap();
     v.lock().unwrap();
-    std::fs::create_dir_all(Path::new(FIXTURE_V1).parent().unwrap()).unwrap();
-    std::fs::copy(&path, FIXTURE_V1).unwrap();
+    std::fs::copy(&path, FIXTURE_V2).unwrap();
 }

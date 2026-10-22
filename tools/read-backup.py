@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Independent reader for `.mossbook` backups, written from docs/backup-format.md.
 
-Opens a backup with its password, verifies the manifest and every record, and
-prints a summary (no content unless --show is given).
+Opens a backup (format version 1 or 2) with its password, verifies the manifest,
+every record and every recording, and prints a summary (no content unless --show
+is given). With --voice DIR, recordings are written there as .ogg files.
 
     python3 -m venv .venv && .venv/bin/pip install pynacl argon2-cffi cbor2
-    .venv/bin/python tools/read-backup.py core/tests/fixtures/backup-v1.mossbook "fixture password v1"
+    .venv/bin/python tools/read-backup.py core/tests/fixtures/backup-v2.mossbook "fixture password v2"
 """
 import argparse
 import hashlib
@@ -18,6 +19,7 @@ from argon2.low_level import Type, hash_secret_raw
 from nacl.bindings import crypto_aead_xchacha20poly1305_ietf_decrypt as xchacha_decrypt
 
 TYPES = {1: "entry", 2: "tag", 3: "plan", 4: "settings"}
+MEDIA_TYPES = {5: "voice"}
 
 
 def open_blob(key: bytes, aad: bytes, blob: bytes) -> bytes:
@@ -29,17 +31,22 @@ def main() -> int:
     parser.add_argument("file")
     parser.add_argument("password")
     parser.add_argument("--show", action="store_true", help="print decrypted records")
+    parser.add_argument("--voice", metavar="DIR", help="write decrypted recordings here")
     args = parser.parse_args()
 
     data = open(args.file, "rb").read()
     if data[:8] != b"MOSSBOOK":
         sys.exit("not a Mossbook backup")
     (version,) = struct.unpack("<H", data[8:10])
-    if version != 1:
+    if version not in (1, 2):
         sys.exit(f"unsupported backup version {version}")
     body = cbor2.loads(data[10:])
-    if body["vault_format"] != 1:
+    # Backup version 1 comes from vault format 1, version 2 from vault format 2.
+    if body["vault_format"] != version:
         sys.exit("unsupported vault format")
+    media = body.get("media", [])
+    if version == 1 and media:
+        sys.exit("a version 1 backup holds no recordings")
 
     vault_id = body["vault_id"]
     alg, m_kib, t, p = struct.unpack("<BIII", body["kdf_params"])
@@ -53,11 +60,15 @@ def main() -> int:
     except Exception:
         sys.exit("wrong password")
 
-    digest = hashlib.sha256(struct.pack("<Q", len(body["records"])))
-    for r in body["records"]:
-        digest.update(r["id"] + bytes([r["type"]]) + struct.pack("<Q", len(r["blob"])) + r["blob"])
-    if open_blob(dek, b"mossbook/backup/v1" + vault_id, body["manifest"]) != digest.digest():
-        sys.exit("manifest mismatch: records were changed, added or removed")
+    digest = hashlib.sha256()
+    lists = [body["records"]] + ([media] if version == 2 else [])
+    for rows in lists:
+        digest.update(struct.pack("<Q", len(rows)))
+        for r in rows:
+            digest.update(r["id"] + bytes([r["type"]]) + struct.pack("<Q", len(r["blob"])) + r["blob"])
+    label = b"mossbook/backup/v2" if version == 2 else b"mossbook/backup/v1"
+    if open_blob(dek, label + vault_id, body["manifest"]) != digest.digest():
+        sys.exit("manifest mismatch: records or recordings were changed, added or removed")
 
     counts: dict[str, int] = {}
     for r in body["records"]:
@@ -67,6 +78,17 @@ def main() -> int:
         counts[kind] = counts.get(kind, 0) + 1
         if args.show:
             print(kind, record)
+    for r in media:
+        kind = MEDIA_TYPES[r["type"]]
+        aad = b"mossbook/rec/v1" + vault_id + r["id"] + kind.encode()
+        recording = open_blob(dek, aad, r["blob"])
+        if not recording.startswith(b"OggS"):
+            sys.exit("a recording is not an Ogg file")
+        counts[kind] = counts.get(kind, 0) + 1
+        if args.voice:
+            name = r["id"].hex() + ".ogg"
+            with open(f"{args.voice}/{name}", "wb") as f:
+                f.write(recording)
     print("ok:", ", ".join(f"{n} {k}" for k, n in sorted(counts.items())))
     return 0
 

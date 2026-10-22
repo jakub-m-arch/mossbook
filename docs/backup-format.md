@@ -2,8 +2,8 @@
 
 A Mossbook backup is a single file holding the encrypted journal. This document is
 normative: [`tools/read-backup.py`](../tools/read-backup.py) is an independent reader
-written from it, and checks the committed fixture
-`core/tests/fixtures/backup-v1.mossbook`.
+written from it, and checks the committed fixtures
+`core/tests/fixtures/backup-v1.mossbook` and `backup-v2.mossbook`.
 
 Cryptographic primitives and key derivation are described in [`crypto.md`](crypto.md).
 
@@ -12,30 +12,35 @@ Cryptographic primitives and key derivation are described in [`crypto.md`](crypt
 ```
 offset  size  content
 0       8     magic "MOSSBOOK" (ASCII)
-8       2     backup format version, u16 little-endian (currently 1)
+8       2     backup format version, u16 little-endian (currently 2; 1 is still read)
 10      …     body: one CBOR item (RFC 8949)
 ```
 
 Files larger than 512 MiB are rejected before parsing.
 
-## Body (version 1)
+## Body
 
 A CBOR map with these keys (byte strings are CBOR major type 2):
 
 | key               | type                 | content                                                     |
 |-------------------|----------------------|-------------------------------------------------------------|
-| `vault_format`    | unsigned int         | `format_version` of the vault the records come from (1)     |
+| `vault_format`    | unsigned int         | `format_version` of the vault: equal to the backup version  |
 | `vault_id`        | bytes (16)           | vault identifier                                            |
 | `kdf_params`      | bytes (13)           | Argon2id parameters, encoding in `crypto.md`                |
 | `kdf_salt`        | bytes (16)           | password salt                                               |
 | `wrapped_dek_pwd` | bytes (72)           | DEK wrapped under the password key                          |
 | `wrapped_dek_rec` | bytes (72)           | DEK wrapped under the recovery key                          |
 | `records`         | array of maps        | `{ "id": bytes(16), "type": uint 1–4, "blob": bytes }`      |
-| `manifest`        | bytes                | sealed digest of the records, see below                     |
+| `media`           | array of maps        | version 2 only, may be absent when empty: recordings, `{ "id": bytes(16), "type": 5, "blob": bytes }` |
+| `manifest`        | bytes                | sealed digest of the records (and recordings), see below    |
 
-The header fields and record blobs are copied unchanged from `vault.db`: each blob
-is `nonce || ciphertext || tag` with the record AAD from `crypto.md`, and its
-plaintext is the CBOR record described in *Record contents* there.
+The header fields, record blobs and recording blobs are copied unchanged from
+`vault.db`: each blob is `nonce || ciphertext || tag` with the record AAD from
+`crypto.md`, and its plaintext is the CBOR record described in *Record contents*
+there, or for `media` an Ogg Opus file (voice note, E-18). `records` never holds
+type 5 and `media` only type 5; anything else rejects the file.
+
+Version 1 (Mossbook 0.1–0.3) has no `media` key and `vault_format` 1.
 
 ## Manifest
 
@@ -44,12 +49,20 @@ Records are authenticated one by one by their AAD. The manifest additionally bin
 detected:
 
 ```
-digest   = SHA-256( u64le(n)
-                    || for each record in file order:
-                         id (16) || type (1) || u64le(len(blob)) || blob )
+list(rows) = u64le(len(rows))
+             || for each row in file order:
+                  id (16) || type (1) || u64le(len(blob)) || blob
+
+version 1:  digest = SHA-256( list(records) )
+            AAD    = "mossbook/backup/v1" || vault_id
+version 2:  digest = SHA-256( list(records) || list(media) )
+            AAD    = "mossbook/backup/v2" || vault_id
+
 manifest = nonce (24) || XChaCha20-Poly1305(DEK, AAD, digest) || tag (16)
-AAD      = "mossbook/backup/v1" || vault_id
 ```
+
+The version is part of the AAD, so a version 2 backup cannot be relabelled as
+version 1 with its recordings cut out.
 
 ## Opening a backup
 
@@ -58,7 +71,8 @@ AAD      = "mossbook/backup/v1" || vault_id
    `kdf_salt`) or from the recovery phrase (HKDF), and unwrap the DEK. Failure means a
    wrong password or recovery key.
 3. Open the manifest with the DEK and compare it with the recomputed digest.
-4. Decrypt every record. Any failure in steps 3–4 rejects the whole file as damaged.
+4. Decrypt every record and every recording (one at a time). Any failure in steps
+   3–4 rejects the whole file as damaged.
 
 A backup opens with the password (and recovery key) that were valid **when it was
 made**. After a password change, older backups still need the old password

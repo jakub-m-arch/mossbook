@@ -204,6 +204,7 @@ pub struct Entry {
     pub note: String,
     pub incomplete: bool,            // quick entry still to complete
     pub sensitive: bool,             // hide the content until tapped
+    pub voice: Option<VoiceNote>,    // E-18: { id, duration_ms, mime } → a row of `media`
 }
 
 pub enum EntryKind {
@@ -275,7 +276,8 @@ recovery key (24 words, 256 bit) ──────────────┘  
 - Every record: `nonce (24 B, random) || ciphertext || tag (16 B)`.
 - `AAD = "mossbook/rec/v1" || vault_id || record_id || record_type`, which binds a blob
   to its place in the database and prevents swapping records.
-- Record types: `entry`, `tag`, `plan`, `settings`.
+- Record types: `entry`, `tag`, `plan`, `settings`; recordings (E-18) use `voice` and
+  live in the `media` table.
 
 ### 6.3. Secrets in memory
 
@@ -348,11 +350,18 @@ CREATE TABLE inbox (
   id     BLOB PRIMARY KEY,
   blob   BLOB NOT NULL       -- sealed box
 ) STRICT;
+
+CREATE TABLE media (         -- format 2: voice notes (E-18, D-21)
+  id     BLOB PRIMARY KEY,
+  type   INTEGER NOT NULL,   -- 5 voice
+  blob   BLOB NOT NULL       -- nonce || ciphertext || tag; Ogg Opus inside
+) STRICT;
 ```
 
 - **No plaintext dates or search fields in columns.** After unlocking, all records are
   loaded into memory; filtering and search happen in Rust. At realistic volumes (a few
-  thousand entries, a few MB) this is fast and simple.
+  thousand entries, a few MB) this is fast and simple. Recordings are the exception:
+  they are decrypted one at a time, only for playback.
 - `PRAGMA journal_mode = WAL`, `PRAGMA secure_delete = ON`.
 - `VACUUM` after bulk deletion.
 - SQL schema migrations in `core/migrations/` (tracked with `PRAGMA user_version`);

@@ -17,18 +17,22 @@ pub const OVERHEAD: usize = NONCE_LEN + TAG_LEN;
 
 const RECORD_AAD_PREFIX: &[u8] = b"mossbook/rec/v1";
 
-/// Record type in the `records` table (SPEC §7) and in the AAD (SPEC §6.2).
+/// Record type in the `records` and `media` tables (SPEC §7) and in the AAD (SPEC §6.2).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RecordType {
     Entry,
     Tag,
     Plan,
     Settings,
+    /// A voice note recording (E-18). Lives in the `media` table, never in `records`.
+    Voice,
 }
 
 impl RecordType {
-    /// All types, ordered by code.
+    /// The types stored in the `records` table, ordered by code.
     pub const ALL: [Self; 4] = [Self::Entry, Self::Tag, Self::Plan, Self::Settings];
+    /// The types stored in the `media` table.
+    pub const MEDIA: [Self; 1] = [Self::Voice];
 
     /// Code stored in the `records.type` column.
     pub const fn code(self) -> u8 {
@@ -37,7 +41,13 @@ impl RecordType {
             Self::Tag => 2,
             Self::Plan => 3,
             Self::Settings => 4,
+            Self::Voice => 5,
         }
+    }
+
+    /// Whether records of this type belong in the `media` table.
+    pub const fn is_media(self) -> bool {
+        matches!(self, Self::Voice)
     }
 
     /// Type from a `records.type` column code.
@@ -47,6 +57,7 @@ impl RecordType {
             2 => Some(Self::Tag),
             3 => Some(Self::Plan),
             4 => Some(Self::Settings),
+            5 => Some(Self::Voice),
             _ => None,
         }
     }
@@ -58,6 +69,7 @@ impl RecordType {
             Self::Tag => b"tag",
             Self::Plan => b"plan",
             Self::Settings => b"settings",
+            Self::Voice => b"voice",
         }
     }
 }
@@ -264,7 +276,12 @@ mod tests {
     fn other_record_type_is_detected() {
         let dek = dek();
         let blob = seal_record(&dek, &VAULT, &REC_A, RecordType::Entry, b"A").unwrap();
-        for rt in [RecordType::Tag, RecordType::Plan, RecordType::Settings] {
+        for rt in [
+            RecordType::Tag,
+            RecordType::Plan,
+            RecordType::Settings,
+            RecordType::Voice,
+        ] {
             assert!(open_record(&dek, &VAULT, &REC_A, rt, &blob).is_err());
         }
     }
@@ -278,11 +295,13 @@ mod tests {
 
     #[test]
     fn record_type_codes_round_trip() {
-        for rt in RecordType::ALL {
+        for rt in RecordType::ALL.into_iter().chain(RecordType::MEDIA) {
             assert_eq!(RecordType::from_code(rt.code()), Some(rt));
         }
+        assert!(RecordType::ALL.iter().all(|rt| !rt.is_media()));
+        assert!(RecordType::MEDIA.iter().all(|rt| rt.is_media()));
         assert_eq!(RecordType::from_code(0), None);
-        assert_eq!(RecordType::from_code(5), None);
+        assert_eq!(RecordType::from_code(6), None);
     }
 
     #[test]

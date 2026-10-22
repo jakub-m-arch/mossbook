@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-use super::{DomainError, Id, Timestamp, check_range};
+use super::{DomainError, Id, Timestamp, VoiceNote, check_range};
 
 /// Current schema version of [`Entry`] records.
 pub const ENTRY_SCHEMA: u16 = 1;
@@ -37,6 +37,10 @@ pub struct Entry {
     /// Content hidden until tapped (E-16).
     #[serde(default)]
     pub sensitive: bool,
+    /// A recording attached to the entry (E-18). Left out when absent, so
+    /// entries without one encode exactly as before.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub voice: Option<VoiceNote>,
 }
 
 impl Entry {
@@ -55,6 +59,7 @@ impl Entry {
             note: String::new(),
             incomplete: false,
             sensitive: false,
+            voice: None,
         })
     }
 
@@ -133,6 +138,10 @@ pub struct EntryDraft {
     pub incomplete: bool,
     #[serde(default)]
     pub sensitive: bool,
+    /// The recording returned by the journal when it was stored; only its id
+    /// is trusted, the length is taken from the file again on save.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub voice: Option<VoiceNote>,
 }
 
 impl EntryDraft {
@@ -148,6 +157,7 @@ impl EntryDraft {
         entry.note = self.note.clone();
         entry.incomplete = self.incomplete;
         entry.sensitive = self.sensitive;
+        entry.voice = self.voice.clone();
     }
 }
 

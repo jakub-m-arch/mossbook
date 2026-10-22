@@ -1,5 +1,7 @@
 //! Backup export, restore and import (X-1, X-2, SPEC §10). Synthetic data only.
 
+mod common;
+
 use std::path::{Path, PathBuf};
 
 use mossbook_core::backup::{Backup, BackupError, MAGIC};
@@ -151,7 +153,11 @@ fn replace_import_into_another_vault() {
         .open_with_password(PASSWORD)
         .unwrap();
     let report = other
-        .import(records.decrypt().unwrap(), ImportMode::Replace)
+        .import(
+            records.decrypt().unwrap(),
+            &|id| records.open_media(id.as_bytes()).unwrap(),
+            ImportMode::Replace,
+        )
         .unwrap();
     assert_eq!(
         report,
@@ -189,7 +195,11 @@ fn merge_keeps_newer_edits_and_maps_tags_by_name() {
         .open_with_password(PASSWORD)
         .unwrap();
     target
-        .import(first.decrypt().unwrap(), ImportMode::Merge)
+        .import(
+            first.decrypt().unwrap(),
+            &|id| first.open_media(id.as_bytes()).unwrap(),
+            ImportMode::Merge,
+        )
         .unwrap();
     let mut a2 = source.entry(&a_id).unwrap().clone();
     a2.note = "A v2".into();
@@ -213,7 +223,11 @@ fn merge_keeps_newer_edits_and_maps_tags_by_name() {
         .open_with_password(PASSWORD)
         .unwrap();
     let report = target
-        .import(opened.decrypt().unwrap(), ImportMode::Merge)
+        .import(
+            opened.decrypt().unwrap(),
+            &|id| opened.open_media(id.as_bytes()).unwrap(),
+            ImportMode::Merge,
+        )
         .unwrap();
     assert_eq!(
         report,
@@ -248,7 +262,11 @@ fn merge_keeps_newer_edits_and_maps_tags_by_name() {
         .open_with_password(PASSWORD)
         .unwrap();
     let report = target
-        .import(again.decrypt().unwrap(), ImportMode::Merge)
+        .import(
+            again.decrypt().unwrap(),
+            &|id| again.open_media(id.as_bytes()).unwrap(),
+            ImportMode::Merge,
+        )
         .unwrap();
     assert_eq!(
         report,
@@ -338,10 +356,17 @@ fn tampering_is_detected() {
         Backup::from_bytes(&bytes[..bytes.len() / 2]).unwrap_err(),
         BackupError::Corrupted
     );
-    let mut v2 = bytes.clone();
-    v2[8] = 2;
+    let mut v3 = bytes.clone();
+    v3[8] = 3;
     assert_eq!(
-        Backup::from_bytes(&v2).unwrap_err(),
+        Backup::from_bytes(&v3).unwrap_err(),
+        BackupError::UnsupportedVersion
+    );
+    // A version 2 body labelled as version 1.
+    let mut v1 = bytes.clone();
+    v1[8] = 1;
+    assert_eq!(
+        Backup::from_bytes(&v1).unwrap_err(),
         BackupError::UnsupportedVersion
     );
     let mut garbled = bytes.clone();
@@ -364,8 +389,8 @@ fn round_trips_through_bytes() {
 
 // ---- format stability ----
 
-/// A backup written by format version 1; every later build must import it.
-/// Regenerate only on purpose: `cargo test -p mossbook-core --test backup -- --ignored`.
+/// A backup written by format version 1 (Mossbook 0.1–0.3); every later build
+/// must import it. Frozen: this build writes version 2 and cannot regenerate it.
 const FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/backup-v1.mossbook"
@@ -390,17 +415,206 @@ fn imports_format_v1_fixture() {
     assert_eq!(j.settings().autolock, AutoLock::After15Min);
 }
 
+/// A backup written by format version 2, with a recording (E-18, D-21).
+/// Regenerate only on purpose: `cargo test -p mossbook-core --test backup -- --ignored`.
+const FIXTURE_V2: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/backup-v2.mossbook"
+);
+const FIXTURE_V2_PASSWORD: &str = "fixture password v2";
+
 #[test]
-#[ignore = "writes tests/fixtures/backup-v1.mossbook"]
-fn generate_backup_v1_fixture() {
-    let (_fx, mut j) = create(FIXTURE_PASSWORD);
-    let tag = j.create_tag("fixture tag", "#4f6b47").unwrap().id;
+fn imports_format_v2_fixture() {
+    let bytes = std::fs::read(FIXTURE_V2).unwrap();
+    assert_eq!(&bytes[8..10], &2u16.to_le_bytes());
+    let dir = tempfile::tempdir().unwrap();
+    let opened = Backup::from_bytes(&bytes)
+        .unwrap()
+        .open_with_password(FIXTURE_V2_PASSWORD)
+        .unwrap();
+    let j = Journal::open(opened.restore(&dir.path().join("vault.db")).unwrap());
+    assert_eq!(j.vault().unreadable_records(), 0);
+    let entries = j.entries(&EntryFilter::default());
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].note, "fixture voice note");
+    let voice = entries[0].voice.clone().unwrap();
+    assert_eq!(voice.duration_ms, 200);
+    assert_eq!(
+        j.voice(&voice.id).unwrap().as_slice(),
+        common::ogg_opus(10, 42).as_slice()
+    );
+}
+
+#[test]
+#[ignore = "writes tests/fixtures/backup-v2.mossbook"]
+fn generate_backup_v2_fixture() {
+    let (_fx, mut j) = create(FIXTURE_V2_PASSWORD);
     let mut e = Entry::new(EntryKind::Note, NOW).unwrap();
-    e.note = "fixture entry".into();
-    e.tags = vec![tag];
+    e.note = "fixture voice note".into();
+    e.voice = Some(j.save_voice(&common::ogg_opus(10, 42)).unwrap());
     j.save_entry(e, NOW).unwrap();
-    let mut s = Settings::default();
-    s.autolock = AutoLock::After15Min;
-    j.save_settings(s).unwrap();
-    std::fs::write(Path::new(FIXTURE), export(&j)).unwrap();
+    std::fs::write(Path::new(FIXTURE_V2), export(&j)).unwrap();
+}
+
+// ---- voice notes (E-18, D-21) ----
+
+fn with_voice(j: &mut Journal, seed: u8) -> Entry {
+    let mut e = Entry::new(EntryKind::Note, NOW).unwrap();
+    e.note = format!("voice {seed}");
+    e.voice = Some(j.save_voice(&common::ogg_opus(10, seed)).unwrap());
+    j.save_entry(e, NOW).unwrap().clone()
+}
+
+#[test]
+fn recordings_travel_with_the_backup() {
+    let (_fx, mut j) = populated();
+    let e = with_voice(&mut j, 1);
+    let voice = e.voice.clone().unwrap();
+    let backup = j.vault().export_backup().unwrap();
+    assert_eq!(backup.media.len(), 1);
+
+    // Restore: the same recording, byte for byte.
+    let dir = tempfile::tempdir().unwrap();
+    let restored = Journal::open(
+        Backup::from_bytes(&backup.to_bytes().unwrap())
+            .unwrap()
+            .open_with_password(PASSWORD)
+            .unwrap()
+            .restore(&dir.path().join("vault.db"))
+            .unwrap(),
+    );
+    assert_eq!(
+        restored.voice(&voice.id).unwrap().as_slice(),
+        common::ogg_opus(10, 1).as_slice()
+    );
+
+    // Import into another journal: re-encrypted with that journal's key.
+    let (_other_fx, mut other) = create("another password");
+    let own = with_voice(&mut other, 2);
+    let opened = backup.clone().open_with_password(PASSWORD).unwrap();
+    other
+        .import(
+            opened.decrypt().unwrap(),
+            &|id| opened.open_media(id.as_bytes()).unwrap(),
+            ImportMode::Merge,
+        )
+        .unwrap();
+    assert_eq!(
+        other.voice(&voice.id).unwrap().as_slice(),
+        common::ogg_opus(10, 1).as_slice()
+    );
+    assert!(other.voice(&own.voice.clone().unwrap().id).is_ok());
+    let copied = other.vault().export_backup().unwrap();
+    let blob = |b: &Backup| {
+        b.media
+            .iter()
+            .find(|m| m.id == *voice.id.as_bytes())
+            .unwrap()
+            .blob
+            .clone()
+    };
+    assert_ne!(blob(&copied), blob(&backup), "re-encrypted, not copied");
+
+    // Replace: our own recording goes with our own entries.
+    other
+        .import(
+            opened.decrypt().unwrap(),
+            &|id| opened.open_media(id.as_bytes()).unwrap(),
+            ImportMode::Replace,
+        )
+        .unwrap();
+    assert_eq!(
+        other.vault().media_ids().unwrap(),
+        vec![*voice.id.as_bytes()]
+    );
+}
+
+#[test]
+fn an_entry_whose_recording_is_missing_keeps_its_text() {
+    let (_fx, mut j) = populated();
+    let e = with_voice(&mut j, 1);
+    let opened = j
+        .vault()
+        .export_backup()
+        .unwrap()
+        .open_with_password(PASSWORD)
+        .unwrap();
+    let (_other_fx, mut other) = create("another password");
+    other
+        .import(opened.decrypt().unwrap(), &|_| None, ImportMode::Merge)
+        .unwrap();
+    let imported = other.entry(&e.id).unwrap();
+    assert_eq!(imported.note, "voice 1");
+    assert_eq!(imported.voice, None);
+    // A recording that is not a valid file is dropped the same way.
+    let (_third_fx, mut third) = create("third password");
+    third
+        .import(
+            opened.decrypt().unwrap(),
+            &|_| Some(zeroize::Zeroizing::new(b"not ogg".to_vec())),
+            ImportMode::Merge,
+        )
+        .unwrap();
+    assert_eq!(third.entry(&e.id).unwrap().voice, None);
+    assert!(third.vault().media_ids().unwrap().is_empty());
+}
+
+#[test]
+fn tampering_with_recordings_is_detected() {
+    let (_fx, mut j) = populated();
+    with_voice(&mut j, 1);
+    with_voice(&mut j, 2);
+    let backup = j.vault().export_backup().unwrap();
+    let open = |b: Backup| b.open_with_password(PASSWORD).map(|_| ()).unwrap_err();
+
+    let mut flipped = backup.clone();
+    flipped.media[0].blob[40] ^= 1;
+    assert_eq!(open(flipped), BackupError::Corrupted);
+    let mut removed = backup.clone();
+    removed.media.pop();
+    assert_eq!(open(removed), BackupError::Corrupted);
+    let mut swapped = backup.clone();
+    swapped.media.swap(0, 1);
+    assert_eq!(open(swapped), BackupError::Corrupted);
+    // A recording passed off as a record, or the other way round.
+    let mut moved = backup.clone();
+    let m = moved.media.pop().unwrap();
+    moved.records.push(m);
+    assert_eq!(
+        Backup::from_bytes(&moved.to_bytes().unwrap()).unwrap_err(),
+        BackupError::Corrupted
+    );
+    let mut moved = backup.clone();
+    let r = moved.records.pop().unwrap();
+    moved.media.push(r);
+    assert_eq!(
+        Backup::from_bytes(&moved.to_bytes().unwrap()).unwrap_err(),
+        BackupError::Corrupted
+    );
+}
+
+#[test]
+fn a_version_2_backup_cannot_pass_as_version_1_without_its_recordings() {
+    use ciborium::Value;
+    let (_fx, mut j) = populated();
+    with_voice(&mut j, 1);
+    let bytes = export(&j);
+    let mut body: Value = ciborium::from_reader(&bytes[10..]).unwrap();
+    let Value::Map(fields) = &mut body else {
+        panic!("body is a map")
+    };
+    fields.retain(|(k, _)| k.as_text() != Some("media"));
+    for (k, v) in fields.iter_mut() {
+        if k.as_text() == Some("vault_format") {
+            *v = Value::Integer(1.into());
+        }
+    }
+    let mut forged = bytes[..8].to_vec();
+    forged.extend_from_slice(&1u16.to_le_bytes());
+    ciborium::into_writer(&body, &mut forged).unwrap();
+    let backup = Backup::from_bytes(&forged).expect("well-formed version 1");
+    assert_eq!(
+        backup.open_with_password(PASSWORD).unwrap_err(),
+        BackupError::Corrupted
+    );
 }

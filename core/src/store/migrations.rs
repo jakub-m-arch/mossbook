@@ -5,7 +5,10 @@ use rusqlite::Connection;
 use super::StoreError;
 
 /// Migrations in order; migration `i` brings the schema to version `i + 1`.
-const MIGRATIONS: &[&str] = &[include_str!("../../migrations/0001_init.sql")];
+const MIGRATIONS: &[&str] = &[
+    include_str!("../../migrations/0001_init.sql"),
+    include_str!("../../migrations/0002_media.sql"),
+];
 
 /// Schema version written by this build.
 pub const SCHEMA_VERSION: u32 = MIGRATIONS.len() as u32;

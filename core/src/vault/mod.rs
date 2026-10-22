@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 
 use zeroize::Zeroizing;
 
-use crate::crypto::aead::{RecordType, seal_record};
+use crate::crypto::aead::{RecordType, open_record, seal_record};
 use crate::crypto::{CryptoError, Dek, VaultId};
 use crate::store::{RawRecord, Store, StoreError};
 
@@ -210,6 +210,11 @@ impl UnlockedVault {
         Ok(self.store.records_all()?.records)
     }
 
+    /// All recordings as stored (encrypted), e.g. for a backup.
+    pub(crate) fn raw_media(&self) -> Result<Vec<RawRecord>, VaultError> {
+        Ok(self.store.media_all()?.records)
+    }
+
     /// Hands out the records decrypted on unlock. Returns an empty list on later calls.
     pub fn take_loaded(&mut self) -> Vec<LoadedRecord> {
         std::mem::take(&mut self.loaded)
@@ -277,6 +282,77 @@ impl UnlockedVault {
             })
             .collect::<Result<Vec<_>, VaultError>>()?;
         Ok(self.store.apply(&raw, deletes)?)
+    }
+
+    /// Encrypts and stores `puts` and deletes `deletes` in `records`, and
+    /// deletes `media_deletes` from `media`, in one transaction.
+    pub fn write_batch_with_media(
+        &mut self,
+        puts: &[(RecordId, RecordType, &[u8])],
+        deletes: &[RecordId],
+        media_deletes: &[RecordId],
+    ) -> Result<(), VaultError> {
+        let raw = puts
+            .iter()
+            .map(|&(id, record_type, plaintext)| self.seal(id, record_type, plaintext))
+            .collect::<Result<Vec<_>, VaultError>>()?;
+        Ok(self
+            .store
+            .apply_with_media(&raw, deletes, &[], media_deletes)?)
+    }
+
+    /// Encrypts and stores a recording in the `media` table (E-18). It is not
+    /// decrypted on unlock, only by [`Self::open_media`].
+    pub fn put_media(
+        &mut self,
+        id: RecordId,
+        record_type: RecordType,
+        plaintext: &[u8],
+    ) -> Result<(), VaultError> {
+        if !record_type.is_media() {
+            return Err(VaultError::Corrupted);
+        }
+        let raw = self.seal(id, record_type, plaintext)?;
+        Ok(self.store.media_put(&raw)?)
+    }
+
+    /// Decrypts one recording. `None` if there is no such row; a row that does
+    /// not authenticate or has a non-media type is reported as damaged.
+    pub fn open_media(&self, id: &RecordId) -> Result<Option<Zeroizing<Vec<u8>>>, VaultError> {
+        let Some(raw) = self.store.media_get(id)? else {
+            return Ok(None);
+        };
+        let record_type = RecordType::from_code(raw.type_code)
+            .filter(|rt| rt.is_media())
+            .ok_or(VaultError::Corrupted)?;
+        let plaintext = open_record(&self.dek, &self.header.vault_id, id, record_type, &raw.blob)
+            .map_err(|_| VaultError::Corrupted)?;
+        Ok(Some(plaintext))
+    }
+
+    /// Ids of every stored recording.
+    pub fn media_ids(&self) -> Result<Vec<RecordId>, VaultError> {
+        Ok(self.store.media_ids()?)
+    }
+
+    fn seal(
+        &self,
+        id: RecordId,
+        record_type: RecordType,
+        plaintext: &[u8],
+    ) -> Result<RawRecord, VaultError> {
+        let blob = seal_record(
+            &self.dek,
+            &self.header.vault_id,
+            &id,
+            record_type,
+            plaintext,
+        )?;
+        Ok(RawRecord {
+            id,
+            type_code: record_type.code(),
+            blob,
+        })
     }
 
     /// Deletes a record. Returns whether it existed.

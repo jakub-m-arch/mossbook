@@ -40,7 +40,8 @@ AAD = "mossbook/rec/v1" || vault_id (16 B) || record_id (16 B) || record_type
 ```
 
 `record_type` is one of the ASCII strings `entry`, `tag`, `plan`, `settings`, stored in the
-`records.type` column as `1`, `2`, `3`, `4`. Binding the id, type and vault into the AAD
+`records.type` column as `1`, `2`, `3`, `4`, or `voice`, stored in the `media.type`
+column as `5` (E-18). Binding the id, type and vault into the AAD
 means a blob moved to another row, given another type, or copied into another vault
 fails authentication.
 
@@ -90,7 +91,7 @@ The header lives in the `meta` table; every value is random, public or ciphertex
 
 | key               | value                                              |
 |-------------------|----------------------------------------------------|
-| `format_version`  | `u16` LE, currently `1`                             |
+| `format_version`  | `u16` LE, currently `2` (schema migration 2 sets it) |
 | `vault_id`        | 16 random bytes (UUID v4 layout)                    |
 | `kdf_params`      | 13 bytes, see *Password KDF*                        |
 | `kdf_salt`        | 16 random bytes; replaced on every password change  |
@@ -98,14 +99,22 @@ The header lives in the `meta` table; every value is random, public or ciphertex
 | `wrapped_dek_rec` | 72 bytes, DEK wrapped under `KEK_rec`              |
 
 Records are rows `(id BLOB(16), type INTEGER, blob BLOB)` in `records`, see *Records*.
+Recordings (voice notes, E-18, decision D-21) are rows of the same shape in `media`.
+
+Format 2 (schema version 2) adds the `media` table; opening a format 1 file
+migrates it in one transaction. Format 1 builds refuse a format 2 file because of
+its schema version.
 
 Behaviour that matters for independent readers and for the threat model:
 
 - **Creation** happens in memory; the file is written only after the user retyped 3
   recovery words, first as `vault.db.creating` and then renamed to `vault.db`.
-- **Unlocking** decrypts every record into memory. A record that fails authentication
-  or has an unknown type is skipped and counted (`unreadable_records`), so one damaged
-  row does not lock the user out of the rest.
+- **Unlocking** decrypts every record into memory, but not the recordings: each one
+  is decrypted only when it is played, and handed to the web view as bytes, never
+  written to a file. A recording no entry or kept form points to is deleted when the
+  journal locks. A record that fails authentication, has an unknown type or a
+  recording's type is skipped and counted (`unreadable_records`), so one damaged row
+  does not lock the user out of the rest.
 - **Tampering with the header** fails closed: a changed `vault_id`, salt or KDF params
   makes the unwrap fail (reported as a wrong password); a missing key or a hostile
   parameter value is reported as a damaged file.
@@ -147,6 +156,10 @@ without one encode as before.
   Adding a field with a default is therefore not a format change.
 - A record whose decoded `id` differs from its row id, or that does not decode, is
   counted as unreadable on unlock, like a record that fails authentication.
+- `Entry.voice` (`{ id, duration_ms, mime }`, left out when absent) points to a row of
+  `media`. Its plaintext is an Ogg Opus file (RFC 3533, RFC 7845) of at most 4 MiB and
+  5 minutes; the journal checks the container and takes the length from the last
+  granule position, so the UI cannot store something else or claim another length.
 
 Domain types that hold user text are zeroed on drop (`ZeroizeOnDrop`) and have a
 redacted `Debug`, so content is wiped when the vault locks and never reaches logs.

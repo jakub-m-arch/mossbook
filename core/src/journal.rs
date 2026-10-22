@@ -4,7 +4,7 @@
 //! the write succeeded, so memory never shows data that is not on disk.
 
 use core::fmt;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
@@ -14,7 +14,7 @@ use crate::crypto::aead::RecordType;
 use crate::domain::entry::ENTRY_SCHEMA;
 use crate::domain::{
     DomainError, Entry, EntryDraft, EntryKind, EntryKindTag, Id, InboxEntry, SafetyPlan, Settings,
-    Tag, UnsavedEntry, decode, encode,
+    Tag, UnsavedEntry, VOICE_MIME, VoiceNote, decode, encode, inspect_ogg_opus,
 };
 use crate::query::stats::{MoodPoint, mood_by_day};
 use crate::query::{EntryFilter, Patterns, StatsRange};
@@ -115,7 +115,8 @@ impl Decoded {
                 RecordType::Settings if id == SETTINGS_ID => {
                     decode(bytes).map(|s| d.settings = Some(s)).is_ok()
                 }
-                RecordType::Plan | RecordType::Settings => false,
+                // Recordings never belong in `records`.
+                RecordType::Plan | RecordType::Settings | RecordType::Voice => false,
             };
             if !ok {
                 d.bad += 1;
@@ -156,6 +157,8 @@ impl Journal {
             settings: d.settings.unwrap_or_default(),
         };
         journal.move_inbox_in(OffsetDateTime::now_utc());
+        // Best effort: a recording left over from a form that was not kept.
+        let _ = journal.remove_orphan_voices();
         journal
     }
 
@@ -224,7 +227,9 @@ impl Journal {
     }
 
     /// Locks: zeroes the DEK and drops (and zeroes) all decoded content.
-    pub fn lock(self) -> Result<(), VaultError> {
+    /// Recordings that nothing points to any more are removed first.
+    pub fn lock(mut self) -> Result<(), VaultError> {
+        let _ = self.remove_orphan_voices();
         self.vault.lock()
     }
 
@@ -267,8 +272,27 @@ impl Journal {
             entry.created_at = existing.created_at;
         }
         entry.updated_at = now.into();
-        self.vault
-            .put(*entry.id.as_bytes(), RecordType::Entry, &encode(&entry)?)?;
+        let old_voice = self
+            .entries
+            .get(&entry.id)
+            .and_then(|e| e.voice.as_ref())
+            .map(|v| v.id);
+        if let Some(voice) = entry.voice.as_mut() {
+            self.check_voice(voice, entry.id)?;
+        }
+        let new_voice = entry.voice.as_ref().map(|v| v.id);
+        // A recording replaced or removed in the form goes with the same write.
+        let media_deletes: Vec<_> = old_voice
+            .filter(|old| Some(*old) != new_voice)
+            .map(|id| *id.as_bytes())
+            .into_iter()
+            .collect();
+        let bytes = encode(&entry)?;
+        self.vault.write_batch_with_media(
+            &[(*entry.id.as_bytes(), RecordType::Entry, &bytes)],
+            &[],
+            &media_deletes,
+        )?;
         let id = entry.id;
         self.entries.insert(id, entry);
         Ok(&self.entries[&id])
@@ -318,14 +342,17 @@ impl Journal {
         self.store_settings(settings).map(drop)
     }
 
-    /// Forgets the kept entry form. Does nothing if there is none.
+    /// Forgets the kept entry form. Does nothing if there is none. A recording
+    /// made in it goes too, unless an entry points to it.
     pub fn discard_unsaved_entry(&mut self) -> Result<(), JournalError> {
         if self.settings.unsaved_entry.is_none() {
             return Ok(());
         }
         let mut settings = self.settings.clone();
         settings.unsaved_entry = None;
-        self.store_settings(settings).map(drop)
+        self.store_settings(settings)?;
+        let _ = self.remove_orphan_voices();
+        Ok(())
     }
 
     /// Quick entry (E-10): type plus one value, marked as incomplete.
@@ -347,12 +374,111 @@ impl Journal {
         self.save_entry(entry, now)
     }
 
+    /// Deletes an entry together with its recording, in one transaction.
     pub fn delete_entry(&mut self, id: &Id) -> Result<bool, JournalError> {
-        if self.entries.remove(id).is_none() {
+        let Some(entry) = self.entries.get(id) else {
             return Ok(false);
-        }
-        self.vault.delete(id.as_bytes())?;
+        };
+        let media: Vec<_> = entry.voice.iter().map(|v| *v.id.as_bytes()).collect();
+        self.vault
+            .write_batch_with_media(&[], &[*id.as_bytes()], &media)?;
+        self.entries.remove(id);
         Ok(true)
+    }
+
+    // ---- voice notes (E-18, decision D-21) ----
+
+    /// Stores a recording made in the entry form, before the entry is saved.
+    /// Returns what the form attaches to the entry. A recording that no entry
+    /// or kept form ends up pointing to is removed on the next lock.
+    pub fn save_voice(&mut self, bytes: &[u8]) -> Result<VoiceNote, JournalError> {
+        let duration_ms = inspect_ogg_opus(bytes)?;
+        let id = Id::new_random()?;
+        self.vault
+            .put_media(*id.as_bytes(), RecordType::Voice, bytes)?;
+        Ok(VoiceNote {
+            id,
+            duration_ms,
+            mime: VOICE_MIME.to_owned(),
+        })
+    }
+
+    /// Decrypts a recording for playback. The bytes are zeroed on drop.
+    pub fn voice(&self, id: &Id) -> Result<Zeroizing<Vec<u8>>, JournalError> {
+        self.vault
+            .open_media(id.as_bytes())?
+            .ok_or_else(|| DomainError::NotFound.into())
+    }
+
+    /// Removes recordings that no entry and no kept form points to.
+    pub fn remove_orphan_voices(&mut self) -> Result<usize, JournalError> {
+        let referenced: HashSet<Id> = self
+            .entries
+            .values()
+            .filter_map(|e| e.voice.as_ref())
+            .chain(
+                self.settings
+                    .unsaved_entry
+                    .as_ref()
+                    .and_then(|u| u.draft.voice.as_ref()),
+            )
+            .map(|v| v.id)
+            .collect();
+        let orphans: Vec<_> = self
+            .vault
+            .media_ids()?
+            .into_iter()
+            .filter(|id| !referenced.contains(&Id::from_bytes(*id)))
+            .collect();
+        if !orphans.is_empty() {
+            self.vault.write_batch_with_media(&[], &[], &orphans)?;
+        }
+        Ok(orphans.len())
+    }
+
+    /// The recording must exist and belong to no other entry; its length and
+    /// format are taken from the stored file, not from the form.
+    fn check_voice(&self, voice: &mut VoiceNote, entry: Id) -> Result<(), JournalError> {
+        const INVALID: DomainError = DomainError::InvalidField("voice");
+        let shared = self
+            .entries
+            .values()
+            .any(|e| e.id != entry && e.voice.as_ref().is_some_and(|v| v.id == voice.id));
+        if shared {
+            return Err(INVALID.into());
+        }
+        let bytes = self.vault.open_media(voice.id.as_bytes())?.ok_or(INVALID)?;
+        voice.duration_ms = inspect_ogg_opus(&bytes)?;
+        voice.mime = VOICE_MIME.to_owned();
+        Ok(())
+    }
+
+    /// Copies an entry's recording from a backup into this vault, re-encrypted
+    /// with this vault's key. Drops the reference if the backup lacks a valid one.
+    fn import_voice(
+        &mut self,
+        entry: &mut Entry,
+        voice: &dyn Fn(&Id) -> Option<Zeroizing<Vec<u8>>>,
+    ) -> Result<(), JournalError> {
+        let Some(note) = entry.voice.as_mut() else {
+            return Ok(());
+        };
+        match voice(&note.id).and_then(|bytes| inspect_ogg_opus(&bytes).ok().map(|ms| (bytes, ms)))
+        {
+            Some((bytes, duration_ms)) => {
+                self.vault
+                    .put_media(*note.id.as_bytes(), RecordType::Voice, &bytes)?;
+                note.duration_ms = duration_ms;
+                note.mime = VOICE_MIME.to_owned();
+            }
+            // Same journal: the recording may already be here.
+            None if self
+                .vault
+                .media_ids()
+                .is_ok_and(|ids| ids.contains(note.id.as_bytes())) => {}
+            None => entry.voice = None,
+        }
+        Ok(())
     }
 
     // ---- tags ----
@@ -532,10 +658,13 @@ impl Journal {
     // ---- import ----
 
     /// Brings decrypted backup records into this journal, re-encrypted with
-    /// this vault's key, in one transaction (X-2, decision D-4).
+    /// this vault's key, in one transaction (X-2, decision D-4). `voice` gives
+    /// the backup's recording for an id (E-18); recordings are copied one at a
+    /// time before the records are written, and any left unused are removed.
     pub fn import(
         &mut self,
         records: Vec<LoadedRecord>,
+        voice: &dyn Fn(&Id) -> Option<Zeroizing<Vec<u8>>>,
         mode: ImportMode,
     ) -> Result<ImportReport, JournalError> {
         let backup = Decoded::from_records(records);
@@ -544,15 +673,17 @@ impl Journal {
             ..ImportReport::default()
         };
         match mode {
-            ImportMode::Replace => self.import_replace(backup, &mut report)?,
-            ImportMode::Merge => self.import_merge(backup, &mut report)?,
+            ImportMode::Replace => self.import_replace(backup, voice, &mut report)?,
+            ImportMode::Merge => self.import_merge(backup, voice, &mut report)?,
         }
+        let _ = self.remove_orphan_voices();
         Ok(report)
     }
 
     fn import_replace(
         &mut self,
         b: Decoded,
+        voice: &dyn Fn(&Id) -> Option<Zeroizing<Vec<u8>>>,
         report: &mut ImportReport,
     ) -> Result<(), JournalError> {
         let mut tags = HashMap::new();
@@ -566,7 +697,10 @@ impl Journal {
         for (id, mut entry) in b.entries {
             entry.tags.retain(|t| tags.contains_key(t));
             match entry.validate() {
-                Ok(()) => drop(entries.insert(id, entry)),
+                Ok(()) => {
+                    self.import_voice(&mut entry, voice)?;
+                    entries.insert(id, entry);
+                }
                 Err(_) => report.skipped += 1,
             }
         }
@@ -610,7 +744,12 @@ impl Journal {
         Ok(())
     }
 
-    fn import_merge(&mut self, b: Decoded, report: &mut ImportReport) -> Result<(), JournalError> {
+    fn import_merge(
+        &mut self,
+        b: Decoded,
+        voice: &dyn Fn(&Id) -> Option<Zeroizing<Vec<u8>>>,
+        report: &mut ImportReport,
+    ) -> Result<(), JournalError> {
         // Tags: same id → keep ours; same name → map onto ours; otherwise add.
         let mut tag_map: HashMap<Id, Id> = HashMap::new();
         let mut new_tags: Vec<Tag> = Vec::new();
@@ -651,10 +790,12 @@ impl Journal {
             match self.entries.get(&id) {
                 None => {
                     report.added += 1;
+                    self.import_voice(&mut entry, voice)?;
                     changed.push(entry);
                 }
                 Some(ours) if entry.updated_at > ours.updated_at => {
                     report.updated += 1;
+                    self.import_voice(&mut entry, voice)?;
                     changed.push(entry);
                 }
                 Some(_) => report.unchanged += 1,

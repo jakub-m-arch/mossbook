@@ -1,5 +1,7 @@
 //! Integration tests for the journal on a real vault file. All data is synthetic.
 
+mod common;
+
 use std::path::PathBuf;
 
 use mossbook_core::crypto::aead::RecordType;
@@ -600,4 +602,146 @@ fn json_export_leaves_out_the_unsaved_entry() {
     assert!(doc["settings"].get("unsaved_entry").is_none());
     assert!(!String::from_utf8_lossy(&bytes).contains("synthetic trigger"));
     assert!(j.unsaved_entry().is_some(), "exporting does not discard it");
+}
+
+// ---- voice notes (E-18, D-21) ----
+
+fn raw_vault_bytes(fx: &Fixture) -> Vec<u8> {
+    let mut all = std::fs::read(&fx.path).unwrap();
+    let mut wal = fx.path.clone().into_os_string();
+    wal.push("-wal");
+    if let Ok(w) = std::fs::read(wal) {
+        all.extend(w);
+    }
+    all
+}
+
+fn contains(haystack: &[u8], needle: &[u8]) -> bool {
+    haystack.windows(needle.len()).any(|w| w == needle)
+}
+
+fn note_with_voice(j: &mut Journal, packets: usize, seed: u8) -> Entry {
+    let mut voice = j.save_voice(&common::ogg_opus(packets, seed)).unwrap();
+    voice.duration_ms = 999_999; // claimed by the UI: must be ignored
+    let mut e = Entry::new(EntryKind::Note, NOW).unwrap();
+    e.voice = Some(voice);
+    j.save_entry(e, NOW).unwrap().clone()
+}
+
+#[test]
+fn a_recording_is_stored_encrypted_and_read_back() {
+    let (fx, mut j) = create();
+    let recording = common::ogg_opus(150, 7);
+    let e = note_with_voice(&mut j, 150, 7);
+    let voice = e.voice.clone().unwrap();
+    assert_eq!(voice.duration_ms, 3000, "length taken from the file");
+    assert_eq!(voice.mime, "audio/ogg; codecs=opus");
+    assert_eq!(j.voice(&voice.id).unwrap().as_slice(), recording.as_slice());
+
+    let j = reopen(&fx, j);
+    assert_eq!(j.entry(&e.id).unwrap().voice, Some(voice.clone()));
+    assert_eq!(j.voice(&voice.id).unwrap().as_slice(), recording.as_slice());
+    assert_eq!(j.vault().unreadable_records(), 0);
+    j.lock().unwrap();
+    // The packet bytes are distinctive; none of them is on disk in the clear.
+    assert!(!contains(&raw_vault_bytes(&fx), b"OpusHead"));
+    assert!(!contains(&raw_vault_bytes(&fx), &[0xf8, 7, 3, 0x55, 0xaa]));
+}
+
+#[test]
+fn only_valid_recordings_are_accepted() {
+    let (_fx, mut j) = create();
+    let invalid = Err(JournalError::Domain(DomainError::InvalidField("voice")));
+    assert_eq!(j.save_voice(b"\x1aE\xdf\xa3 webm").map(drop), invalid);
+    assert_eq!(j.save_voice(&[]).map(drop), invalid);
+    // Over five minutes.
+    assert_eq!(
+        j.save_voice(&common::ogg_opus(15_100, 1)).map(drop),
+        invalid
+    );
+    assert!(j.vault().media_ids().unwrap().is_empty(), "nothing stored");
+
+    // An entry cannot point to a recording that does not exist...
+    let mut e = Entry::new(EntryKind::Note, NOW).unwrap();
+    let mut ghost = j.save_voice(&common::ogg_opus(5, 1)).unwrap();
+    ghost.id = Id::new_random().unwrap();
+    e.voice = Some(ghost);
+    assert_eq!(j.save_entry(e, NOW).map(drop), invalid);
+    // ...or to another entry's recording.
+    let first = note_with_voice(&mut j, 5, 2);
+    let mut second = Entry::new(EntryKind::Note, NOW).unwrap();
+    second.voice = first.voice.clone();
+    assert_eq!(j.save_entry(second, NOW).map(drop), invalid);
+}
+
+#[test]
+fn deleting_or_replacing_removes_the_old_recording() {
+    let (_fx, mut j) = create();
+    let e = note_with_voice(&mut j, 10, 1);
+    let first = e.voice.clone().unwrap().id;
+
+    // Replaced in the form: the old recording goes with the same save.
+    let mut edited = e.clone();
+    edited.voice = Some(j.save_voice(&common::ogg_opus(20, 2)).unwrap());
+    let second = edited.voice.clone().unwrap().id;
+    j.save_entry(edited.clone(), NOW).unwrap();
+    assert_eq!(j.vault().media_ids().unwrap(), vec![*second.as_bytes()]);
+    assert!(j.voice(&first).is_err());
+
+    // Removed in the form.
+    edited.voice = None;
+    j.save_entry(edited.clone(), NOW).unwrap();
+    assert!(j.vault().media_ids().unwrap().is_empty());
+
+    // Deleting the entry deletes its recording.
+    let e = note_with_voice(&mut j, 10, 3);
+    assert_eq!(j.vault().media_ids().unwrap().len(), 1);
+    assert!(j.delete_entry(&e.id).unwrap());
+    assert!(j.vault().media_ids().unwrap().is_empty());
+}
+
+#[test]
+fn recordings_nothing_points_to_are_removed_on_lock() {
+    let (fx, mut j) = create();
+    let kept = note_with_voice(&mut j, 10, 1).voice.clone().unwrap();
+    // Recorded in a form that was left without saving.
+    let orphan = j.save_voice(&common::ogg_opus(10, 2)).unwrap();
+    // Recorded in a form that was kept for the lock (E-17, D-20).
+    let in_form = j.save_voice(&common::ogg_opus(10, 3)).unwrap();
+    let mut draft = unsaved_draft("with a recording");
+    draft.voice = Some(in_form.clone());
+    j.keep_unsaved_entry(draft, NOW).unwrap();
+
+    let mut j = reopen(&fx, j);
+    let mut ids = j.vault().media_ids().unwrap();
+    ids.sort();
+    let mut expected = vec![*kept.id.as_bytes(), *in_form.id.as_bytes()];
+    expected.sort();
+    assert_eq!(ids, expected);
+    assert!(j.voice(&orphan.id).is_err());
+
+    // The kept form is saved: its recording now belongs to the entry.
+    let draft = j.unsaved_entry().unwrap().draft.clone();
+    let saved = j.save_draft(&draft, NOW).unwrap().clone();
+    assert_eq!(saved.voice.as_ref().map(|v| v.id), Some(in_form.id));
+    let j = reopen(&fx, j);
+    assert!(j.voice(&in_form.id).is_ok());
+}
+
+#[test]
+fn discarding_the_kept_form_removes_its_recording() {
+    let (_fx, mut j) = create();
+    let in_form = j.save_voice(&common::ogg_opus(10, 3)).unwrap();
+    let mut draft = unsaved_draft("with a recording");
+    draft.voice = Some(in_form.clone());
+    j.keep_unsaved_entry(draft, NOW).unwrap();
+    j.discard_unsaved_entry().unwrap();
+    assert!(j.vault().media_ids().unwrap().is_empty());
+}
+
+#[test]
+fn entries_without_a_recording_encode_as_before() {
+    let e = Entry::new(EntryKind::Note, NOW).unwrap();
+    let bytes = encode(&e).unwrap();
+    assert!(!contains(&bytes, b"voice"));
 }
