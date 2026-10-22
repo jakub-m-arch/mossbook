@@ -1,0 +1,1 @@
+Notatki głosowe do pięciu minut, zaszyfrowane jak reszta. Ten sam dziennik na telefonie i komputerze przez folder udostępniany przez Syncthing (Mossbook nadal nie łączy się z siecią). Czytelna kopia to teraz ZIP z notatkami głosowymi. Poprawka: przy odblokowaniu odciskiem dziennik mógł przestać się blokować po wyjściu z aplikacji.

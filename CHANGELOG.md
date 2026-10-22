@@ -2,7 +2,7 @@
 
 All notable changes to Mossbook. Versions follow [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.4.0 (2026-10-22)
 
 ### Added
 - Voice notes: record up to five minutes in an entry, listen to it, record again

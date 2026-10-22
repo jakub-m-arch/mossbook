@@ -1,0 +1,1 @@
+Voice notes of up to five minutes, encrypted like the rest. The same journal on your phone and computer through a folder Syncthing shares (Mossbook still never connects to the network). The readable copy is now a ZIP with your voice notes. Fixed: with fingerprint unlock the journal could stop locking when you left the app.
