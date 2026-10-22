@@ -330,6 +330,12 @@ impl UnlockedVault {
         Ok(Some(plaintext))
     }
 
+    /// Size of a recording's plaintext, without decrypting it.
+    pub fn media_size(&self, id: &RecordId) -> Result<Option<usize>, VaultError> {
+        let len = self.store.media_len(id)?;
+        Ok(len.map(|n| n.saturating_sub(crate::crypto::aead::OVERHEAD)))
+    }
+
     /// Ids of every stored recording.
     pub fn media_ids(&self) -> Result<Vec<RecordId>, VaultError> {
         Ok(self.store.media_ids()?)

@@ -213,6 +213,19 @@ impl Store {
         }))
     }
 
+    /// Length of one recording's blob, without reading it.
+    pub fn media_len(&self, id: &[u8; 16]) -> Result<Option<usize>, StoreError> {
+        let len = self
+            .conn
+            .query_row(
+                "SELECT length(blob) FROM media WHERE id = ?1",
+                [id.as_slice()],
+                |row| row.get::<_, i64>(0),
+            )
+            .optional()?;
+        Ok(len.and_then(|n| usize::try_from(n).ok()))
+    }
+
     /// Ids of every row of the `media` table (the blobs are not read).
     pub fn media_ids(&self) -> Result<Vec<[u8; 16]>, StoreError> {
         let mut stmt = self.conn.prepare("SELECT id FROM media")?;

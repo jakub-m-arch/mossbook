@@ -220,7 +220,7 @@ fn json_export_holds_the_whole_journal() {
     let bytes = j.export_json(NOW).unwrap();
     let doc: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(doc["format"], "mossbook-export");
-    assert_eq!(doc["version"], 1);
+    assert_eq!(doc["version"], 2);
     assert_eq!(doc["exported_at"], "2026-10-19T20:00:00+02:00");
     let entries = doc["entries"].as_array().unwrap();
     assert_eq!(entries.len(), 2);
@@ -744,4 +744,49 @@ fn entries_without_a_recording_encode_as_before() {
     let e = Entry::new(EntryKind::Note, NOW).unwrap();
     let bytes = encode(&e).unwrap();
     assert!(!contains(&bytes, b"voice"));
+}
+
+#[test]
+fn readable_copy_is_a_zip_with_the_json_and_the_recordings() {
+    use std::io::Read;
+    let (_fx, mut j) = create();
+    let spoken = note_with_voice(&mut j, 50, 9);
+    let mut plain = Entry::new(EntryKind::Note, NOW).unwrap();
+    plain.note = "no recording".into();
+    j.save_entry(plain, NOW).unwrap();
+
+    let bytes = j.export_zip(NOW).unwrap();
+    let mut zip = zip::ZipArchive::new(std::io::Cursor::new(bytes.as_slice())).unwrap();
+    let voice = spoken.voice.clone().unwrap();
+    let voice_name = format!("voice/{}.ogg", voice.id);
+    let mut names: Vec<String> = zip.file_names().map(|n| n.unwrap().into_owned()).collect();
+    names.sort();
+    assert_eq!(
+        names,
+        vec!["mossbook-export.json".to_owned(), voice_name.clone()]
+    );
+
+    let mut json = String::new();
+    zip.by_name("mossbook-export.json")
+        .unwrap()
+        .read_to_string(&mut json)
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_str(&json).unwrap();
+    assert_eq!(json["version"], 2);
+    let entries = json["entries"].as_array().unwrap();
+    let with_voice: Vec<_> = entries
+        .iter()
+        .filter(|e| e.get("voice").is_some())
+        .collect();
+    assert_eq!(with_voice.len(), 1);
+    assert_eq!(with_voice[0]["voice"]["id"], voice.id.to_string());
+    assert_eq!(with_voice[0]["voice"]["duration_ms"], 1000);
+
+    let mut file = zip.by_name(&voice_name).unwrap();
+    assert_eq!(file.compression(), zip::CompressionMethod::Stored);
+    // No timestamp: the archive does not tell when it was made.
+    assert_eq!(file.last_modified(), Some(zip::DateTime::default()));
+    let mut audio = Vec::new();
+    file.read_to_end(&mut audio).unwrap();
+    assert_eq!(audio, common::ogg_opus(50, 9));
 }

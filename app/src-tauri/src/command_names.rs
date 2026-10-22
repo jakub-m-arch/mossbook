@@ -49,6 +49,6 @@ pub const COMMANDS: &[&str] = &[
     "backup_import",
     "backup_info",
     "backup_reveal",
-    "export_json",
+    "export_readable",
     "report_pdf",
 ];

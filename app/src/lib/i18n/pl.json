@@ -510,11 +510,11 @@
 		"ok": "Te słowa otwierają twój dziennik. Przechowuj je w bezpiecznym miejscu.",
 		"wrong": "Te słowa nie otwierają tego dziennika. Porównaj każde słowo ze swoją notatką."
 	},
-	"exportJson": {
-		"title": "Czytelna kopia (JSON)",
-		"intro": "Wszystkie wpisy, tagi, plan i ustawienia w jednym pliku JSON, który odczytają inne programy. Twoje dane możesz zabrać, dokąd chcesz.",
-		"warning": "Plik JSON nie jest zaszyfrowany. Każdy, kto go otworzy, przeczyta cały dziennik. Zapisz go tylko w bezpiecznym miejscu i usuń, gdy nie będzie potrzebny.",
-		"submit": "Zapisz plik JSON",
+	"exportReadable": {
+		"title": "Czytelna kopia (ZIP)",
+		"intro": "Wszystkie wpisy, tagi, plan i ustawienia w pliku JSON, a notatki głosowe jako pliki dźwiękowe Ogg, razem w jednym archiwum ZIP, które otworzą inne programy. Twoje dane możesz zabrać, dokąd chcesz.",
+		"warning": "Ten plik nie jest zaszyfrowany. Każdy, kto go otworzy, przeczyta cały dziennik i odsłucha nagrania Twojego głosu. Zapisz go tylko w bezpiecznym miejscu i usuń, gdy nie będzie potrzebny.",
+		"submit": "Zapisz plik ZIP",
 		"question": "Zapisać plik bez szyfrowania?",
 		"saved": "Plik zapisany."
 	},

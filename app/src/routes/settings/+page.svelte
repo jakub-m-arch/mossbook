@@ -13,7 +13,7 @@
 		backupExport,
 		backupInfo,
 		backupReveal,
-		exportJson,
+		exportReadable,
 		isAppError,
 		openReleases,
 		settingsGet,
@@ -284,14 +284,14 @@
 		</section>
 
 		<section class="card stack" aria-labelledby="export-json">
-			<h2 id="export-json">{t('exportJson.title')}</h2>
-			<p class="muted">{t('exportJson.intro')}</p>
-			<p class="notice">{t('exportJson.warning')}</p>
+			<h2 id="export-readable">{t('exportReadable.title')}</h2>
+			<p class="muted">{t('exportReadable.intro')}</p>
+			<p class="notice">{t('exportReadable.warning')}</p>
 			<ConfirmAction
-				label={t('exportJson.submit')}
-				question={t('exportJson.question')}
+				label={t('exportReadable.submit')}
+				question={t('exportReadable.question')}
 				onconfirm={() =>
-					attempt('json', async () => ((await exportJson()) ? t('exportJson.saved') : ''))}
+					attempt('json', async () => ((await exportReadable()) ? t('exportReadable.saved') : ''))}
 			/>
 			{#if messages.json}<p class="muted" aria-live="polite">{messages.json}</p>{/if}
 		</section>

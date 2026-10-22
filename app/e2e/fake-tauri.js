@@ -366,9 +366,9 @@
 					}
 				: fail('locked'),
 		backup_reveal: () => (state.autoLatest ? null : fail('not_found')),
-		export_json: () => {
+		export_readable: () => {
 			if (state.vault !== 'unlocked') return fail('locked');
-			window.__fake.jsonExports += 1;
+			window.__fake.readableExports += 1;
 			return true;
 		},
 		vault_change_password: ({ old, new: next }) => {
@@ -548,7 +548,7 @@
 		calls: [],
 		reports: [],
 		reportPasswords: [],
-		jsonExports: 0,
+		readableExports: 0,
 		/** Notes returned by voice_save, newest last. */
 		voiceSaves: [],
 		voiceCount: () => state.voices.size,

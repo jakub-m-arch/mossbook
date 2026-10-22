@@ -22,8 +22,10 @@ use crate::vault::{LoadedRecord, UnlockedVault, VaultError};
 
 /// `format` field of the plain JSON export.
 pub const EXPORT_FORMAT: &str = "mossbook-export";
-/// Version of the plain JSON export layout.
-pub const EXPORT_VERSION: u16 = 1;
+/// Version of the plain JSON export layout. 2 added `Entry.voice` (E-18).
+pub const EXPORT_VERSION: u16 = 2;
+/// Name of the JSON file inside the readable copy (ZIP).
+pub const EXPORT_JSON_NAME: &str = "mossbook-export.json";
 
 /// Fixed record id of the safety plan (a singleton).
 pub const PLAN_ID: Id = Id::from_bytes([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3]);
@@ -653,6 +655,51 @@ impl Journal {
         serde_json::to_vec_pretty(&export)
             .map(Zeroizing::new)
             .map_err(|_| DomainError::Encoding.into())
+    }
+
+    /// The readable copy (X-4) as a ZIP (decision D-21): [`EXPORT_JSON_NAME`]
+    /// plus every recording as `voice/<voice id>.ogg`. **Not encrypted**; the UI
+    /// warns first. Built in memory (recordings are decrypted one at a time into
+    /// a buffer sized up front, so it is not copied while growing) and zeroed on
+    /// drop. Entries are stored, not compressed: the audio is already compressed.
+    pub fn export_zip(&self, now: OffsetDateTime) -> Result<Zeroizing<Vec<u8>>, JournalError> {
+        use std::io::{Cursor, Write};
+        use zip::write::SimpleFileOptions;
+        use zip::{CompressionMethod, ZipWriter};
+
+        const ENCODING: DomainError = DomainError::Encoding;
+        let json = self.export_json(now)?;
+        let mut voices: Vec<&VoiceNote> = self
+            .entries
+            .values()
+            .filter_map(|e| e.voice.as_ref())
+            .collect();
+        voices.sort_by_key(|v| v.id);
+        // Local headers, central directory and names: well under 256 bytes each.
+        let mut capacity = json.len() + 1024;
+        for v in &voices {
+            let size = self.vault.media_size(v.id.as_bytes())?.unwrap_or(0);
+            capacity += size + 256;
+        }
+        let mut buffer = Zeroizing::new(Vec::with_capacity(capacity));
+        {
+            let mut zip = ZipWriter::new(Cursor::new(&mut *buffer));
+            // No timestamps: the archive does not say when it was made.
+            let options = SimpleFileOptions::default()
+                .compression_method(CompressionMethod::Stored)
+                .last_modified_time(zip::DateTime::default());
+            zip.start_file(EXPORT_JSON_NAME, options)
+                .map_err(|_| ENCODING)?;
+            zip.write_all(&json).map_err(|_| ENCODING)?;
+            for v in voices {
+                let bytes = self.voice(&v.id)?;
+                zip.start_file(format!("voice/{}.ogg", v.id), options)
+                    .map_err(|_| ENCODING)?;
+                zip.write_all(&bytes).map_err(|_| ENCODING)?;
+            }
+            zip.finish().map_err(|_| ENCODING)?;
+        }
+        Ok(buffer)
     }
 
     // ---- import ----

@@ -4,6 +4,21 @@ All notable changes to Mossbook. Versions follow [Semantic Versioning](https://s
 
 ## Unreleased
 
+### Added
+- Voice notes: record up to five minutes in an entry, listen to it, record again
+  or remove it. Recordings are made inside the app only, stored encrypted like the
+  rest of the journal and decrypted only while you listen. They are part of
+  backups. On the timeline an entry shows how long its recording is; the report for
+  a therapist mentions it without the audio. The first recording asks for access
+  to the microphone.
+
+### Changed
+- The readable copy in the settings is now a ZIP archive: the journal as JSON and
+  the voice notes as Ogg audio files.
+- The journal file and backups use a new format version. They are converted
+  automatically; older versions of Mossbook cannot open them, so update Mossbook
+  on every device you restore backups on.
+
 ### Fixed
 - Android with fingerprint unlock: after going to the background the journal could
   stop locking when you left the app, until Mossbook was closed. The fingerprint

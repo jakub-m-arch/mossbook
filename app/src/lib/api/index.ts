@@ -179,4 +179,5 @@ export const backupInfo = () => invoke<BackupInfo>('backup_info');
 /** Shows the newest automatic backup in the system file manager. */
 export const backupReveal = () => invoke<void>('backup_reveal');
 /** Saves the whole journal as unencrypted JSON (X-4). `false` if cancelled. */
-export const exportJson = () => invoke<boolean>('export_json');
+/** The readable, unencrypted copy (X-4): a ZIP with the JSON and the voice notes (D-21). */
+export const exportReadable = () => invoke<boolean>('export_readable');

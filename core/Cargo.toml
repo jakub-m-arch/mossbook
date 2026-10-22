@@ -31,6 +31,8 @@ time = { version = "0.3.55", features = ["serde", "formatting", "parsing"] }
 unicode-normalization = "0.1.26"
 uuid = { version = "1.28.0", features = ["serde"] }
 zeroize = { version = "1.9.1", features = ["derive"] }
+# The readable copy with voice notes (X-4, D-21); stored entries only, no compression.
+zip = { version = "9.0.5", default-features = false }
 
 [lints]
 workspace = true

@@ -510,11 +510,11 @@
 		"ok": "These words open your journal. Keep them somewhere safe.",
 		"wrong": "These words do not open this journal. Compare each word with your note."
 	},
-	"exportJson": {
-		"title": "Readable copy (JSON)",
-		"intro": "All your entries, tags, plan and settings in one JSON file that other programs can read. Your data is yours to take anywhere.",
-		"warning": "The JSON file is not encrypted. Anyone who opens it can read your whole journal. Save it only somewhere safe and delete it when it is no longer needed.",
-		"submit": "Save JSON file",
+	"exportReadable": {
+		"title": "Readable copy (ZIP)",
+		"intro": "All your entries, tags, plan and settings in a JSON file, and your voice notes as Ogg audio files, together in one ZIP archive that other programs can open. Your data is yours to take anywhere.",
+		"warning": "This file is not encrypted. Anyone who opens it can read your whole journal and listen to the recordings of your voice. Save it only somewhere safe and delete it when it is no longer needed.",
+		"submit": "Save ZIP file",
 		"question": "Save a file that is not encrypted?",
 		"saved": "File saved."
 	},

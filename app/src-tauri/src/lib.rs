@@ -99,7 +99,7 @@ pub fn run() {
             commands::backup_import,
             commands::backup_info,
             commands::backup_reveal,
-            commands::export_json,
+            commands::export_readable,
             commands::report_pdf,
         ])
         .build(tauri::generate_context!())

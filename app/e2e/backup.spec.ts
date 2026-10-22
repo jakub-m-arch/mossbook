@@ -81,7 +81,7 @@ test('about: version, offline age hint, check for updates opens the browser', as
 	expect(calls).toContain('open_releases');
 });
 
-test('backups: last saved copy, automatic copies, recovery key check, JSON export', async ({
+test('backups: last saved copy, automatic copies, recovery key check, readable copy', async ({
 	page
 }) => {
 	await createVault(page);
@@ -116,17 +116,17 @@ test('backups: last saved copy, automatic copies, recovery key check, JSON expor
 	await expect(page.getByText('Te słowa otwierają twój dziennik.', { exact: false })).toBeVisible();
 	await expect(page.getByLabel('Twoje 24 słowa')).toHaveValue('');
 
-	// JSON export asks first, because the file is not encrypted.
-	await expect(page.getByText(/^Plik JSON nie jest zaszyfrowany/)).toBeVisible();
-	await page.getByRole('button', { name: 'Zapisz plik JSON' }).click();
+	// The readable copy asks first, because the file is not encrypted.
+	await expect(page.getByText(/^Ten plik nie jest zaszyfrowany/)).toBeVisible();
+	await page.getByRole('button', { name: 'Zapisz plik ZIP' }).click();
 	await page
 		.getByRole('group', { name: 'Zapisać plik bez szyfrowania?' })
-		.getByRole('button', { name: 'Zapisz plik JSON' })
+		.getByRole('button', { name: 'Zapisz plik ZIP' })
 		.click();
 	await expect(page.getByText('Plik zapisany.')).toBeVisible();
 	await page.screenshot({ path: `${SHOTS}/28-settings-backups.png`, fullPage: true });
 	const exports = await page.evaluate(
-		() => (window as unknown as { __fake: { jsonExports: number } }).__fake.jsonExports
+		() => (window as unknown as { __fake: { readableExports: number } }).__fake.readableExports
 	);
 	expect(exports).toBe(1);
 });

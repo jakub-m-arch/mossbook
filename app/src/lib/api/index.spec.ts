@@ -87,7 +87,7 @@ async function invokedCommands(): Promise<string[]> {
 		() => api.backupImport('pw', 'password', 'merge'),
 		api.backupInfo,
 		api.backupReveal,
-		api.exportJson,
+		api.exportReadable,
 		() =>
 			api.reportPdf({
 				title: 'r',

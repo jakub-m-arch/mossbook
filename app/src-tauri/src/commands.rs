@@ -527,19 +527,20 @@ pub fn backup_reveal(app: AppHandle, state: State<'_, AppState>) -> AppResult<()
         .map_err(|_| AppError::new("io", "cannot open the file manager"))
 }
 
-/// Saves the whole journal as readable, **unencrypted** JSON (X-4) where the
-/// user chooses. The UI warns first. `false` if cancelled.
+/// Saves the whole journal as a readable, **unencrypted** ZIP (X-4, D-21): the
+/// JSON and the voice notes, where the user chooses. The UI warns first.
+/// `false` if cancelled.
 #[tauri::command(async)]
-pub fn export_json(app: AppHandle, state: State<'_, AppState>) -> AppResult<bool> {
+pub fn export_readable(app: AppHandle, state: State<'_, AppState>) -> AppResult<bool> {
     let name = {
         let session = state.session();
         session.journal()?;
-        format!("mossbook-export-{}.json", session.now().date())
+        format!("mossbook-export-{}.zip", session.now().date())
     };
     let target = with_dialog(&state, || {
         app.dialog()
             .file()
-            .add_filter("JSON", &["json"])
+            .add_filter("ZIP", &["zip"])
             .set_file_name(name)
             .blocking_save_file()
     });
@@ -547,11 +548,11 @@ pub fn export_json(app: AppHandle, state: State<'_, AppState>) -> AppResult<bool
         return Ok(false);
     };
     // Built after the dialog: the vault may have locked on idle meanwhile.
-    let json = with_session(&state, |s| {
+    let zip = with_session(&state, |s| {
         let now = s.now();
-        Ok(s.journal()?.export_json(now)?)
+        Ok(s.journal()?.export_zip(now)?)
     })?;
-    write_file(&app, target, &json).map_err(|_| AppError::new("io", "cannot write the export"))?;
+    write_file(&app, target, &zip).map_err(|_| AppError::new("io", "cannot write the export"))?;
     Ok(true)
 }
 

@@ -8,6 +8,8 @@ It complements [`crypto.md`](crypto.md) (cryptography) and
 ## Assets
 
 - The content of entries, tags, the safety plan and settings.
+- Voice notes: recordings of the user's voice (E-18), which identify the speaker
+  even without their content.
 - When things happened (dates and times are as sensitive as the text).
 - The password and the 24-word recovery key.
 
@@ -32,12 +34,15 @@ It complements [`crypto.md`](crypto.md) (cryptography) and
 | Clipboard | A copied sentence lingers | Cleared after 60 s if still unchanged | `commands.rs` (`clipboard_clear_if`) |
 | Losing the journal file | Disk error, a crash mid-write, deleting something by mistake | Automatic encrypted backups on lock (daily, newest seven, D-16); a reminder in the settings of when a backup was last saved elsewhere; a way to check the written-down recovery key | `core/src/backup/auto.rs`, `routes/settings/` |
 | Memory after locking | Content left in RAM | Keys in `SecretBox`; decrypted content and domain objects zeroed on drop | `crypto/mod.rs`, `ZeroizeOnDrop` in `domain/` |
+| Voice notes outside the journal | A plaintext copy in the gallery, a temporary file, a cloud-synced folder | Recorded only inside the app (no import); encoded in memory and stored encrypted like records; decrypted one at a time for playback into an object URL that is revoked when the player goes away; never written to a file; the archive has no metadata or timestamps; recordings nothing points to are deleted on lock | `app/src/lib/voice/`, `journal.rs`, `vault/mod.rs` |
+| A web view asking for more | Script asking for the camera or location | The web view is allowed the microphone (voice notes) and refused every other permission; Android declares only `RECORD_AUDIO`, asked on the first recording | `app/src-tauri/src/lib.rs`, `AndroidManifest.xml` |
 
 ## Accepted metadata leaks
 
 Visible to someone with the vault file or a backup, by design:
 
 - the number of records, and how many of each type (entry, tag, plan, settings);
+- the number of voice notes and the size of each, which hints at its length;
 - the number of quick entries waiting in the inbox until the next unlock;
 - the approximate size of each record;
 - the file's modification time, and those of the automatic backups, which show on
@@ -62,7 +67,8 @@ Visible to someone with the vault file or a backup, by design:
 - **Old backups.** A backup opens with the password valid when it was made (D-9).
   Automatic backups are replaced after a password change; backups saved elsewhere are
   the user's to delete.
-- **Plain exports.** The JSON export is not encrypted. The PDF report is not
+- **Plain exports.** The readable copy (a ZIP with the JSON and the voice notes) is
+  not encrypted, and the recordings in it are the user's voice. The PDF report is not
   encrypted by default; it can optionally be protected with a password, but that is
   a property of the file, not of the relationship with the therapist. The app warns
   before writing either file; what happens to them afterwards is outside its control.
@@ -77,6 +83,11 @@ Visible to someone with the vault file or a backup, by design:
   Android does. The device key passes through the app's JVM memory as a string that
   cannot be wiped. Turning it off in Settings removes the key file and the Keystore
   key.
+- **Voice notes in memory.** While a recording is made or played, its audio passes
+  through the web view (the microphone stream, the encoder, the decoded bytes),
+  which cannot be wiped, like typed text. The operating system shows that the
+  microphone is in use; Mossbook does not record in the background (leaving the app
+  ends the recording).
 - **Throttling** lives in memory: restarting the app resets the delay. The real
   protection against guessing is the cost of Argon2id.
 

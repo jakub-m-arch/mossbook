@@ -56,7 +56,7 @@
     "allow-backup-import",
     "allow-backup-info",
     "allow-backup-reveal",
-    "allow-export-json",
+    "allow-export-readable",
     "allow-report-pdf"
   ]
 }

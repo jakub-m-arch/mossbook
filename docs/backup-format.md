@@ -108,16 +108,22 @@ newest seven (decision D-16, `core/src/backup/auto.rs`).
 - They can be turned off in the settings. They protect against a damaged vault file
   or a mistake, not against losing the device.
 
-## Plain JSON export
+## Readable copy (ZIP)
 
-Settings → *Readable copy (JSON)* writes the whole journal as **unencrypted** UTF-8
-JSON (X-4), after a warning. It is meant for leaving Mossbook or keeping one's own
-archive; the app does not import it.
+Settings → *Readable copy (ZIP)* writes the whole journal, **unencrypted**, as a ZIP
+archive (X-4, decision D-21), after a warning. It is meant for leaving Mossbook or
+keeping one's own archive; the app does not import it. Entries are stored without
+compression and without timestamps:
+
+```
+mossbook-export.json        the journal as JSON, below
+voice/<voice id>.ogg        each voice note, Ogg Opus, named by `entries[].voice.id`
+```
 
 ```json
 {
   "format": "mossbook-export",
-  "version": 1,
+  "version": 2,
   "exported_at": "2026-10-20T11:00:00+02:00",
   "entries": [ … ],
   "tags": [ … ],
@@ -132,7 +138,10 @@ half-filled form is not part of the journal.
 `entries` (oldest first), `tags` (by name), `plan` and `settings` have exactly the
 shapes of the domain types in `core/src/domain/` (field names in `snake_case`,
 timestamps in RFC 3339 with the local offset, ids as UUID strings, entry kinds as
-`{"fear": {…}}` or `"note"`). A change to these shapes increments `version`.
+`{"fear": {…}}` or `"note"`). An entry with a recording has
+`"voice": { "id": …, "duration_ms": …, "mime": "audio/ogg; codecs=opus" }`.
+A change to these shapes increments `version`: version 1 (Mossbook 0.1–0.3) was the
+JSON file alone, without `voice`.
 
 ## Versioning
 
