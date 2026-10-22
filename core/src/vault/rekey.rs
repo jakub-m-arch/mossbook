@@ -38,6 +38,23 @@ impl UnlockedVault {
         self.set_password(new)
     }
 
+    /// Takes over a newer password wrap of the same journal (sync, D-22).
+    pub(crate) fn adopt_password_wrap(&mut self, other: &VaultHeader) -> Result<bool, VaultError> {
+        if other.vault_id != self.header.vault_id
+            || other.password_epoch <= self.header.password_epoch
+        {
+            return Ok(false);
+        }
+        let mut header = self.header.clone();
+        header.kdf_params = other.kdf_params;
+        header.kdf_salt = other.kdf_salt;
+        header.wrapped_dek_pwd = other.wrapped_dek_pwd.clone();
+        header.password_epoch = other.password_epoch;
+        header.save_password_wrap(&mut self.store)?;
+        self.header = header;
+        Ok(true)
+    }
+
     /// Wraps the DEK under a KEK derived from `new` with a fresh salt.
     /// The KDF params of the vault are kept.
     pub(super) fn set_password(&mut self, new: &str) -> Result<(), VaultError> {
@@ -45,6 +62,7 @@ impl UnlockedVault {
         header.kdf_salt = generate_salt()?;
         let kek = derive_kek(new, &header.kdf_salt, &header.kdf_params)?;
         header.wrapped_dek_pwd = wrap_dek(&kek, &header.vault_id, &self.dek)?;
+        header.password_epoch = header.password_epoch.saturating_add(1);
         header.save_password_wrap(&mut self.store)?;
         self.header = header;
         Ok(())

@@ -65,6 +65,7 @@ impl PendingVault {
             wrapped_dek_pwd: wrap_dek(&kek_pwd, &vault_id, &dek)?,
             wrapped_dek_rec: wrap_dek(&recovery.derive_kek(), &vault_id, &dek)?,
             inbox_key: Some(new_inbox_key(&dek, &vault_id)?),
+            password_epoch: 0,
         };
         Ok(Self {
             header,

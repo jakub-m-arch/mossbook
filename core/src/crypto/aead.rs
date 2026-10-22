@@ -26,11 +26,19 @@ pub enum RecordType {
     Settings,
     /// A voice note recording (E-18). Lives in the `media` table, never in `records`.
     Voice,
+    /// A deleted entry or tag (sync, D-22), at the deleted record's id.
+    Tombstone,
 }
 
 impl RecordType {
     /// The types stored in the `records` table, ordered by code.
-    pub const ALL: [Self; 4] = [Self::Entry, Self::Tag, Self::Plan, Self::Settings];
+    pub const ALL: [Self; 5] = [
+        Self::Entry,
+        Self::Tag,
+        Self::Plan,
+        Self::Settings,
+        Self::Tombstone,
+    ];
     /// The types stored in the `media` table.
     pub const MEDIA: [Self; 1] = [Self::Voice];
 
@@ -42,6 +50,7 @@ impl RecordType {
             Self::Plan => 3,
             Self::Settings => 4,
             Self::Voice => 5,
+            Self::Tombstone => 6,
         }
     }
 
@@ -58,6 +67,7 @@ impl RecordType {
             3 => Some(Self::Plan),
             4 => Some(Self::Settings),
             5 => Some(Self::Voice),
+            6 => Some(Self::Tombstone),
             _ => None,
         }
     }
@@ -70,6 +80,7 @@ impl RecordType {
             Self::Plan => b"plan",
             Self::Settings => b"settings",
             Self::Voice => b"voice",
+            Self::Tombstone => b"tombstone",
         }
     }
 }
@@ -281,6 +292,7 @@ mod tests {
             RecordType::Plan,
             RecordType::Settings,
             RecordType::Voice,
+            RecordType::Tombstone,
         ] {
             assert!(open_record(&dek, &VAULT, &REC_A, rt, &blob).is_err());
         }
@@ -301,7 +313,7 @@ mod tests {
         assert!(RecordType::ALL.iter().all(|rt| !rt.is_media()));
         assert!(RecordType::MEDIA.iter().all(|rt| rt.is_media()));
         assert_eq!(RecordType::from_code(0), None);
-        assert_eq!(RecordType::from_code(6), None);
+        assert_eq!(RecordType::from_code(7), None);
     }
 
     #[test]

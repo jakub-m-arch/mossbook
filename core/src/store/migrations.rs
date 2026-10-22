@@ -8,6 +8,7 @@ use super::StoreError;
 const MIGRATIONS: &[&str] = &[
     include_str!("../../migrations/0001_init.sql"),
     include_str!("../../migrations/0002_media.sql"),
+    include_str!("../../migrations/0003_sync.sql"),
 ];
 
 /// Schema version written by this build.

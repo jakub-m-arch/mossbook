@@ -39,6 +39,10 @@ pub struct Settings {
     /// Left out when empty, so settings without one look as before.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unsaved_entry: Option<UnsavedEntry>,
+    /// When this was last changed, by the device's clock (sync, D-22). Set by
+    /// the journal; `None` in records from before sync, which count as oldest.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<Timestamp>,
 }
 
 /// An entry form kept while it is being filled in, so a lock does not lose it.
@@ -75,6 +79,7 @@ impl Default for Settings {
             auto_backup: true,
             last_export: None,
             unsaved_entry: None,
+            updated_at: None,
         }
     }
 }

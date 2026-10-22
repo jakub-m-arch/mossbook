@@ -3,7 +3,9 @@
 A Mossbook backup is a single file holding the encrypted journal. This document is
 normative: [`tools/read-backup.py`](../tools/read-backup.py) is an independent reader
 written from it, and checks the committed fixtures
-`core/tests/fixtures/backup-v1.mossbook` and `backup-v2.mossbook`.
+`core/tests/fixtures/backup-v1.mossbook`, `backup-v2.mossbook` and `backup-v3.mossbook`.
+A sync file (decision D-22) is a backup in this format, written by one of the user's
+devices for the others; see *Sync files* below.
 
 Cryptographic primitives and key derivation are described in [`crypto.md`](crypto.md).
 
@@ -12,7 +14,7 @@ Cryptographic primitives and key derivation are described in [`crypto.md`](crypt
 ```
 offset  size  content
 0       8     magic "MOSSBOOK" (ASCII)
-8       2     backup format version, u16 little-endian (currently 2; 1 is still read)
+8       2     backup format version, u16 little-endian (currently 3; 1 and 2 are still read)
 10      …     body: one CBOR item (RFC 8949)
 ```
 
@@ -30,7 +32,8 @@ A CBOR map with these keys (byte strings are CBOR major type 2):
 | `kdf_salt`        | bytes (16)           | password salt                                               |
 | `wrapped_dek_pwd` | bytes (72)           | DEK wrapped under the password key                          |
 | `wrapped_dek_rec` | bytes (72)           | DEK wrapped under the recovery key                          |
-| `records`         | array of maps        | `{ "id": bytes(16), "type": uint 1–4, "blob": bytes }`      |
+| `password_epoch`  | unsigned int         | version 3: how many times the password was changed (0 if absent) |
+| `records`         | array of maps        | `{ "id": bytes(16), "type": uint 1–4 or 6, "blob": bytes }` (6, a tombstone, from version 3) |
 | `media`           | array of maps        | version 2 only, may be absent when empty: recordings, `{ "id": bytes(16), "type": 5, "blob": bytes }` |
 | `manifest`        | bytes                | sealed digest of the records (and recordings), see below    |
 
@@ -40,7 +43,9 @@ The header fields, record blobs and recording blobs are copied unchanged from
 there, or for `media` an Ogg Opus file (voice note, E-18). `records` never holds
 type 5 and `media` only type 5; anything else rejects the file.
 
-Version 1 (Mossbook 0.1–0.3) has no `media` key and `vault_format` 1.
+Version 1 (Mossbook 0.1–0.3) has no `media` key and `vault_format` 1; version 2
+(voice notes) has no tombstones and no `password_epoch`. In every version
+`vault_format` equals the backup version.
 
 ## Manifest
 
@@ -53,16 +58,21 @@ list(rows) = u64le(len(rows))
              || for each row in file order:
                   id (16) || type (1) || u64le(len(blob)) || blob
 
+header   = u32le(password_epoch) || kdf_params (13) || kdf_salt (16)
+           || wrapped_dek_pwd (72) || wrapped_dek_rec (72)
+
 version 1:  digest = SHA-256( list(records) )
-            AAD    = "mossbook/backup/v1" || vault_id
 version 2:  digest = SHA-256( list(records) || list(media) )
-            AAD    = "mossbook/backup/v2" || vault_id
+version 3:  digest = SHA-256( header || list(records) || list(media) )
+AAD      = "mossbook/backup/v" || version (ASCII) || vault_id
 
 manifest = nonce (24) || XChaCha20-Poly1305(DEK, AAD, digest) || tag (16)
 ```
 
-The version is part of the AAD, so a version 2 backup cannot be relabelled as
-version 1 with its recordings cut out.
+The version is part of the AAD, so a backup cannot be relabelled as an older
+version with its recordings or tombstones cut out. From version 3 the header fields
+another device may adopt (the password wrap and its count) are covered too, so a
+sync file cannot be altered to roll a password back.
 
 ## Opening a backup
 
@@ -108,7 +118,26 @@ newest seven (decision D-16, `core/src/backup/auto.rs`).
 - They can be turned off in the settings. They protect against a damaged vault file
   or a mistake, not against losing the device.
 
-## Readable copy (ZIP)
+## Sync files
+
+The user's devices that share one journal (same vault id and DEK, decision D-22)
+each write the whole journal as a backup named `<device id>.mossbook-sync` into a
+folder that Syncthing carries between them. Mossbook never connects anywhere; it
+only reads and writes that folder. A device opens the others' files with the shared
+DEK instead of the password (the vault id must match) and runs the same checks as
+for any backup: manifest, every record and recording. It then merges them:
+
+- per entry, tag, plan and settings, the newer `updated_at` wins; at the same time a
+  tombstone beats an edit, and of two different edits the larger CBOR encoding wins,
+  so every device ends up with the same content whatever order files arrive in;
+- a tombstone (`{ id, of: "entry" | "tag", deleted_at }`, record type 6 at the
+  deleted record's id) beats an older edit, and an edit made after it brings the
+  record back;
+- two tags with the same name become one: the smaller id stays;
+- a higher `password_epoch` means a newer password: its wrap is adopted;
+- the unsaved entry form (D-20) is never taken from another device.
+
+
 
 Settings → *Readable copy (ZIP)* writes the whole journal, **unencrypted**, as a ZIP
 archive (X-4, decision D-21), after a warning. It is meant for leaving Mossbook or

@@ -296,7 +296,10 @@ pub fn entry_save(state: State<'_, AppState>, draft: EntryDraft) -> AppResult<En
 
 #[tauri::command(async)]
 pub fn entry_delete(state: State<'_, AppState>, id: Id) -> AppResult<bool> {
-    with_session(&state, |s| Ok(s.journal_mut()?.delete_entry(&id)?))
+    with_session(&state, |s| {
+        let now = s.now();
+        Ok(s.journal_mut()?.delete_entry(&id, now)?)
+    })
 }
 
 // ---- voice notes (E-18, D-21) ----
@@ -365,18 +368,20 @@ pub fn tags_list(state: State<'_, AppState>) -> AppResult<Vec<Tag>> {
 #[tauri::command(async)]
 pub fn tag_create(state: State<'_, AppState>, name: String, color: String) -> AppResult<Tag> {
     with_session(&state, |s| {
-        Ok(s.journal_mut()?.create_tag(&name, &color)?.clone())
+        let now = s.now();
+        Ok(s.journal_mut()?.create_tag(&name, &color, now)?.clone())
     })
 }
 
 #[tauri::command(async)]
 pub fn tag_save(state: State<'_, AppState>, tag: Tag) -> AppResult<Tag> {
     with_session(&state, |s| {
+        let now = s.now();
         let journal = s.journal_mut()?;
         if !journal.tags().iter().any(|t| t.id == tag.id) {
             return Err(AppError::new("not_found", "no such tag"));
         }
-        Ok(journal.save_tag(tag)?.clone())
+        Ok(journal.save_tag(tag, now)?.clone())
     })
 }
 
@@ -405,7 +410,10 @@ pub fn plan_get(state: State<'_, AppState>) -> AppResult<SafetyPlan> {
 
 #[tauri::command(async)]
 pub fn plan_save(state: State<'_, AppState>, plan: SafetyPlan) -> AppResult<SafetyPlan> {
-    with_session(&state, |s| Ok(s.journal_mut()?.save_plan(plan)?.clone()))
+    with_session(&state, |s| {
+        let now = s.now();
+        Ok(s.journal_mut()?.save_plan(plan, now)?.clone())
+    })
 }
 
 #[tauri::command(async)]
@@ -421,7 +429,8 @@ pub fn settings_get(state: State<'_, AppState>) -> AppResult<Settings> {
 #[tauri::command(async)]
 pub fn settings_save(state: State<'_, AppState>, settings: Settings) -> AppResult<Settings> {
     with_session(&state, |s| {
-        Ok(s.journal_mut()?.save_settings(settings)?.clone())
+        let now = s.now();
+        Ok(s.journal_mut()?.save_settings(settings, now)?.clone())
     })
 }
 

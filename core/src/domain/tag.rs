@@ -5,7 +5,7 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-use super::{DomainError, Id};
+use super::{DomainError, Id, Timestamp};
 
 /// Maximum tag name length in characters.
 pub const MAX_NAME_CHARS: usize = 64;
@@ -16,6 +16,10 @@ pub struct Tag {
     pub name: String,
     /// Color as `#rrggbb`.
     pub color: String,
+    /// When this was last changed, by the device's clock (sync, D-22). Set by
+    /// the journal; `None` in records from before sync, which count as oldest.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<Timestamp>,
 }
 
 impl Tag {
@@ -62,6 +66,7 @@ mod tests {
             id: Id::default(),
             name: name.into(),
             color: color.into(),
+            updated_at: None,
         }
     }
 

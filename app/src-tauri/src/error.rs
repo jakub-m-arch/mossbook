@@ -101,6 +101,7 @@ impl From<BackupError> for AppError {
             BackupError::UnsupportedVersion => "unsupported_backup",
             BackupError::Corrupted => "backup_corrupted",
             BackupError::TooLarge => "backup_too_large",
+            BackupError::OtherJournal => "other_journal",
             BackupError::WrongPassword => "wrong_password",
             BackupError::WrongRecoveryKey => "wrong_recovery_key",
             BackupError::InvalidRecoveryPhrase => "invalid_recovery_phrase",

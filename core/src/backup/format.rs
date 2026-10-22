@@ -24,17 +24,15 @@ use super::BackupError;
 
 /// File signature.
 pub const MAGIC: &[u8; 8] = b"MOSSBOOK";
-/// Backup format version written by this build. Version 1 (no recordings) is
-/// still read.
-pub const BACKUP_VERSION: u16 = 2;
+/// Backup format version written by this build. Versions 1 (no recordings) and
+/// 2 (no tombstones) are still read.
+pub const BACKUP_VERSION: u16 = 3;
 /// Largest file accepted on import, as a guard against memory exhaustion.
 pub const MAX_BACKUP_BYTES: usize = 512 * 1024 * 1024;
 
-/// AAD prefix of the sealed manifest, per backup version. A separate label for
-/// version 2 means a version 2 backup cannot be passed off as version 1 with
-/// its recordings cut out.
-const MANIFEST_AAD_V1: &[u8] = b"mossbook/backup/v1";
-const MANIFEST_AAD_V2: &[u8] = b"mossbook/backup/v2";
+/// AAD prefix of the sealed manifest: `"mossbook/backup/v" || version`. A label
+/// per version means a backup cannot be passed off as an older version with
+/// its recordings or tombstones cut out.
 
 #[derive(Serialize, Deserialize)]
 struct Body {
@@ -50,6 +48,9 @@ struct Body {
     wrapped_dek_pwd: Vec<u8>,
     #[serde(with = "serde_bytes")]
     wrapped_dek_rec: Vec<u8>,
+    /// Password changes so far (version 3; sync, D-22).
+    #[serde(default)]
+    password_epoch: u32,
     records: Vec<BodyRecord>,
     /// Recordings from the `media` table (version 2; absent in version 1).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -101,6 +102,7 @@ impl Backup {
             kdf_salt: h.kdf_salt.to_vec(),
             wrapped_dek_pwd: h.wrapped_dek_pwd.clone(),
             wrapped_dek_rec: h.wrapped_dek_rec.clone(),
+            password_epoch: h.password_epoch,
             records: self.records.iter().map(BodyRecord::from).collect(),
             media: self.media.iter().map(BodyRecord::from).collect(),
             manifest: self.manifest.clone(),
@@ -131,15 +133,15 @@ impl Backup {
         let version = u16::from_le_bytes([version[0], version[1]]);
         // Each backup version comes from exactly one vault format.
         let vault_format = match version {
-            1 => 1,
-            2 => VAULT_FORMAT_VERSION,
+            1 | 2 => version,
+            BACKUP_VERSION => VAULT_FORMAT_VERSION,
             _ => return Err(BackupError::UnsupportedVersion),
         };
         let body: Body = ciborium::from_reader(body).map_err(|_| BackupError::Corrupted)?;
         if body.vault_format != vault_format {
             return Err(BackupError::UnsupportedVersion);
         }
-        if version == 1 && !body.media.is_empty() {
+        if (version == 1 && !body.media.is_empty()) || (version < 3 && body.password_epoch != 0) {
             return Err(BackupError::Corrupted);
         }
         let fixed = |v: &[u8]| -> Result<[u8; 16], BackupError> {
@@ -155,18 +157,21 @@ impl Backup {
             wrapped_dek_rec: body.wrapped_dek_rec,
             // Not part of backups; a restored vault gets a new pair on unlock.
             inbox_key: None,
+            password_epoch: body.password_epoch,
         };
         if header.wrapped_dek_pwd.len() != WRAPPED_LEN
             || header.wrapped_dek_rec.len() != WRAPPED_LEN
         {
             return Err(BackupError::Corrupted);
         }
-        // Records hold only record types and recordings only media types.
+        // Records hold only record types and recordings only media types;
+        // tombstones exist from version 3.
         let rows = |rows: Vec<BodyRecord>, media: bool| {
             rows.into_iter()
                 .map(|r| {
                     RecordType::from_code(r.type_code)
                         .filter(|rt| rt.is_media() == media)
+                        .filter(|rt| version >= 3 || *rt != RecordType::Tombstone)
                         .ok_or(BackupError::Corrupted)?;
                     Ok(RawRecord {
                         id: fixed(&r.id)?,
@@ -200,10 +205,13 @@ impl From<&RawRecord> for BodyRecord {
     }
 }
 
-/// SHA-256 over every record and, from version 2, every recording. Each list
-/// is length-prefixed and each blob too, so the encoding is unambiguous.
+/// SHA-256 over every record, from version 2 every recording, and from
+/// version 3 first the header fields a device adopts from another's file (the
+/// password wrap and its count). Each list and blob is length-prefixed, so the
+/// encoding is unambiguous.
 pub(super) fn manifest_digest(
     version: u16,
+    header: &VaultHeader,
     records: &[RawRecord],
     media: &[RawRecord],
 ) -> [u8; 32] {
@@ -217,6 +225,13 @@ pub(super) fn manifest_digest(
         }
     }
     let mut hash = Sha256::new();
+    if version >= 3 {
+        hash.update(header.password_epoch.to_le_bytes());
+        hash.update(header.kdf_params.to_bytes());
+        hash.update(header.kdf_salt);
+        hash.update(&header.wrapped_dek_pwd);
+        hash.update(&header.wrapped_dek_rec);
+    }
     list(&mut hash, records);
     if version >= 2 {
         list(&mut hash, media);
@@ -225,10 +240,9 @@ pub(super) fn manifest_digest(
 }
 
 pub(super) fn manifest_aad(version: u16, vault_id: &VaultId) -> Vec<u8> {
-    let prefix = if version >= 2 {
-        MANIFEST_AAD_V2
-    } else {
-        MANIFEST_AAD_V1
-    };
-    [prefix, vault_id.as_slice()].concat()
+    [
+        format!("mossbook/backup/v{version}").as_bytes(),
+        vault_id.as_slice(),
+    ]
+    .concat()
 }

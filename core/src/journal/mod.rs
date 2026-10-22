@@ -14,11 +14,15 @@ use crate::crypto::aead::RecordType;
 use crate::domain::entry::ENTRY_SCHEMA;
 use crate::domain::{
     DomainError, Entry, EntryDraft, EntryKind, EntryKindTag, Id, InboxEntry, SafetyPlan, Settings,
-    Tag, UnsavedEntry, VOICE_MIME, VoiceNote, decode, encode, inspect_ogg_opus,
+    Tag, Tombstone, TombstoneOf, UnsavedEntry, VOICE_MIME, VoiceNote, decode, encode,
+    inspect_ogg_opus,
 };
 use crate::query::stats::{MoodPoint, mood_by_day};
 use crate::query::{EntryFilter, Patterns, StatsRange};
 use crate::vault::{LoadedRecord, UnlockedVault, VaultError};
+
+mod sync;
+pub use sync::SyncReport;
 
 /// `format` field of the plain JSON export.
 pub const EXPORT_FORMAT: &str = "mossbook-export";
@@ -92,6 +96,7 @@ struct Decoded {
     tags: HashMap<Id, Tag>,
     plan: Option<SafetyPlan>,
     settings: Option<Settings>,
+    tombstones: HashMap<Id, Tombstone>,
     bad: usize,
 }
 
@@ -117,6 +122,10 @@ impl Decoded {
                 RecordType::Settings if id == SETTINGS_ID => {
                     decode(bytes).map(|s| d.settings = Some(s)).is_ok()
                 }
+                RecordType::Tombstone => match decode::<Tombstone>(bytes) {
+                    Ok(t) if t.id == id => d.tombstones.insert(id, t).is_none(),
+                    _ => false,
+                },
                 // Recordings never belong in `records`.
                 RecordType::Plan | RecordType::Settings | RecordType::Voice => false,
             };
@@ -134,6 +143,8 @@ pub struct Journal {
     tags: HashMap<Id, Tag>,
     plan: SafetyPlan,
     settings: Settings,
+    /// Deleted entries and tags, kept so the deletion reaches other devices (D-22).
+    tombstones: HashMap<Id, Tombstone>,
 }
 
 impl fmt::Debug for Journal {
@@ -157,6 +168,7 @@ impl Journal {
             tags: d.tags,
             plan: d.plan.unwrap_or_default(),
             settings: d.settings.unwrap_or_default(),
+            tombstones: d.tombstones,
         };
         journal.move_inbox_in(OffsetDateTime::now_utc());
         // Best effort: a recording left over from a form that was not kept.
@@ -262,6 +274,10 @@ impl Journal {
         let mut seen = Vec::with_capacity(entry.tags.len());
         for tag in &entry.tags {
             if !self.tags.contains_key(tag) {
+                // Deleted on another device since the form opened (D-22).
+                if self.tombstones.contains_key(tag) {
+                    continue;
+                }
                 return Err(DomainError::InvalidField("tags").into());
             }
             if !seen.contains(tag) {
@@ -376,15 +392,27 @@ impl Journal {
         self.save_entry(entry, now)
     }
 
-    /// Deletes an entry together with its recording, in one transaction.
-    pub fn delete_entry(&mut self, id: &Id) -> Result<bool, JournalError> {
+    /// Deletes an entry together with its recording, in one transaction. The
+    /// entry's record becomes a tombstone, so the deletion reaches the user's
+    /// other devices (D-22).
+    pub fn delete_entry(&mut self, id: &Id, now: OffsetDateTime) -> Result<bool, JournalError> {
         let Some(entry) = self.entries.get(id) else {
             return Ok(false);
         };
         let media: Vec<_> = entry.voice.iter().map(|v| *v.id.as_bytes()).collect();
-        self.vault
-            .write_batch_with_media(&[], &[*id.as_bytes()], &media)?;
+        let tombstone = Tombstone {
+            id: *id,
+            of: TombstoneOf::Entry,
+            deleted_at: now.into(),
+        };
+        let bytes = encode(&tombstone)?;
+        self.vault.write_batch_with_media(
+            &[(*id.as_bytes(), RecordType::Tombstone, &bytes)],
+            &[],
+            &media,
+        )?;
         self.entries.remove(id);
+        self.tombstones.insert(*id, tombstone);
         Ok(true)
     }
 
@@ -492,18 +520,25 @@ impl Journal {
         tags
     }
 
-    pub fn create_tag(&mut self, name: &str, color: &str) -> Result<&Tag, JournalError> {
+    pub fn create_tag(
+        &mut self,
+        name: &str,
+        color: &str,
+        now: OffsetDateTime,
+    ) -> Result<&Tag, JournalError> {
         let tag = Tag {
             id: Id::new_random()?,
             name: name.to_owned(),
             color: color.to_owned(),
+            updated_at: None,
         };
-        self.save_tag(tag)
+        self.save_tag(tag, now)
     }
 
     /// Renames or recolors a tag (or creates it if the id is new).
-    pub fn save_tag(&mut self, mut tag: Tag) -> Result<&Tag, JournalError> {
+    pub fn save_tag(&mut self, mut tag: Tag, now: OffsetDateTime) -> Result<&Tag, JournalError> {
         tag.normalize()?;
+        tag.updated_at = Some(now.into());
         if self
             .tags
             .values()
@@ -561,16 +596,25 @@ impl Journal {
             changed.push(e);
         }
         let encoded = changed.iter().map(encode).collect::<Result<Vec<_>, _>>()?;
-        let puts: Vec<_> = changed
+        // The tag's record becomes a tombstone, for the user's other devices (D-22).
+        let tombstone = Tombstone {
+            id: *from,
+            of: TombstoneOf::Tag,
+            deleted_at: now.into(),
+        };
+        let tombstone_bytes = encode(&tombstone)?;
+        let mut puts: Vec<_> = changed
             .iter()
             .zip(&encoded)
             .map(|(e, bytes)| (*e.id.as_bytes(), RecordType::Entry, bytes.as_slice()))
             .collect();
-        self.vault.write_batch(&puts, &[*from.as_bytes()])?;
+        puts.push((*from.as_bytes(), RecordType::Tombstone, &tombstone_bytes));
+        self.vault.write_batch(&puts, &[])?;
         for e in changed {
             self.entries.insert(e.id, e);
         }
         self.tags.remove(from);
+        self.tombstones.insert(*from, tombstone);
         Ok(())
     }
 
@@ -580,8 +624,13 @@ impl Journal {
         &self.plan
     }
 
-    pub fn save_plan(&mut self, mut plan: SafetyPlan) -> Result<&SafetyPlan, JournalError> {
+    pub fn save_plan(
+        &mut self,
+        mut plan: SafetyPlan,
+        now: OffsetDateTime,
+    ) -> Result<&SafetyPlan, JournalError> {
         plan.normalize();
+        plan.updated_at = Some(now.into());
         self.vault
             .put(*PLAN_ID.as_bytes(), RecordType::Plan, &encode(&plan)?)?;
         self.plan = plan;
@@ -595,10 +644,15 @@ impl Journal {
     /// Saves the settings. `last_export` and `unsaved_entry` are kept from the
     /// stored settings: they are set only by [`Self::record_export`] and
     /// [`Self::keep_unsaved_entry`], never by the UI.
-    pub fn save_settings(&mut self, mut settings: Settings) -> Result<&Settings, JournalError> {
+    pub fn save_settings(
+        &mut self,
+        mut settings: Settings,
+        now: OffsetDateTime,
+    ) -> Result<&Settings, JournalError> {
         settings.validate()?;
         settings.last_export = self.settings.last_export;
         settings.unsaved_entry = self.settings.unsaved_entry.clone();
+        settings.updated_at = Some(now.into());
         self.store_settings(settings)
     }
 
@@ -606,6 +660,7 @@ impl Journal {
     pub fn record_export(&mut self, now: OffsetDateTime) -> Result<(), JournalError> {
         let mut settings = self.settings.clone();
         settings.last_export = Some(now.into());
+        settings.updated_at = Some(now.into());
         self.store_settings(settings).map(drop)
     }
 
@@ -713,6 +768,7 @@ impl Journal {
         records: Vec<LoadedRecord>,
         voice: &dyn Fn(&Id) -> Option<Zeroizing<Vec<u8>>>,
         mode: ImportMode,
+        now: OffsetDateTime,
     ) -> Result<ImportReport, JournalError> {
         let backup = Decoded::from_records(records);
         let mut report = ImportReport {
@@ -720,7 +776,7 @@ impl Journal {
             ..ImportReport::default()
         };
         match mode {
-            ImportMode::Replace => self.import_replace(backup, voice, &mut report)?,
+            ImportMode::Replace => self.import_replace(backup, voice, &mut report, now)?,
             ImportMode::Merge => self.import_merge(backup, voice, &mut report)?,
         }
         let _ = self.remove_orphan_voices();
@@ -732,11 +788,18 @@ impl Journal {
         b: Decoded,
         voice: &dyn Fn(&Id) -> Option<Zeroizing<Vec<u8>>>,
         report: &mut ImportReport,
+        now: OffsetDateTime,
     ) -> Result<(), JournalError> {
+        // The backup becomes the journal everywhere: what it holds counts as
+        // edited now, so the user's other devices take it over (D-22).
+        let stamp = Some(now.into());
         let mut tags = HashMap::new();
         for (id, mut tag) in b.tags {
             match tag.normalize() {
-                Ok(()) => drop(tags.insert(id, tag)),
+                Ok(()) => {
+                    tag.updated_at = stamp;
+                    tags.insert(id, tag);
+                }
                 Err(_) => report.skipped += 1,
             }
         }
@@ -746,16 +809,19 @@ impl Journal {
             match entry.validate() {
                 Ok(()) => {
                     self.import_voice(&mut entry, voice)?;
+                    entry.updated_at = now.into();
                     entries.insert(id, entry);
                 }
                 Err(_) => report.skipped += 1,
             }
         }
-        let plan = b.plan.unwrap_or_default();
-        let settings = b
+        let mut plan = b.plan.unwrap_or_default();
+        plan.updated_at = stamp;
+        let mut settings = b
             .settings
             .filter(|s| s.validate().is_ok())
             .unwrap_or_default();
+        settings.updated_at = stamp;
 
         let mut encoded = Vec::new();
         for e in entries.values() {
@@ -774,20 +840,34 @@ impl Journal {
             .iter()
             .map(|(id, rt, bytes)| (*id, *rt, bytes.as_slice()))
             .collect();
-        let deletes: Vec<_> = self
+        // What is not in the backup is deleted, as tombstones for other devices.
+        let gone: Vec<Tombstone> = self
             .entries
             .keys()
-            .chain(self.tags.keys())
-            .filter(|id| !entries.contains_key(id) && !tags.contains_key(id))
-            .map(|id| *id.as_bytes())
+            .map(|id| (id, TombstoneOf::Entry))
+            .chain(self.tags.keys().map(|id| (id, TombstoneOf::Tag)))
+            .filter(|(id, _)| !entries.contains_key(id) && !tags.contains_key(id))
+            .map(|(id, of)| Tombstone {
+                id: *id,
+                of,
+                deleted_at: now.into(),
+            })
             .collect();
-        self.vault.write_batch(&puts, &deletes)?;
+        let gone_bytes = gone.iter().map(encode).collect::<Result<Vec<_>, _>>()?;
+        let mut puts = puts;
+        for (t, bytes) in gone.iter().zip(&gone_bytes) {
+            puts.push((*t.id.as_bytes(), RecordType::Tombstone, bytes.as_slice()));
+        }
+        self.vault.write_batch(&puts, &[])?;
 
         report.added = entries.len() + tags.len();
         self.entries = entries;
         self.tags = tags;
         self.plan = plan;
         self.settings = settings;
+        for t in gone {
+            self.tombstones.insert(t.id, t);
+        }
         Ok(())
     }
 

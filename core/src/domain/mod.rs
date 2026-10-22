@@ -8,6 +8,7 @@ pub mod entry;
 pub mod plan;
 pub mod settings;
 pub mod tag;
+pub mod tombstone;
 pub mod voice;
 
 use core::fmt;
@@ -24,6 +25,7 @@ pub use entry::{Emotion, Entry, EntryDraft, EntryKind, EntryKindTag, InboxEntry,
 pub use plan::{Contact, SafetyPlan};
 pub use settings::{AutoLock, Reminder, Settings, UnsavedEntry};
 pub use tag::Tag;
+pub use tombstone::{Tombstone, TombstoneOf};
 pub use voice::{MAX_VOICE_BYTES, MAX_VOICE_MS, VOICE_MIME, VoiceNote, inspect_ogg_opus};
 
 /// Domain-level error. Names the offending field, never its value.

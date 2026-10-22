@@ -553,12 +553,13 @@ impl Session {
                 return Err(e.into());
             }
         };
+        let at = self.now();
         match &mut self.state {
             VaultState::Unlocked(journal) => {
                 let voice = |id: &mossbook_core::domain::Id| {
                     opened.open_media(id.as_bytes()).ok().flatten()
                 };
-                let report = journal.import(opened.decrypt()?, &voice, mode)?;
+                let report = journal.import(opened.decrypt()?, &voice, mode, at)?;
                 Ok(ImportOutcome {
                     restored: false,
                     report,
@@ -841,7 +842,11 @@ mod tests {
         s.unlock(PASSWORD, Instant::now()).unwrap();
         let mut settings = Settings::default();
         settings.autolock = AutoLock::After5Min;
-        s.journal_mut().unwrap().save_settings(settings).unwrap();
+        let now = s.now();
+        s.journal_mut()
+            .unwrap()
+            .save_settings(settings, now)
+            .unwrap();
         assert_eq!(s.on_background().unwrap(), None);
         assert_eq!(state(&s), StatusKind::Unlocked);
     }
@@ -1037,7 +1042,11 @@ mod tests {
         let (dir, mut s) = unlocked();
         let mut settings = Settings::default();
         settings.auto_backup = false;
-        s.journal_mut().unwrap().save_settings(settings).unwrap();
+        let now = s.now();
+        s.journal_mut()
+            .unwrap()
+            .save_settings(settings, now)
+            .unwrap();
         s.lock().unwrap();
         assert!(auto_files(&dir).is_empty());
     }
@@ -1078,8 +1087,12 @@ mod tests {
         s.confirm_recovery(&answers(&setup), Instant::now())
             .unwrap();
         s.verify_recovery(&setup.words.join(" ")).unwrap();
+        // Swap two different words (two equal neighbours would change nothing).
         let mut other = setup.words.clone();
-        other.swap(0, 1);
+        let i = (0..other.len() - 1)
+            .find(|&i| other[i] != other[i + 1])
+            .unwrap();
+        other.swap(i, i + 1);
         assert!(s.verify_recovery(&other.join(" ")).is_err());
         s.lock().unwrap();
         assert_eq!(

@@ -87,6 +87,7 @@ mod tests {
             id,
             name: name.into(),
             color: "#000000".into(),
+            updated_at: None,
         }
     }
 

@@ -195,6 +195,8 @@ export interface Tag {
 	name: string;
 	/** `#rrggbb` */
 	color: string;
+	/** Set by the core when it changes (sync, D-22); ignored when sent. */
+	updated_at?: Timestamp | null;
 }
 
 export interface Contact {
@@ -210,6 +212,8 @@ export interface SafetyPlan {
 	contacts: Contact[];
 	professionals: Contact[];
 	safe_environment: string[];
+	/** Set by the core when it changes (sync, D-22); ignored when sent. */
+	updated_at?: Timestamp | null;
 }
 
 export type AutoLock = 'immediately' | 'after1_min' | 'after5_min' | 'after15_min';
@@ -231,6 +235,8 @@ export interface Settings {
 	auto_backup: boolean;
 	/** When a backup was last saved by the user; set by Rust, ignored on save. */
 	last_export: string | null;
+	/** Set by the core when it changes (sync, D-22); ignored when sent. */
+	updated_at?: Timestamp | null;
 }
 
 /** The entry form kept when the journal locked (D-20). */

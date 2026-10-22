@@ -5,6 +5,8 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
+use super::Timestamp;
+
 // Field-level `serde(default)`: a container-level one would move out of a `Drop` type.
 #[derive(Clone, Default, PartialEq, Eq, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct SafetyPlan {
@@ -20,6 +22,10 @@ pub struct SafetyPlan {
     pub professionals: Vec<Contact>,
     #[serde(default)]
     pub safe_environment: Vec<String>,
+    /// When this was last changed, by the device's clock (sync, D-22). Set by
+    /// the journal; `None` in records from before sync, which count as oldest.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<Timestamp>,
 }
 
 impl SafetyPlan {

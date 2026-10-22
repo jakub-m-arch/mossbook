@@ -100,10 +100,10 @@ fn quick_entry_and_delete() {
     let nightmare = j.quick_entry(EntryKindTag::Nightmare, None, NOW).unwrap();
     assert!(nightmare.sensitive, "nightmares are hidden by default");
     let nightmare = nightmare.id;
-    assert!(j.delete_entry(&nightmare).unwrap());
+    assert!(j.delete_entry(&nightmare, NOW).unwrap());
 
-    assert!(j.delete_entry(&fear).unwrap());
-    assert!(!j.delete_entry(&fear).unwrap());
+    assert!(j.delete_entry(&fear, NOW).unwrap());
+    assert!(!j.delete_entry(&fear, NOW).unwrap());
     let j = reopen(&fx, j);
     let incomplete = j.entries(&EntryFilter {
         incomplete_only: true,
@@ -118,11 +118,11 @@ fn quick_entry_and_delete() {
 #[test]
 fn tags_rename_delete_and_merge() {
     let (fx, mut j) = create();
-    let work = j.create_tag("Praca", "#336699").unwrap().id;
-    let job = j.create_tag("robota", "#336699").unwrap().id;
-    let sleep = j.create_tag("sen", "#224466").unwrap().id;
+    let work = j.create_tag("Praca", "#336699", NOW).unwrap().id;
+    let job = j.create_tag("robota", "#336699", NOW).unwrap().id;
+    let sleep = j.create_tag("sen", "#224466", NOW).unwrap().id;
     assert_eq!(
-        j.create_tag(" praca ", "#000000").unwrap_err(),
+        j.create_tag(" praca ", "#000000", NOW).unwrap_err(),
         JournalError::DuplicateTagName
     );
 
@@ -133,7 +133,7 @@ fn tags_rename_delete_and_merge() {
         .unwrap()
         .clone();
     renamed.name = "Sen".into();
-    j.save_tag(renamed).unwrap();
+    j.save_tag(renamed, NOW).unwrap();
 
     let mut e1 = Entry::new(EntryKind::Note, NOW).unwrap();
     e1.tags = vec![work, sleep, work];
@@ -172,19 +172,22 @@ fn plan_and_settings_persist_with_defaults() {
     contact.name = "Synthetic Friend".into();
     contact.phone = "+48 000 000 000".into();
     plan.contacts = vec![contact];
-    j.save_plan(plan).unwrap();
+    j.save_plan(plan, NOW).unwrap();
 
     let mut settings = Settings::default();
     settings.autolock = AutoLock::After5Min;
     settings.locale = Some("uk".into());
-    j.save_settings(settings.clone()).unwrap();
+    j.save_settings(settings.clone(), NOW).unwrap();
     let mut bad = settings.clone();
     bad.locale = Some("xx".into());
-    assert!(j.save_settings(bad).is_err());
+    assert!(j.save_settings(bad, NOW).is_err());
 
     let j = reopen(&fx, j);
     assert_eq!(j.plan().self_coping, vec!["synthetic walk".to_string()]);
     assert_eq!(j.plan().contacts[0].name, "Synthetic Friend");
+    // The journal stamps the change for sync (D-22); the UI cannot set it.
+    assert_eq!(j.plan().updated_at, Some(Timestamp(NOW)));
+    settings.updated_at = Some(Timestamp(NOW));
     assert_eq!(j.settings(), &settings);
 }
 
@@ -198,7 +201,7 @@ fn last_export_is_set_only_by_the_journal() {
     let mut settings = j.settings().clone();
     settings.last_export = None;
     settings.auto_backup = false;
-    j.save_settings(settings).unwrap();
+    j.save_settings(settings, NOW).unwrap();
     let j = reopen(&fx, j);
     assert_eq!(j.settings().last_export, Some(Timestamp(NOW)));
     assert!(!j.settings().auto_backup);
@@ -207,7 +210,7 @@ fn last_export_is_set_only_by_the_journal() {
 #[test]
 fn json_export_holds_the_whole_journal() {
     let (_fx, mut j) = create();
-    let tag = j.create_tag("synthetic tag", "#2e7d4f").unwrap().id;
+    let tag = j.create_tag("synthetic tag", "#2e7d4f", NOW).unwrap().id;
     let later = j.quick_entry(EntryKindTag::Fear, Some(7), NOW).unwrap().id;
     let earlier = j
         .quick_entry(EntryKindTag::Note, None, NOW - Duration::days(1))
@@ -215,7 +218,7 @@ fn json_export_holds_the_whole_journal() {
         .id;
     let mut plan = SafetyPlan::default();
     plan.warning_signs = vec!["synthetic sign".into()];
-    j.save_plan(plan).unwrap();
+    j.save_plan(plan, NOW).unwrap();
 
     let bytes = j.export_json(NOW).unwrap();
     let doc: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
@@ -548,7 +551,7 @@ fn settings_from_the_ui_cannot_set_or_erase_the_unsaved_entry() {
         draft: unsaved_draft("forged"),
         kept_at: Timestamp(NOW),
     });
-    j.save_settings(forged).unwrap();
+    j.save_settings(forged, NOW).unwrap();
     assert!(j.unsaved_entry().is_none());
 
     // Settings sent without it (or with a stale copy) keep the stored one.
@@ -556,7 +559,7 @@ fn settings_from_the_ui_cannot_set_or_erase_the_unsaved_entry() {
     let mut settings = j.settings().clone();
     settings.unsaved_entry = None;
     settings.auto_backup = false;
-    j.save_settings(settings).unwrap();
+    j.save_settings(settings, NOW).unwrap();
     let j = reopen(&fx, j);
     assert_eq!(j.unsaved_entry().unwrap().draft, unsaved_draft("real"));
     assert!(!j.settings().auto_backup);
@@ -696,7 +699,7 @@ fn deleting_or_replacing_removes_the_old_recording() {
     // Deleting the entry deletes its recording.
     let e = note_with_voice(&mut j, 10, 3);
     assert_eq!(j.vault().media_ids().unwrap().len(), 1);
-    assert!(j.delete_entry(&e.id).unwrap());
+    assert!(j.delete_entry(&e.id, NOW).unwrap());
     assert!(j.vault().media_ids().unwrap().is_empty());
 }
 

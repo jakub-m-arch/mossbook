@@ -53,7 +53,7 @@ fn create(password: &str) -> (Fixture, Journal) {
 /// A journal with two entries, a tag, a plan and settings.
 fn populated() -> (Fixture, Journal) {
     let (fx, mut j) = create(PASSWORD);
-    let tag = j.create_tag("Praca", "#4f6b47").unwrap().id;
+    let tag = j.create_tag("Praca", "#4f6b47", NOW).unwrap().id;
     let mut e = Entry::new(EntryKind::empty(EntryKindTag::Fear), NOW).unwrap();
     e.note = MARKER.into();
     e.intensity = Some(7);
@@ -66,10 +66,10 @@ fn populated() -> (Fixture, Journal) {
     c.name = "Synthetic Friend".into();
     c.phone = "+48 000 000 000".into();
     plan.contacts = vec![c];
-    j.save_plan(plan).unwrap();
+    j.save_plan(plan, NOW).unwrap();
     let mut settings = Settings::default();
     settings.autolock = AutoLock::After5Min;
-    j.save_settings(settings).unwrap();
+    j.save_settings(settings, NOW).unwrap();
     (fx, j)
 }
 
@@ -146,7 +146,7 @@ fn replace_import_into_another_vault() {
     let before = snapshot(&j);
     let (other_fx, mut other) = create("another password");
     other.quick_entry(EntryKindTag::Note, None, NOW).unwrap();
-    other.create_tag("Sen", "#5b7f95").unwrap();
+    other.create_tag("Sen", "#5b7f95", NOW).unwrap();
 
     let records = Backup::from_bytes(&export(&j))
         .unwrap()
@@ -157,6 +157,7 @@ fn replace_import_into_another_vault() {
             records.decrypt().unwrap(),
             &|id| records.open_media(id.as_bytes()).unwrap(),
             ImportMode::Replace,
+            NOW,
         )
         .unwrap();
     assert_eq!(
@@ -183,8 +184,8 @@ fn merge_keeps_newer_edits_and_maps_tags_by_name() {
     let (target_fx, mut target) = create("target password");
 
     // Same tag name, different ids.
-    let src_tag = source.create_tag("praca", "#4f6b47").unwrap().id;
-    let our_tag = target.create_tag("Praca", "#8a6a2f").unwrap().id;
+    let src_tag = source.create_tag("praca", "#4f6b47", NOW).unwrap().id;
+    let our_tag = target.create_tag("Praca", "#8a6a2f", NOW).unwrap().id;
 
     // Entry A exists in both (copied via a first merge), then edited in the source later.
     let mut a = Entry::new(EntryKind::Note, NOW).unwrap();
@@ -199,6 +200,7 @@ fn merge_keeps_newer_edits_and_maps_tags_by_name() {
             first.decrypt().unwrap(),
             &|id| first.open_media(id.as_bytes()).unwrap(),
             ImportMode::Merge,
+            NOW,
         )
         .unwrap();
     let mut a2 = source.entry(&a_id).unwrap().clone();
@@ -216,7 +218,7 @@ fn merge_keeps_newer_edits_and_maps_tags_by_name() {
     let c_id = source.save_entry(c, NOW).unwrap().id;
     let mut plan = SafetyPlan::default();
     plan.self_coping = vec!["from the backup".into()];
-    source.save_plan(plan).unwrap();
+    source.save_plan(plan, NOW).unwrap();
 
     let opened = Backup::from_bytes(&export(&source))
         .unwrap()
@@ -227,6 +229,7 @@ fn merge_keeps_newer_edits_and_maps_tags_by_name() {
             opened.decrypt().unwrap(),
             &|id| opened.open_media(id.as_bytes()).unwrap(),
             ImportMode::Merge,
+            NOW,
         )
         .unwrap();
     assert_eq!(
@@ -266,6 +269,7 @@ fn merge_keeps_newer_edits_and_maps_tags_by_name() {
             again.decrypt().unwrap(),
             &|id| again.open_media(id.as_bytes()).unwrap(),
             ImportMode::Merge,
+            NOW,
         )
         .unwrap();
     assert_eq!(
@@ -356,19 +360,21 @@ fn tampering_is_detected() {
         Backup::from_bytes(&bytes[..bytes.len() / 2]).unwrap_err(),
         BackupError::Corrupted
     );
-    let mut v3 = bytes.clone();
-    v3[8] = 3;
+    let mut v4 = bytes.clone();
+    v4[8] = 4;
     assert_eq!(
-        Backup::from_bytes(&v3).unwrap_err(),
+        Backup::from_bytes(&v4).unwrap_err(),
         BackupError::UnsupportedVersion
     );
-    // A version 2 body labelled as version 1.
-    let mut v1 = bytes.clone();
-    v1[8] = 1;
-    assert_eq!(
-        Backup::from_bytes(&v1).unwrap_err(),
-        BackupError::UnsupportedVersion
-    );
+    // A version 3 body labelled as an older version.
+    for older in [1, 2] {
+        let mut relabelled = bytes.clone();
+        relabelled[8] = older;
+        assert_eq!(
+            Backup::from_bytes(&relabelled).unwrap_err(),
+            BackupError::UnsupportedVersion
+        );
+    }
     let mut garbled = bytes.clone();
     let mid = garbled.len() / 2;
     garbled[mid] ^= 0xff;
@@ -415,8 +421,8 @@ fn imports_format_v1_fixture() {
     assert_eq!(j.settings().autolock, AutoLock::After15Min);
 }
 
-/// A backup written by format version 2, with a recording (E-18, D-21).
-/// Regenerate only on purpose: `cargo test -p mossbook-core --test backup -- --ignored`.
+/// A backup written by format version 2, with a recording (E-18, D-21,
+/// Mossbook 0.4). Frozen: this build writes version 3.
 const FIXTURE_V2: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/backup-v2.mossbook"
@@ -443,17 +449,6 @@ fn imports_format_v2_fixture() {
         j.voice(&voice.id).unwrap().as_slice(),
         common::ogg_opus(10, 42).as_slice()
     );
-}
-
-#[test]
-#[ignore = "writes tests/fixtures/backup-v2.mossbook"]
-fn generate_backup_v2_fixture() {
-    let (_fx, mut j) = create(FIXTURE_V2_PASSWORD);
-    let mut e = Entry::new(EntryKind::Note, NOW).unwrap();
-    e.note = "fixture voice note".into();
-    e.voice = Some(j.save_voice(&common::ogg_opus(10, 42)).unwrap());
-    j.save_entry(e, NOW).unwrap();
-    std::fs::write(Path::new(FIXTURE_V2), export(&j)).unwrap();
 }
 
 // ---- voice notes (E-18, D-21) ----
@@ -497,6 +492,7 @@ fn recordings_travel_with_the_backup() {
             opened.decrypt().unwrap(),
             &|id| opened.open_media(id.as_bytes()).unwrap(),
             ImportMode::Merge,
+            NOW,
         )
         .unwrap();
     assert_eq!(
@@ -521,6 +517,7 @@ fn recordings_travel_with_the_backup() {
             opened.decrypt().unwrap(),
             &|id| opened.open_media(id.as_bytes()).unwrap(),
             ImportMode::Replace,
+            NOW,
         )
         .unwrap();
     assert_eq!(
@@ -541,7 +538,7 @@ fn an_entry_whose_recording_is_missing_keeps_its_text() {
         .unwrap();
     let (_other_fx, mut other) = create("another password");
     other
-        .import(opened.decrypt().unwrap(), &|_| None, ImportMode::Merge)
+        .import(opened.decrypt().unwrap(), &|_| None, ImportMode::Merge, NOW)
         .unwrap();
     let imported = other.entry(&e.id).unwrap();
     assert_eq!(imported.note, "voice 1");
@@ -553,6 +550,7 @@ fn an_entry_whose_recording_is_missing_keeps_its_text() {
             opened.decrypt().unwrap(),
             &|_| Some(zeroize::Zeroizing::new(b"not ogg".to_vec())),
             ImportMode::Merge,
+            NOW,
         )
         .unwrap();
     assert_eq!(third.entry(&e.id).unwrap().voice, None);
@@ -617,4 +615,46 @@ fn a_version_2_backup_cannot_pass_as_version_1_without_its_recordings() {
         backup.open_with_password(PASSWORD).unwrap_err(),
         BackupError::Corrupted
     );
+}
+
+/// A backup written by format version 3 (sync, D-22): an entry, a deleted
+/// entry and a password changed once.
+/// Regenerate only on purpose: `cargo test -p mossbook-core --test backup -- --ignored`.
+const FIXTURE_V3: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/backup-v3.mossbook"
+);
+const FIXTURE_V3_PASSWORD: &str = "fixture password v3";
+
+#[test]
+fn imports_format_v3_fixture() {
+    let bytes = std::fs::read(FIXTURE_V3).unwrap();
+    assert_eq!(&bytes[8..10], &3u16.to_le_bytes());
+    let dir = tempfile::tempdir().unwrap();
+    let opened = Backup::from_bytes(&bytes)
+        .unwrap()
+        .open_with_password(FIXTURE_V3_PASSWORD)
+        .unwrap();
+    assert_eq!(opened.header().password_epoch, 1);
+    let j = Journal::open(opened.restore(&dir.path().join("vault.db")).unwrap());
+    assert_eq!(j.vault().unreadable_records(), 0);
+    let entries = j.entries(&EntryFilter::default());
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].note, "fixture kept");
+}
+
+#[test]
+#[ignore = "writes tests/fixtures/backup-v3.mossbook"]
+fn generate_backup_v3_fixture() {
+    let (_fx, mut j) = create("first password");
+    j.vault_mut()
+        .change_password("first password", FIXTURE_V3_PASSWORD)
+        .unwrap();
+    let mut kept = Entry::new(EntryKind::Note, NOW).unwrap();
+    kept.note = "fixture kept".into();
+    j.save_entry(kept, NOW).unwrap();
+    let gone = Entry::new(EntryKind::Note, NOW).unwrap();
+    let gone = j.save_entry(gone, NOW).unwrap().id;
+    j.delete_entry(&gone, NOW).unwrap();
+    std::fs::write(Path::new(FIXTURE_V3), export(&j)).unwrap();
 }

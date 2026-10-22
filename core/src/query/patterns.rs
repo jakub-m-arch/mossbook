@@ -464,6 +464,7 @@ mod tests {
                     id: work,
                     name: "praca".into(),
                     color: "#000000".into(),
+                    updated_at: None,
                 },
             ),
             (
@@ -472,6 +473,7 @@ mod tests {
                     id: sleep_tag,
                     name: "sen".into(),
                     color: "#000000".into(),
+                    updated_at: None,
                 },
             ),
         ]);

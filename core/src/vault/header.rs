@@ -9,7 +9,7 @@ use crate::store::Store;
 use super::VaultError;
 
 /// Vault format version written by this build.
-pub const FORMAT_VERSION: u16 = 2;
+pub const FORMAT_VERSION: u16 = 3;
 
 const K_FORMAT_VERSION: &str = "format_version";
 const K_VAULT_ID: &str = "vault_id";
@@ -19,6 +19,7 @@ const K_WRAPPED_DEK_PWD: &str = "wrapped_dek_pwd";
 const K_WRAPPED_DEK_REC: &str = "wrapped_dek_rec";
 const K_INBOX_PUBLIC: &str = "x25519_pub";
 const K_INBOX_SECRET: &str = "wrapped_x25519_priv";
+const K_PASSWORD_EPOCH: &str = "password_epoch";
 
 /// Inbox key pair for quick entries while locked (E-15). Optional: vaults
 /// created before it existed get one on their next unlock.
@@ -38,6 +39,10 @@ pub struct VaultHeader {
     pub wrapped_dek_pwd: Vec<u8>,
     pub wrapped_dek_rec: Vec<u8>,
     pub inbox_key: Option<InboxKey>,
+    /// How many times the password was changed (sync, D-22): of two devices'
+    /// password wraps, the one with the higher count is the newer and is
+    /// adopted. Not a time; absent (0) in vaults from before sync.
+    pub password_epoch: u32,
 }
 
 impl VaultHeader {
@@ -62,6 +67,10 @@ impl VaultHeader {
             wrapped_dek_pwd: get(K_WRAPPED_DEK_PWD)?,
             wrapped_dek_rec: get(K_WRAPPED_DEK_REC)?,
             inbox_key: None,
+            password_epoch: match store.meta_get(K_PASSWORD_EPOCH)? {
+                Some(bytes) => u32::from_le_bytes(fixed(&bytes)?),
+                None => 0,
+            },
         };
         let mut header = header;
         header.inbox_key = match (
@@ -110,6 +119,7 @@ impl VaultHeader {
             (K_KDF_SALT, &self.kdf_salt),
             (K_WRAPPED_DEK_PWD, &self.wrapped_dek_pwd),
             (K_WRAPPED_DEK_REC, &self.wrapped_dek_rec),
+            (K_PASSWORD_EPOCH, &self.password_epoch.to_le_bytes()),
         ])?;
         Ok(())
     }
@@ -120,6 +130,7 @@ impl VaultHeader {
             (K_KDF_PARAMS, &self.kdf_params.to_bytes()),
             (K_KDF_SALT, &self.kdf_salt),
             (K_WRAPPED_DEK_PWD, &self.wrapped_dek_pwd),
+            (K_PASSWORD_EPOCH, &self.password_epoch.to_le_bytes()),
         ])?;
         Ok(())
     }

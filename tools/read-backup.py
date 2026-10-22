@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Independent reader for `.mossbook` backups, written from docs/backup-format.md.
 
-Opens a backup (format version 1 or 2) with its password, verifies the manifest,
+Opens a backup (format version 1, 2 or 3) with its password, verifies the manifest,
 every record and every recording, and prints a summary (no content unless --show
 is given). With --voice DIR, recordings are written there as .ogg files.
 
     python3 -m venv .venv && .venv/bin/pip install pynacl argon2-cffi cbor2
-    .venv/bin/python tools/read-backup.py core/tests/fixtures/backup-v2.mossbook "fixture password v2"
+    .venv/bin/python tools/read-backup.py core/tests/fixtures/backup-v3.mossbook "fixture password v3"
 """
 import argparse
 import hashlib
@@ -18,7 +18,7 @@ import cbor2
 from argon2.low_level import Type, hash_secret_raw
 from nacl.bindings import crypto_aead_xchacha20poly1305_ietf_decrypt as xchacha_decrypt
 
-TYPES = {1: "entry", 2: "tag", 3: "plan", 4: "settings"}
+TYPES = {1: "entry", 2: "tag", 3: "plan", 4: "settings", 6: "tombstone"}
 MEDIA_TYPES = {5: "voice"}
 
 
@@ -38,15 +38,17 @@ def main() -> int:
     if data[:8] != b"MOSSBOOK":
         sys.exit("not a Mossbook backup")
     (version,) = struct.unpack("<H", data[8:10])
-    if version not in (1, 2):
+    if version not in (1, 2, 3):
         sys.exit(f"unsupported backup version {version}")
     body = cbor2.loads(data[10:])
-    # Backup version 1 comes from vault format 1, version 2 from vault format 2.
+    # Backup version N comes from vault format N.
     if body["vault_format"] != version:
         sys.exit("unsupported vault format")
     media = body.get("media", [])
     if version == 1 and media:
         sys.exit("a version 1 backup holds no recordings")
+    if version < 3 and any(r["type"] == 6 for r in body["records"]):
+        sys.exit("tombstones exist from version 3")
 
     vault_id = body["vault_id"]
     alg, m_kib, t, p = struct.unpack("<BIII", body["kdf_params"])
@@ -61,12 +63,17 @@ def main() -> int:
         sys.exit("wrong password")
 
     digest = hashlib.sha256()
-    lists = [body["records"]] + ([media] if version == 2 else [])
+    if version >= 3:
+        # The password wrap and its change count, which other devices adopt (sync).
+        digest.update(struct.pack("<I", body.get("password_epoch", 0)))
+        digest.update(body["kdf_params"] + body["kdf_salt"])
+        digest.update(body["wrapped_dek_pwd"] + body["wrapped_dek_rec"])
+    lists = [body["records"]] + ([media] if version >= 2 else [])
     for rows in lists:
         digest.update(struct.pack("<Q", len(rows)))
         for r in rows:
             digest.update(r["id"] + bytes([r["type"]]) + struct.pack("<Q", len(r["blob"])) + r["blob"])
-    label = b"mossbook/backup/v2" if version == 2 else b"mossbook/backup/v1"
+    label = f"mossbook/backup/v{version}".encode()
     if open_blob(dek, label + vault_id, body["manifest"]) != digest.digest():
         sys.exit("manifest mismatch: records or recordings were changed, added or removed")
 

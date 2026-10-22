@@ -37,6 +37,8 @@ pub enum BackupError {
     /// or records were added, removed or reordered.
     Corrupted,
     TooLarge,
+    /// A sync file of another journal (D-22).
+    OtherJournal,
     WrongPassword,
     WrongRecoveryKey,
     InvalidRecoveryPhrase,
@@ -50,6 +52,7 @@ impl fmt::Display for BackupError {
             Self::UnsupportedVersion => f.write_str("unsupported backup version"),
             Self::Corrupted => f.write_str("backup is damaged"),
             Self::TooLarge => f.write_str("backup is too large"),
+            Self::OtherJournal => f.write_str("the file belongs to another journal"),
             Self::WrongPassword => f.write_str("wrong password for this backup"),
             Self::WrongRecoveryKey => f.write_str("recovery phrase does not match this backup"),
             Self::InvalidRecoveryPhrase => f.write_str("invalid recovery phrase"),
@@ -93,7 +96,7 @@ impl UnlockedVault {
         let manifest = aead::seal(
             self.dek().expose(),
             &manifest_aad(BACKUP_VERSION, &header.vault_id),
-            &manifest_digest(BACKUP_VERSION, &records, &media),
+            &manifest_digest(BACKUP_VERSION, &header, &records, &media),
         )?;
         Ok(Backup {
             header,
@@ -102,6 +105,26 @@ impl UnlockedVault {
             version: BACKUP_VERSION,
             manifest,
         })
+    }
+}
+
+impl UnlockedVault {
+    /// Opens another device's sync file (D-22) with this journal's own key:
+    /// both devices share the DEK, so no password is needed. A file of another
+    /// journal is refused before anything is decrypted.
+    pub fn open_sync_file(&self, backup: Backup) -> Result<OpenedBackup, BackupError> {
+        if backup.vault_id() != self.vault_id() {
+            return Err(BackupError::OtherJournal);
+        }
+        let mut key = *self.dek().expose();
+        backup.verified(Dek::from_bytes(&mut key))
+    }
+
+    /// Takes over the password from another device's sync file when it was
+    /// changed there more recently (higher `password_epoch`). The file's header
+    /// is covered by its DEK-sealed manifest. Returns whether it changed.
+    pub fn adopt_password_from(&mut self, opened: &OpenedBackup) -> Result<bool, VaultError> {
+        self.adopt_password_wrap(&opened.header)
     }
 }
 
@@ -151,7 +174,9 @@ impl Backup {
             &manifest_aad(self.version, &self.header.vault_id),
             &self.manifest,
         )?;
-        if digest.as_slice() != manifest_digest(self.version, &self.records, &self.media) {
+        if digest.as_slice()
+            != manifest_digest(self.version, &self.header, &self.records, &self.media)
+        {
             return Err(BackupError::Corrupted);
         }
         let opened = OpenedBackup {
@@ -170,6 +195,11 @@ impl Backup {
 }
 
 impl OpenedBackup {
+    /// The backup's header: vault id, password wrap and its count.
+    pub fn header(&self) -> &VaultHeader {
+        &self.header
+    }
+
     pub fn record_count(&self) -> usize {
         self.records.len()
     }

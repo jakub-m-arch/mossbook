@@ -40,8 +40,8 @@ AAD = "mossbook/rec/v1" || vault_id (16 B) || record_id (16 B) || record_type
 ```
 
 `record_type` is one of the ASCII strings `entry`, `tag`, `plan`, `settings`, stored in the
-`records.type` column as `1`, `2`, `3`, `4`, or `voice`, stored in the `media.type`
-column as `5` (E-18). Binding the id, type and vault into the AAD
+`records.type` column as `1`, `2`, `3`, `4`, `tombstone` (`6`, a deleted entry or tag,
+sync D-22), or `voice`, stored in the `media.type` column as `5` (E-18). Binding the id, type and vault into the AAD
 means a blob moved to another row, given another type, or copied into another vault
 fails authentication.
 
@@ -91,19 +91,21 @@ The header lives in the `meta` table; every value is random, public or ciphertex
 
 | key               | value                                              |
 |-------------------|----------------------------------------------------|
-| `format_version`  | `u16` LE, currently `2` (schema migration 2 sets it) |
+| `format_version`  | `u16` LE, currently `3` (each schema migration sets it) |
 | `vault_id`        | 16 random bytes (UUID v4 layout)                    |
 | `kdf_params`      | 13 bytes, see *Password KDF*                        |
 | `kdf_salt`        | 16 random bytes; replaced on every password change  |
 | `wrapped_dek_pwd` | 72 bytes, DEK wrapped under `KEK_pwd`              |
 | `wrapped_dek_rec` | 72 bytes, DEK wrapped under `KEK_rec`              |
+| `password_epoch`  | `u32` LE, password changes so far (absent = 0; sync, D-22) |
 
 Records are rows `(id BLOB(16), type INTEGER, blob BLOB)` in `records`, see *Records*.
 Recordings (voice notes, E-18, decision D-21) are rows of the same shape in `media`.
 
-Format 2 (schema version 2) adds the `media` table; opening a format 1 file
-migrates it in one transaction. Format 1 builds refuse a format 2 file because of
-its schema version.
+Format 2 (schema version 2) adds the `media` table; format 3 (schema version 3)
+adds tombstones in `records` and `password_epoch` (sync, D-22). Opening an older
+file migrates it, one transaction per step. Older builds refuse a newer file
+because of its schema version.
 
 Behaviour that matters for independent readers and for the threat model:
 
