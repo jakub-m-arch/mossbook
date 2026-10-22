@@ -30,7 +30,7 @@ use crate::device_key::{self, PlatformError, PromptText, Support};
 use crate::error::{AppError, AppResult};
 use crate::session::{
     BackupInfo, BackupSecret, BackupSummary, ImportOutcome, LockReason, RecoveryAnswer,
-    RecoverySetup, Session, Status,
+    RecoverySetup, Session, Status, SyncStatus,
 };
 
 /// Event sent to the UI whenever the vault locks.
@@ -534,6 +534,47 @@ pub fn backup_reveal(app: AppHandle, state: State<'_, AppState>) -> AppResult<()
     app.opener()
         .reveal_item_in_dir(latest)
         .map_err(|_| AppError::new("io", "cannot open the file manager"))
+}
+
+// ---- sync between the user's devices (D-22) ----
+
+#[tauri::command(async)]
+pub fn sync_status(state: State<'_, AppState>) -> SyncStatus {
+    state.session().sync_status()
+}
+
+/// Lets the user pick the sync folder (the one Syncthing shares) and turns sync
+/// on. `None` if the dialog was cancelled.
+#[tauri::command(async)]
+pub fn sync_choose_folder(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> AppResult<Option<SyncStatus>> {
+    state.session().journal()?;
+    let picked = with_dialog(&state, || app.dialog().file().blocking_pick_folder());
+    let Some(picked) = picked else {
+        return Ok(None);
+    };
+    let (folder, location) = crate::sync::open_folder(&app, picked)?;
+    with_session(&state, |s| s.sync_connect(folder, location)).map(Some)
+}
+
+#[tauri::command(async)]
+pub fn sync_now(state: State<'_, AppState>) -> AppResult<SyncStatus> {
+    with_session(&state, |s| s.sync_now())
+}
+
+/// Joins the journal another device keeps in the sync folder, with that
+/// journal's password. From then on this device has that journal (D-22).
+#[tauri::command(async)]
+pub fn sync_join(state: State<'_, AppState>, password: String) -> AppResult<SyncStatus> {
+    let password = Zeroizing::new(password);
+    with_session(&state, |s| s.sync_join(&password, Instant::now()))
+}
+
+#[tauri::command(async)]
+pub fn sync_disconnect(state: State<'_, AppState>) -> AppResult<()> {
+    with_session(&state, |s| s.sync_disconnect())
 }
 
 /// Saves the whole journal as a readable, **unencrypted** ZIP (X-4, D-21): the

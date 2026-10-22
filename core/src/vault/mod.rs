@@ -7,6 +7,7 @@
 pub(crate) mod create;
 mod device;
 mod header;
+mod local;
 mod rekey;
 mod throttle;
 pub(crate) mod unlock;
@@ -26,6 +27,7 @@ pub use device::{
     DEVICE_KEY_FORMAT, DeviceEnrollment, DeviceKeyFile, MAX_SEALED_KEY_LEN, unlock_with_device_key,
 };
 pub use header::{FORMAT_VERSION, VaultHeader};
+pub use local::{Local, read_local};
 pub use throttle::UnlockThrottle;
 pub use unlock::{append_to_inbox, unlock, unlock_with_recovery};
 
@@ -203,6 +205,14 @@ impl UnlockedVault {
 
     pub(crate) fn dek(&self) -> &Dek {
         &self.dek
+    }
+
+    pub(crate) fn store(&self) -> &Store {
+        &self.store
+    }
+
+    pub(crate) fn store_mut(&mut self) -> &mut Store {
+        &mut self.store
     }
 
     /// All records as stored (encrypted), e.g. for a backup.

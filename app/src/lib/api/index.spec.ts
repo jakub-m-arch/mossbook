@@ -88,6 +88,11 @@ async function invokedCommands(): Promise<string[]> {
 		api.backupInfo,
 		api.backupReveal,
 		api.exportReadable,
+		api.syncStatus,
+		api.syncChooseFolder,
+		api.syncNow,
+		() => api.syncJoin('pw'),
+		api.syncDisconnect,
 		() =>
 			api.reportPdf({
 				title: 'r',

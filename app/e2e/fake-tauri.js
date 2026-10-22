@@ -32,6 +32,8 @@
 		failures: 0,
 		blockedUntil: 0,
 		entries: [],
+		/** Sync folder (D-22), or null when sync is off. */
+		sync: null,
 		/** Voice notes by id, as base64 Ogg Opus (E-18). */
 		voices: new Map(),
 		tags: [],
@@ -366,6 +368,27 @@
 					}
 				: fail('locked'),
 		backup_reveal: () => (state.autoLatest ? null : fail('not_found')),
+		sync_status: () => syncStatus(),
+		sync_choose_folder: () => {
+			if (state.vault !== 'unlocked') return fail('locked');
+			state.sync = {
+				location: '/home/synthetic/Sync',
+				other_journal: window.localStorage.getItem('fake-sync-other') === 'yes'
+			};
+			return syncStatus();
+		},
+		sync_now: () => (state.vault === 'unlocked' ? syncStatus() : fail('locked')),
+		sync_join: ({ password }) => {
+			if (!state.sync?.other_journal) return fail('no_other_journal');
+			if (password !== 'phone password') return fail('wrong_password');
+			state.sync.other_journal = false;
+			commands.entry_save({ draft: { kind: 'note', note: 'from the phone' } });
+			return syncStatus();
+		},
+		sync_disconnect: () => {
+			state.sync = null;
+			return null;
+		},
 		export_readable: () => {
 			if (state.vault !== 'unlocked') return fail('locked');
 			window.__fake.readableExports += 1;
@@ -522,6 +545,31 @@
 		convertFileSrc: (path) => path
 	};
 	window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
+
+	function syncStatus() {
+		const now = new Date().toISOString();
+		if (!state.sync) {
+			return {
+				location: null,
+				devices: [],
+				other_journal: false,
+				last_sync: null,
+				problem: null,
+				received: 0
+			};
+		}
+		const devices = [{ this_device: true, changed_at: now, other_journal: false }];
+		if (state.sync.other_journal)
+			devices.push({ this_device: false, changed_at: now, other_journal: true });
+		return {
+			location: state.sync.location,
+			devices,
+			other_journal: state.sync.other_journal,
+			last_sync: now,
+			problem: null,
+			received: 0
+		};
+	}
 
 	/** Length of an Ogg Opus file from its last granule, like the core does. */
 	function oggOpusNote(base64, id) {

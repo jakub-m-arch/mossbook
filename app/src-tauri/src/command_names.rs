@@ -50,5 +50,10 @@ pub const COMMANDS: &[&str] = &[
     "backup_info",
     "backup_reveal",
     "export_readable",
+    "sync_status",
+    "sync_choose_folder",
+    "sync_now",
+    "sync_join",
+    "sync_disconnect",
     "report_pdf",
 ];

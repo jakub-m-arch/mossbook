@@ -193,6 +193,13 @@ impl Backup {
     pub fn vault_id(&self) -> &VaultId {
         &self.header.vault_id
     }
+
+    /// What the manifest covers, unsealed: equal for two exports of an
+    /// unchanged journal although their bytes differ (fresh nonce). Lets a
+    /// device skip rewriting its sync file when nothing changed (D-22).
+    pub fn fingerprint(&self) -> [u8; 32] {
+        manifest_digest(self.version, &self.header, &self.records, &self.media)
+    }
 }
 
 impl From<&RawRecord> for BodyRecord {

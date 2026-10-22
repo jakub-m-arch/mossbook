@@ -31,6 +31,7 @@ import type {
 	StatsRange,
 	Status,
 	Tag,
+	SyncStatus,
 	UnsavedEntry,
 	VoiceNote
 } from './types';
@@ -181,3 +182,13 @@ export const backupReveal = () => invoke<void>('backup_reveal');
 /** Saves the whole journal as unencrypted JSON (X-4). `false` if cancelled. */
 /** The readable, unencrypted copy (X-4): a ZIP with the JSON and the voice notes (D-21). */
 export const exportReadable = () => invoke<boolean>('export_readable');
+
+// ---- sync between the user's devices (D-22) ----
+
+export const syncStatus = () => invoke<SyncStatus>('sync_status');
+/** Opens the system folder picker and turns sync on; `null` if cancelled. */
+export const syncChooseFolder = () => invoke<SyncStatus | null>('sync_choose_folder');
+export const syncNow = () => invoke<SyncStatus>('sync_now');
+/** Joins the journal another device keeps in the folder, with that journal's password. */
+export const syncJoin = (password: string) => invoke<SyncStatus>('sync_join', { password });
+export const syncDisconnect = () => invoke<void>('sync_disconnect');

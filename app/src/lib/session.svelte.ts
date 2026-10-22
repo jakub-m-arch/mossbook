@@ -10,9 +10,13 @@ import {
 	clockSync,
 	isAppError,
 	onPrivacyCurtain,
-	onVaultLocked
+	onVaultLocked,
+	syncNow
 } from './api/index.js';
 import { t } from './i18n/index.svelte.js';
+
+/** Dispatched on `window` when a sync brought changes; screens reload their data. */
+export const JOURNAL_CHANGED = 'mossbook:journal-changed';
 
 /** Minimum gap between activity pings. */
 const PING_INTERVAL_MS = 20_000;
@@ -84,7 +88,14 @@ export function installSessionHooks(): () => void {
 		}
 	};
 	const onVisible = () => {
-		if (document.visibilityState === 'visible') clockSync().catch(() => {});
+		if (document.visibilityState !== 'visible') return;
+		clockSync().catch(() => {});
+		// Changes another device made meanwhile (D-22); ignored while locked.
+		syncNow()
+			.then((status) => {
+				if (status.received > 0) window.dispatchEvent(new Event(JOURNAL_CHANGED));
+			})
+			.catch(() => {});
 	};
 
 	const onCopy = (event: ClipboardEvent) => {

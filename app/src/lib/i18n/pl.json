@@ -42,7 +42,10 @@
 		"biometric_failed": "Nie udało się sprawdzić odcisku palca. Wpisz hasło.",
 		"device_key_invalidated": "Odciski palców w telefonie się zmieniły, więc odblokowanie odciskiem wyłączyło się. Wpisz hasło. Możesz je potem włączyć ponownie w Ustawieniach.",
 		"device_key_rejected": "Odcisk nie otworzył dziennika, więc odblokowanie odciskiem wyłączyło się. Wpisz hasło.",
-		"device_unlock_off": "Odblokowanie odciskiem palca jest wyłączone. Wpisz hasło."
+		"device_unlock_off": "Odblokowanie odciskiem palca jest wyłączone. Wpisz hasło.",
+		"no_other_journal": "W folderze nie ma dziennika z innego urządzenia.",
+		"folder_unavailable": "Nie mogę otworzyć tego folderu.",
+		"other_journal": "Ten plik należy do innego dziennika."
 	},
 	"strength": {
 		"label": "Siła hasła",
@@ -552,5 +555,35 @@
 		"failed": "Nie udało się nagrać. Spróbuj jeszcze raz.",
 		"playFailed": "Nie udało się odtworzyć nagrania.",
 		"length": "Notatka głosowa, {time}"
+	},
+	"sync": {
+		"title": "Synchronizacja",
+		"intro": "Ten sam dziennik na telefonie i na komputerze. Mossbook nie łączy się z siecią: zapisuje zaszyfrowany plik do folderu, który przenosi między Twoimi urządzeniami program Syncthing.",
+		"howTo": "Zainstaluj Syncthing na obu urządzeniach i udostępnij między nimi jeden folder. Potem wybierz ten folder tutaj, na każdym urządzeniu.",
+		"choose": "Wybierz folder",
+		"folder": "Folder: {folder}",
+		"thisDevice": "To urządzenie",
+		"otherDevice": "Inne urządzenie",
+		"otherJournalDevice": "Dziennik z innego urządzenia",
+		"changedAt": "zmiany zapisane {time}",
+		"lastSync": "Ostatnia synchronizacja: {time}",
+		"never": "Jeszcze nie było synchronizacji.",
+		"now": "Synchronizuj teraz",
+		"done": "Zsynchronizowano.",
+		"off": "Wyłącz synchronizację na tym urządzeniu",
+		"offQuestion": "Wyłączyć synchronizację? Dziennik zostaje na tym urządzeniu, ale przestanie się uzgadniać z innymi.",
+		"offDone": "Synchronizacja wyłączona.",
+		"hint": "Mossbook zapisuje swój plik przy blokadzie, a zmiany z innych urządzeń wczytuje przy odblokowaniu. Jeśli ten sam wpis zmienisz na dwóch urządzeniach, zostaje nowsza wersja.",
+		"joinTitle": "W tym folderze jest dziennik z innego urządzenia",
+		"joinIntro": "Możesz do niego dołączyć. Wpisy z tego urządzenia zostaną do niego dodane i od tej chwili oba urządzenia będą miały ten sam dziennik.",
+		"joinWarning": "Od teraz ten dziennik otwiera hasło i 24 słowa klucza odzyskiwania z tamtego urządzenia. Hasło i klucz tego urządzenia przestaną działać. Obecny dziennik z tego urządzenia zapiszę najpierw w kopiach automatycznych. Odblokowanie odciskiem trzeba będzie włączyć ponownie.",
+		"joinPassword": "Hasło dziennika z tamtego urządzenia",
+		"join": "Dołącz do tego dziennika",
+		"joinQuestion": "Dołączyć? Hasło i klucz odzyskiwania tego urządzenia przestaną działać.",
+		"joined": "Gotowe. Ten dziennik otwierasz teraz hasłem z tamtego urządzenia.",
+		"problem_folder_unavailable": "Nie mogę otworzyć folderu synchronizacji. Sprawdź, czy nadal istnieje.",
+		"problem_damaged_file": "Plik z innego urządzenia jest niekompletny albo uszkodzony. Spróbuję ponownie, gdy Syncthing go dośle.",
+		"problem_merge_failed": "Nie udało się wczytać zmian z innego urządzenia.",
+		"problem_write_failed": "Nie udało się zapisać pliku tego urządzenia."
 	}
 }

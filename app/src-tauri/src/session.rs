@@ -2,20 +2,23 @@
 //! policy (SPEC §8.3, V-3, decisions D-6 and D-11). Plain Rust, no Tauri, so
 //! it can be unit-tested.
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant, SystemTime};
 
-use mossbook_core::backup::{Backup, auto};
+use mossbook_core::backup::{Backup, BackupError, auto};
 use mossbook_core::crypto::kdf::KdfParams;
 use mossbook_core::domain::{AutoLock, EntryKindTag, Timestamp};
-use mossbook_core::journal::{ImportMode, ImportReport, Journal};
+use mossbook_core::journal::{ImportMode, ImportReport, Journal, SyncReport};
 use mossbook_core::vault::{
-    self, DestroyError, DeviceEnrollment, DeviceKeyFile, PendingVault, UnlockThrottle, VaultError,
+    self, DestroyError, DeviceEnrollment, DeviceKeyFile, Local, PendingVault, UnlockThrottle,
+    VaultError,
 };
 use serde::{Deserialize, Serialize};
 use time::{OffsetDateTime, UtcOffset};
 
 use crate::error::{AppError, AppResult};
+use crate::sync::{Folder, file_name};
 
 /// Inactivity timeout when the policy is "immediately": locking on background
 /// covers phones, and on desktop (where background is fuzzy) this timer does (D-11).
@@ -86,6 +89,51 @@ pub struct Session {
     pending_backup: Option<Backup>,
     /// The last automatic backup that was due could not be written (D-16).
     auto_backup_failed: bool,
+    /// This device's sync folder, when sync is on (D-22).
+    sync: Option<SyncLink>,
+}
+
+/// This device's link to its sync folder (D-22).
+struct SyncLink {
+    folder: Box<dyn Folder>,
+    /// Where the folder is, as shown in the settings.
+    location: String,
+    /// Names this device's sync file.
+    device: String,
+    /// What the journal looked like when this device last wrote its file.
+    written: Option<[u8; 32]>,
+    /// Other devices' files as last merged: (modified, length).
+    seen: HashMap<String, (SystemTime, u64)>,
+    last_sync: Option<OffsetDateTime>,
+    /// Why the last sync did not complete, for the settings.
+    problem: Option<&'static str>,
+    /// The folder holds a file of another journal: the user can join it.
+    other_journal: bool,
+    /// Entries, tags, plan or settings the last sync changed here.
+    received: usize,
+}
+
+/// What the settings show about sync.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SyncStatus {
+    /// The folder, when sync is on.
+    pub location: Option<String>,
+    /// The devices with a file in the folder, this one included.
+    pub devices: Vec<SyncDevice>,
+    pub other_journal: bool,
+    pub last_sync: Option<Timestamp>,
+    pub problem: Option<&'static str>,
+    /// What the last sync changed here (the UI reloads when it is not 0).
+    pub received: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SyncDevice {
+    pub this_device: bool,
+    /// When its file last changed, in the user's offset.
+    pub changed_at: Timestamp,
+    /// The file belongs to another journal.
+    pub other_journal: bool,
 }
 
 /// What the settings show about backups.
@@ -144,6 +192,7 @@ impl Session {
             kdf_override: None,
             pending_backup: None,
             auto_backup_failed: false,
+            sync: None,
         }
     }
 
@@ -284,6 +333,8 @@ impl Session {
                 self.throttle.record_success();
                 self.state = VaultState::Unlocked(Box::new(Journal::open(v)));
                 self.last_activity = now;
+                // What the other devices wrote while this one was locked.
+                self.sync_receive();
                 Ok(())
             }
             Err(
@@ -311,6 +362,10 @@ impl Session {
         };
         if journal.settings().auto_backup && auto::is_due(&self.auto_dir(), SystemTime::now()) {
             self.auto_backup_failed = !write_auto_backup(&self.auto_dir(), &journal);
+        }
+        // Best effort, like the automatic backup: a lock never waits on sync.
+        if let Some(link) = &mut self.sync {
+            link.problem = send(link, &journal).err();
         }
         // Even if flushing fails, the journal (DEK and content) is dropped and zeroed.
         journal.lock()?;
@@ -473,9 +528,13 @@ impl Session {
         };
         match journal.into_vault().destroy(password) {
             Ok(()) => {
-                // The journal is gone; its automatic backups go with it.
+                // The journal is gone; its automatic backups and this device's
+                // sync file go with it. The other devices keep their copies.
                 auto::clear(&self.auto_dir())?;
                 self.auto_backup_failed = false;
+                if let Some(link) = self.sync.take() {
+                    let _ = link.folder.remove(&file_name(&link.device));
+                }
                 Ok(())
             }
             Err(DestroyError::Rejected { vault, error }) => {
@@ -493,6 +552,210 @@ impl Session {
                 Err(error.into())
             }
         }
+    }
+
+    // ---- sync between the user's devices (D-22) ----
+
+    /// Reconnects the sync folder recorded in the vault, at start-up.
+    pub fn attach_sync(&mut self, folder: Box<dyn Folder>, location: String, device: String) {
+        self.sync = Some(SyncLink::new(folder, location, device));
+    }
+
+    /// Turns sync on with `folder`: this device gets an id if it has none, and
+    /// the folder is remembered on this device only. Reads what is there and
+    /// writes this device's file.
+    pub fn sync_connect(
+        &mut self,
+        folder: Box<dyn Folder>,
+        location: String,
+    ) -> AppResult<SyncStatus> {
+        let journal = self.journal_mut()?;
+        let device = match journal.vault().local(Local::DeviceId)? {
+            Some(id) => id,
+            None => {
+                let id = new_device_id()?;
+                journal.vault_mut().set_local(Local::DeviceId, Some(&id))?;
+                id
+            }
+        };
+        journal
+            .vault_mut()
+            .set_local(Local::SyncFolder, Some(&location))?;
+        self.sync = Some(SyncLink::new(folder, location, device));
+        self.sync_now()
+    }
+
+    /// Turns sync off on this device. The folder and the other devices' files
+    /// are left as they are.
+    pub fn sync_disconnect(&mut self) -> AppResult<()> {
+        self.journal_mut()?
+            .vault_mut()
+            .set_local(Local::SyncFolder, None)?;
+        self.sync = None;
+        Ok(())
+    }
+
+    /// Merges the other devices' files and writes this device's.
+    pub fn sync_now(&mut self) -> AppResult<SyncStatus> {
+        self.journal()?;
+        self.sync_receive();
+        if let (Some(link), VaultState::Unlocked(journal)) = (&mut self.sync, &self.state) {
+            let sent = send(link, journal);
+            if link.problem.is_none() {
+                link.problem = sent.err();
+            }
+        }
+        Ok(self.sync_status())
+    }
+
+    /// Merges the other devices' files; problems are kept for the settings.
+    fn sync_receive(&mut self) -> Option<SyncReport> {
+        let now = self.now();
+        let (Some(link), VaultState::Unlocked(journal)) = (&mut self.sync, &mut self.state) else {
+            return None;
+        };
+        match receive(link, journal, now) {
+            Ok(report) => {
+                link.problem = None;
+                link.last_sync = Some(now);
+                link.received = report.changed + report.deleted;
+                Some(report)
+            }
+            Err(problem) => {
+                link.problem = Some(problem);
+                None
+            }
+        }
+    }
+
+    pub fn sync_status(&self) -> SyncStatus {
+        let Some(link) = &self.sync else {
+            return SyncStatus {
+                location: None,
+                devices: Vec::new(),
+                other_journal: false,
+                last_sync: None,
+                problem: None,
+                received: 0,
+            };
+        };
+        let own = file_name(&link.device);
+        let devices = link
+            .folder
+            .list()
+            .map(|files| {
+                files
+                    .into_iter()
+                    .map(|f| SyncDevice {
+                        this_device: f.name == own,
+                        changed_at: OffsetDateTime::from(f.modified)
+                            .to_offset(self.utc_offset)
+                            .into(),
+                        other_journal: link.other_names().contains(&f.name),
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        SyncStatus {
+            location: Some(link.location.clone()),
+            devices,
+            other_journal: link.other_journal,
+            last_sync: link.last_sync.map(Into::into),
+            problem: link.problem,
+            received: link.received,
+        }
+    }
+
+    /// Joins the journal another device keeps in the sync folder (pairing,
+    /// D-22). Opens its newest file with *that* journal's password, merges this
+    /// journal into it and takes it over: from now on both devices have the same
+    /// journal, password and recovery key. This journal is kept as an automatic
+    /// backup first; fingerprint unlock has to be set up again.
+    pub fn sync_join(&mut self, password: &str, now: Instant) -> AppResult<SyncStatus> {
+        self.throttle.check(now).map_err(AppError::throttled)?;
+        let at = self.now();
+        let ours = *self.journal()?.vault().vault_id();
+        let link = self
+            .sync
+            .as_ref()
+            .ok_or_else(|| AppError::invalid_state("sync is off"))?;
+        let (device, location) = (link.device.clone(), link.location.clone());
+
+        // The other journal's newest file.
+        let mut newest: Option<(SystemTime, Backup)> = None;
+        for f in link
+            .folder
+            .list()
+            .map_err(|_| sync_error("folder_unavailable"))?
+        {
+            if f.name == file_name(&device)
+                || newest.as_ref().is_some_and(|(t, _)| *t >= f.modified)
+            {
+                continue;
+            }
+            let Ok(bytes) = link.folder.read(&f.name) else {
+                continue;
+            };
+            if let Ok(backup) = Backup::from_bytes(&bytes)
+                && *backup.vault_id() != ours
+            {
+                newest = Some((f.modified, backup));
+            }
+        }
+        let (_, theirs) = newest.ok_or_else(|| sync_error("no_other_journal"))?;
+        let theirs = match theirs.open_with_password(password) {
+            Ok(opened) => opened,
+            Err(e @ BackupError::WrongPassword) => {
+                let wait = self.throttle.record_failure(now);
+                return Err(AppError::from(e).with_retry(wait));
+            }
+            Err(e) => return Err(e.into()),
+        };
+        self.throttle.record_success();
+        let journal = self.journal()?;
+
+        // This journal: kept as an automatic backup, and its content decrypted
+        // with its own key to be merged into the other one.
+        let own_backup = journal.vault().export_backup()?;
+        auto::write(&self.auto_dir(), &own_backup)?;
+        let own = journal.vault().open_sync_file(own_backup)?;
+        let own_records = own.decrypt()?;
+
+        let joining = sidecar(&self.vault_path, ".joining");
+        remove_vault_files(&joining)?;
+        let mut joined = Journal::open(theirs.restore(&joining)?);
+        joined.merge_from_device(
+            own_records,
+            &|id| own.open_media(id.as_bytes()).ok().flatten(),
+            at,
+        )?;
+        joined
+            .vault_mut()
+            .set_local(Local::DeviceId, Some(&device))?;
+        joined
+            .vault_mut()
+            .set_local(Local::SyncFolder, Some(&location))?;
+        joined.lock()?;
+
+        // Swap: this journal's file goes (it is in the automatic backup), the
+        // joined one takes its place. Its fingerprint key opened the old key.
+        let VaultState::Unlocked(old) = std::mem::replace(&mut self.state, VaultState::Locked)
+        else {
+            unreachable!("journal() succeeded above");
+        };
+        old.lock()?;
+        remove_vault_files(&self.vault_path)?;
+        let _ = std::fs::remove_file(DeviceKeyFile::path_for(&self.vault_path));
+        std::fs::rename(&joining, &self.vault_path).map_err(|_| AppError::from(VaultError::Io))?;
+        remove_vault_files(&joining)?;
+
+        let v = vault::unlock(&self.vault_path, password)?;
+        self.state = VaultState::Unlocked(Box::new(Journal::open(v)));
+        if let Some(link) = &mut self.sync {
+            link.written = None;
+            link.seen.clear();
+        }
+        self.sync_now()
     }
 
     // ---- journal access ----
@@ -636,6 +899,148 @@ fn write_auto_backup(dir: &Path, journal: &Journal) -> bool {
         .export_backup()
         .and_then(|backup| auto::write(dir, &backup))
         .is_ok()
+}
+
+impl SyncLink {
+    fn new(folder: Box<dyn Folder>, location: String, device: String) -> Self {
+        Self {
+            folder,
+            location,
+            device,
+            written: None,
+            seen: HashMap::new(),
+            last_sync: None,
+            problem: None,
+            other_journal: false,
+            received: 0,
+        }
+    }
+
+    /// Files found to belong to another journal (never marked as seen).
+    fn other_names(&self) -> Vec<String> {
+        if !self.other_journal {
+            return Vec::new();
+        }
+        let own = file_name(&self.device);
+        self.folder
+            .list()
+            .map(|files| {
+                files
+                    .into_iter()
+                    .filter(|f| f.name != own && !self.seen.contains_key(&f.name))
+                    .map(|f| f.name)
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+}
+
+/// Merges every other device's file that changed since it was last merged.
+fn receive(
+    link: &mut SyncLink,
+    journal: &mut Journal,
+    now: OffsetDateTime,
+) -> Result<SyncReport, &'static str> {
+    let own = file_name(&link.device);
+    let files = link.folder.list().map_err(|_| "folder_unavailable")?;
+    let mut total = SyncReport::default();
+    let mut damaged = false;
+    link.other_journal = false;
+    for f in files {
+        let stamp = (f.modified, f.len);
+        if f.name == own || link.seen.get(&f.name) == Some(&stamp) {
+            continue;
+        }
+        let bytes = link
+            .folder
+            .read(&f.name)
+            .map_err(|_| "folder_unavailable")?;
+        let opened =
+            match Backup::from_bytes(&bytes).and_then(|b| journal.vault().open_sync_file(b)) {
+                Ok(opened) => opened,
+                Err(BackupError::OtherJournal) => {
+                    link.other_journal = true;
+                    continue;
+                }
+                Err(_) => {
+                    // Possibly still being written by Syncthing; tried again later.
+                    damaged = true;
+                    continue;
+                }
+            };
+        let _ = journal.vault_mut().adopt_password_from(&opened);
+        let Ok(records) = opened.decrypt() else {
+            damaged = true;
+            continue;
+        };
+        let report = journal
+            .merge_from_device(
+                records,
+                &|id| opened.open_media(id.as_bytes()).ok().flatten(),
+                now,
+            )
+            .map_err(|_| "merge_failed")?;
+        total.changed += report.changed;
+        total.deleted += report.deleted;
+        total.skipped += report.skipped;
+        link.seen.insert(f.name, stamp);
+    }
+    if damaged {
+        return Err("damaged_file");
+    }
+    Ok(total)
+}
+
+/// Writes this device's file, unless the journal is as it was last written.
+fn send(link: &mut SyncLink, journal: &Journal) -> Result<(), &'static str> {
+    let backup = journal
+        .vault()
+        .export_backup()
+        .map_err(|_| "write_failed")?;
+    let fingerprint = backup.fingerprint();
+    if link.written == Some(fingerprint) {
+        return Ok(());
+    }
+    let bytes = backup.to_bytes().map_err(|_| "write_failed")?;
+    link.folder
+        .write(&file_name(&link.device), &bytes)
+        .map_err(|_| "folder_unavailable")?;
+    link.written = Some(fingerprint);
+    Ok(())
+}
+
+fn sync_error(code: &'static str) -> AppError {
+    AppError::new(code, "sync")
+}
+
+/// A random id for this device's sync file name (16 bytes, hex).
+fn new_device_id() -> AppResult<String> {
+    let id = mossbook_core::domain::Id::new_random().map_err(AppError::from)?;
+    Ok(id.as_bytes().iter().map(|b| format!("{b:02x}")).collect())
+}
+
+/// `vault.db` → `vault.db<suffix>`.
+fn sidecar(path: &Path, suffix: &str) -> PathBuf {
+    let mut name = path.as_os_str().to_owned();
+    name.push(suffix);
+    PathBuf::from(name)
+}
+
+/// Removes a vault file and its SQLite companions, if present.
+fn remove_vault_files(path: &Path) -> AppResult<()> {
+    for file in [
+        path.to_path_buf(),
+        sidecar(path, "-wal"),
+        sidecar(path, "-shm"),
+    ] {
+        match std::fs::remove_file(&file) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+                return Err(VaultError::Io.into());
+            }
+            _ => {}
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -1099,6 +1504,131 @@ mod tests {
             s.verify_recovery(&setup.words.join(" ")).unwrap_err().code,
             "locked"
         );
+    }
+
+    // ---- sync (D-22) ----
+
+    fn unlocked_with(password: &str) -> (TempDir, Session) {
+        let (dir, mut s) = session();
+        let setup = s.create(password).unwrap();
+        s.confirm_recovery(&answers(&setup), Instant::now())
+            .unwrap();
+        (dir, s)
+    }
+
+    fn folder(dir: &TempDir) -> Box<dyn Folder> {
+        Box::new(crate::sync::DirFolder(dir.path().to_path_buf()))
+    }
+
+    fn notes(s: &Session) -> Vec<String> {
+        let mut notes: Vec<String> = s
+            .journal()
+            .unwrap()
+            .entries(&Default::default())
+            .into_iter()
+            .map(|e| e.note.clone())
+            .collect();
+        notes.sort();
+        notes
+    }
+
+    fn add_note(s: &mut Session, text: &str) {
+        let now = s.now();
+        let mut e =
+            mossbook_core::domain::Entry::new(mossbook_core::domain::EntryKind::Note, now).unwrap();
+        e.note = text.into();
+        s.journal_mut().unwrap().save_entry(e, now).unwrap();
+    }
+
+    #[test]
+    fn pairing_joins_the_other_journal_and_keeps_this_one_as_a_backup() {
+        let shared = tempfile::tempdir().unwrap();
+        let (_a_dir, mut a) = unlocked_with("phone password");
+        add_note(&mut a, "from the phone");
+        a.sync_connect(folder(&shared), "shared".into()).unwrap();
+
+        let (b_dir, mut b) = unlocked_with("computer password");
+        add_note(&mut b, "from the computer");
+        let status = b.sync_connect(folder(&shared), "shared".into()).unwrap();
+        assert!(status.other_journal, "offered to join the phone's journal");
+        assert_eq!(status.devices.len(), 2);
+
+        // The wrong password changes nothing.
+        let err = b
+            .sync_join("computer password", Instant::now())
+            .unwrap_err();
+        assert_eq!(err.code, "wrong_password");
+        assert_eq!(notes(&b), vec!["from the computer"]);
+
+        b.throttle = UnlockThrottle::new();
+        let status = b.sync_join("phone password", Instant::now()).unwrap();
+        assert!(!status.other_journal);
+        assert_eq!(notes(&b), vec!["from the computer", "from the phone"]);
+        // The joined journal opens with the phone's password, here and after a restart.
+        b.lock().unwrap();
+        assert!(b.unlock("computer password", Instant::now()).is_err());
+        b.throttle = UnlockThrottle::new();
+        b.unlock("phone password", Instant::now()).unwrap();
+        // The computer's own journal is kept as an automatic backup.
+        let kept = auto_files(&b_dir)
+            .into_iter()
+            .map(|p| Backup::from_bytes(&std::fs::read(p).unwrap()).unwrap())
+            .any(|backup| backup.open_with_password("computer password").is_ok());
+        assert!(kept);
+
+        // The phone receives the computer's entries.
+        let status = a.sync_now().unwrap();
+        assert_eq!(status.problem, None);
+        assert_eq!(notes(&a), vec!["from the computer", "from the phone"]);
+    }
+
+    #[test]
+    fn changes_are_written_on_lock_and_read_on_unlock() {
+        let shared = tempfile::tempdir().unwrap();
+        let (_a_dir, mut a) = unlocked_with(PASSWORD);
+        a.sync_connect(folder(&shared), "shared".into()).unwrap();
+        let (_b_dir, mut b) = unlocked_with("another password");
+        b.sync_connect(folder(&shared), "shared".into()).unwrap();
+        b.sync_join(PASSWORD, Instant::now()).unwrap();
+        b.lock().unwrap();
+
+        add_note(&mut a, "written while the other was locked");
+        a.lock().unwrap();
+        b.unlock(PASSWORD, Instant::now()).unwrap();
+        assert_eq!(notes(&b), vec!["written while the other was locked"]);
+
+        // The received entry is written into this device's file once; after
+        // that, with nothing changed, locking does not rewrite it.
+        b.sync_now().unwrap();
+        let own = shared
+            .path()
+            .join(file_name(&b.sync.as_ref().unwrap().device));
+        let before = std::fs::metadata(&own).unwrap().modified().unwrap();
+        b.sync_now().unwrap();
+        b.lock().unwrap();
+        assert_eq!(std::fs::metadata(&own).unwrap().modified().unwrap(), before);
+    }
+
+    #[test]
+    fn sync_survives_a_restart_and_can_be_turned_off() {
+        let shared = tempfile::tempdir().unwrap();
+        let (dir, mut a) = unlocked_with(PASSWORD);
+        a.sync_connect(folder(&shared), "shared".into()).unwrap();
+        a.lock().unwrap();
+        let path = dir.path().join("vault.db");
+        assert_eq!(
+            vault::read_local(&path, Local::SyncFolder)
+                .unwrap()
+                .as_deref(),
+            Some("shared")
+        );
+        assert!(vault::read_local(&path, Local::DeviceId).unwrap().is_some());
+
+        a.unlock(PASSWORD, Instant::now()).unwrap();
+        a.sync_disconnect().unwrap();
+        assert_eq!(a.sync_status().location, None);
+        a.lock().unwrap();
+        assert_eq!(vault::read_local(&path, Local::SyncFolder).unwrap(), None);
     }
 
     #[test]

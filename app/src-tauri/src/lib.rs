@@ -7,6 +7,7 @@ mod commands;
 mod device_key;
 mod error;
 mod session;
+mod sync;
 
 use std::time::{Duration, Instant};
 
@@ -14,6 +15,7 @@ use tauri::webview::{PermissionKind, PermissionResponse};
 use tauri::{AppHandle, Emitter, Manager, RunEvent, Window, WindowEvent};
 
 use commands::{AppState, emit_locked};
+use mossbook_core::vault::{self, Local};
 use session::Session;
 
 /// Event telling the UI to cover or uncover its content (desktop focus loss, D-11).
@@ -41,7 +43,17 @@ pub fn run() {
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
-            app.manage(AppState::new(Session::new(dir.join("vault.db"))));
+            let vault_path = dir.join("vault.db");
+            let mut session = Session::new(vault_path.clone());
+            // Sync stays on across restarts (D-22): the folder is recorded on this device.
+            if let (Ok(Some(location)), Ok(Some(device))) = (
+                vault::read_local(&vault_path, Local::SyncFolder),
+                vault::read_local(&vault_path, Local::DeviceId),
+            ) && let Some(folder) = sync::reopen_folder(app.handle(), &location)
+            {
+                session.attach_sync(folder, location, device);
+            }
+            app.manage(AppState::new(session));
             spawn_idle_timer(app.handle().clone());
             #[cfg(target_os = "linux")]
             if let Some(window) = app.get_webview_window("main") {
@@ -100,6 +112,11 @@ pub fn run() {
             commands::backup_info,
             commands::backup_reveal,
             commands::export_readable,
+            commands::sync_status,
+            commands::sync_choose_folder,
+            commands::sync_now,
+            commands::sync_join,
+            commands::sync_disconnect,
             commands::report_pdf,
         ])
         .build(tauri::generate_context!())

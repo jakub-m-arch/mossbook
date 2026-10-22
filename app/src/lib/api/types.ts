@@ -389,3 +389,23 @@ export interface ReportField {
 	label: string;
 	value: string;
 }
+
+/** Sync between the user's own devices through a folder Syncthing carries (D-22). */
+export interface SyncStatus {
+	/** The folder, when sync is on. */
+	location: string | null;
+	devices: SyncDevice[];
+	/** The folder holds a journal from another device, which this one can join. */
+	other_journal: boolean;
+	last_sync: Timestamp | null;
+	problem: 'folder_unavailable' | 'damaged_file' | 'merge_failed' | 'write_failed' | null;
+	/** What the last sync changed here; the UI reloads when it is not 0. */
+	received: number;
+}
+
+export interface SyncDevice {
+	this_device: boolean;
+	/** When its file last changed. */
+	changed_at: Timestamp;
+	other_journal: boolean;
+}

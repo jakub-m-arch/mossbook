@@ -42,7 +42,10 @@
 		"biometric_failed": "Could not check your fingerprint. Enter your password.",
 		"device_key_invalidated": "The fingerprints on this phone changed, so fingerprint unlock turned off. Enter your password. You can turn it on again in Settings.",
 		"device_key_rejected": "The fingerprint did not open the journal, so fingerprint unlock turned off. Enter your password.",
-		"device_unlock_off": "Fingerprint unlock is off. Enter your password."
+		"device_unlock_off": "Fingerprint unlock is off. Enter your password.",
+		"no_other_journal": "The folder holds no journal from another device.",
+		"folder_unavailable": "This folder cannot be opened.",
+		"other_journal": "This file belongs to another journal."
 	},
 	"strength": {
 		"label": "Password strength",
@@ -552,5 +555,35 @@
 		"failed": "The recording did not work. Please try again.",
 		"playFailed": "The recording could not be played.",
 		"length": "Voice note, {time}"
+	},
+	"sync": {
+		"title": "Sync",
+		"intro": "The same journal on your phone and your computer. Mossbook does not connect to the network: it writes an encrypted file into a folder that Syncthing carries between your devices.",
+		"howTo": "Install Syncthing on both devices and share one folder between them. Then choose that folder here, on each device.",
+		"choose": "Choose folder",
+		"folder": "Folder: {folder}",
+		"thisDevice": "This device",
+		"otherDevice": "Another device",
+		"otherJournalDevice": "A journal from another device",
+		"changedAt": "changes saved {time}",
+		"lastSync": "Last sync: {time}",
+		"never": "Not synced yet.",
+		"now": "Sync now",
+		"done": "Synced.",
+		"off": "Turn off sync on this device",
+		"offQuestion": "Turn off sync? The journal stays on this device but no longer matches the others.",
+		"offDone": "Sync is off.",
+		"hint": "Mossbook writes its file when the journal locks and reads other devices' changes when it unlocks. If you change the same entry on two devices, the newer version stays.",
+		"joinTitle": "This folder holds a journal from another device",
+		"joinIntro": "You can join it. The entries from this device are added to it, and from then on both devices have the same journal.",
+		"joinWarning": "From now on this journal opens with the password and 24-word recovery key of that device. This device's password and key stop working. The current journal of this device is saved to the automatic backups first. Fingerprint unlock has to be turned on again.",
+		"joinPassword": "Password of the journal on that device",
+		"join": "Join that journal",
+		"joinQuestion": "Join? This device's password and recovery key will stop working.",
+		"joined": "Done. This journal now opens with the password from that device.",
+		"problem_folder_unavailable": "The sync folder cannot be opened. Check that it still exists.",
+		"problem_damaged_file": "A file from another device is incomplete or damaged. Mossbook tries again once Syncthing has delivered it.",
+		"problem_merge_failed": "The changes from another device could not be read.",
+		"problem_write_failed": "This device's file could not be written."
 	}
 }

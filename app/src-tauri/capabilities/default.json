@@ -57,6 +57,11 @@
     "allow-backup-info",
     "allow-backup-reveal",
     "allow-export-readable",
+    "allow-sync-status",
+    "allow-sync-choose-folder",
+    "allow-sync-now",
+    "allow-sync-join",
+    "allow-sync-disconnect",
     "allow-report-pdf"
   ]
 }

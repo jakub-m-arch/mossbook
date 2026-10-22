@@ -17,7 +17,7 @@
 	import UnlockedShell from '#lib/components/UnlockedShell.svelte';
 	import { CREATABLE_KINDS, groupByDay, kindTag } from '#lib/entries.js';
 	import { locale, t } from '#lib/i18n/index.svelte.js';
-	import { errorText, handleLocked } from '#lib/session.svelte.js';
+	import { JOURNAL_CHANGED, errorText, handleLocked } from '#lib/session.svelte.js';
 	import { endOfDay, startOfDay } from '#lib/time.js';
 	import { discardUnsaved } from '#lib/unsaved.js';
 
@@ -85,11 +85,19 @@
 		return () => clearTimeout(timer);
 	});
 
-	onMount(async () => {
-		[tags, unsaved] = await Promise.all([
-			tagsList().catch(() => []),
-			unsavedGet().catch(() => null)
-		]);
+	onMount(() => {
+		void Promise.all([tagsList().catch(() => []), unsavedGet().catch(() => null)]).then(
+			([t, u]) => ([tags, unsaved] = [t, u])
+		);
+		// Another device's changes arrived (D-22).
+		const reload = () => {
+			void load();
+			tagsList()
+				.then((t) => (tags = t))
+				.catch(() => {});
+		};
+		window.addEventListener(JOURNAL_CHANGED, reload);
+		return () => window.removeEventListener(JOURNAL_CHANGED, reload);
 	});
 
 	function resumeUnsaved(kept: UnsavedEntry) {

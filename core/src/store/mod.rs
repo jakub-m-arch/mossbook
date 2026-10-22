@@ -128,6 +128,13 @@ impl Store {
         Ok(())
     }
 
+    /// Removes a header value, if present.
+    pub fn meta_delete(&mut self, key: &str) -> Result<(), StoreError> {
+        self.conn
+            .execute("DELETE FROM meta WHERE key = ?1", [key])?;
+        Ok(())
+    }
+
     /// Inserts or replaces a record.
     pub fn record_put(&mut self, record: &RawRecord) -> Result<(), StoreError> {
         self.conn.execute(
