@@ -8,10 +8,13 @@
 use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::Instant;
 
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD as BASE64;
 use mossbook_core::backup::{Backup, BackupError, MAX_BACKUP_BYTES};
 use mossbook_core::crisis::{self, CrisisDirectory};
 use mossbook_core::domain::{
-    Entry, EntryDraft, EntryKindTag, Id, SafetyPlan, Settings, Tag, UnsavedEntry,
+    Entry, EntryDraft, EntryKindTag, Id, MAX_VOICE_BYTES, SafetyPlan, Settings, Tag, UnsavedEntry,
+    VoiceNote,
 };
 use mossbook_core::journal::ImportMode;
 use mossbook_core::query::{EntryFilter, MoodPoint, Patterns, StatsRange};
@@ -294,6 +297,38 @@ pub fn entry_save(state: State<'_, AppState>, draft: EntryDraft) -> AppResult<En
 #[tauri::command(async)]
 pub fn entry_delete(state: State<'_, AppState>, id: Id) -> AppResult<bool> {
     with_session(&state, |s| Ok(s.journal_mut()?.delete_entry(&id)?))
+}
+
+// ---- voice notes (E-18, D-21) ----
+
+/// Longest base64 text accepted for one recording.
+const MAX_VOICE_BASE64: usize = MAX_VOICE_BYTES.div_ceil(3) * 4;
+
+/// Stores a recording made in the entry form; the form then attaches the
+/// returned note to the entry. The bytes travel as base64 because Android's IPC
+/// does not pass raw request bodies (spike for D-21).
+#[tauri::command(async)]
+pub fn voice_save(state: State<'_, AppState>, data: String) -> AppResult<VoiceNote> {
+    let data = Zeroizing::new(data);
+    if data.len() > MAX_VOICE_BASE64 {
+        return Err(AppError::new("invalid_field", "recording is too large"));
+    }
+    let bytes = Zeroizing::new(
+        BASE64
+            .decode(data.as_bytes())
+            .map_err(|_| AppError::new("invalid_field", "recording is not base64"))?,
+    );
+    with_session(&state, |s| Ok(s.journal_mut()?.save_voice(&bytes)?))
+}
+
+/// One recording for playback, as base64. Decrypted only now; nothing is
+/// written to disk.
+#[tauri::command(async)]
+pub fn voice_get(state: State<'_, AppState>, id: Id) -> AppResult<String> {
+    with_session(&state, |s| {
+        let bytes = s.journal()?.voice(&id)?;
+        Ok(BASE64.encode(bytes.as_slice()))
+    })
 }
 
 #[tauri::command(async)]

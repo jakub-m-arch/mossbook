@@ -152,6 +152,16 @@ export interface Entry {
 	note: string;
 	incomplete: boolean;
 	sensitive: boolean;
+	/** A recording attached to the entry (E-18); absent when there is none. */
+	voice?: VoiceNote | null;
+}
+
+/** A voice note (E-18, D-21): Ogg Opus, at most 5 minutes, decrypted only for playback. */
+export interface VoiceNote {
+	id: Id;
+	/** Taken from the file by the core, not from the form. */
+	duration_ms: number;
+	mime: string;
 }
 
 /** What the UI submits; the core sets id (for new entries), schema and timestamps. */
@@ -165,6 +175,8 @@ export interface EntryDraft {
 	note?: string;
 	incomplete?: boolean;
 	sensitive?: boolean;
+	/** As returned by `voiceSave`; only its id is trusted by the core. */
+	voice?: VoiceNote | null;
 }
 
 export interface EntryFilter {

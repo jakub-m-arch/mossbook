@@ -12,7 +12,7 @@ async function startNote(page: Page) {
 	await page.getByRole('button', { name: 'Szybki wpis' }).click();
 	await page.getByRole('dialog').getByRole('button', { name: 'Notatka' }).click();
 	await expect(page.getByRole('heading', { name: 'Notatka' })).toBeVisible();
-	await page.getByLabel('Notatka').fill(NOTE);
+	await page.getByLabel('Notatka', { exact: true }).fill(NOTE);
 }
 
 async function unlock(page: Page) {
@@ -36,7 +36,7 @@ test('an entry form survives an automatic lock and can be continued', async ({ p
 	await expect(page.getByText(/^Notatka, .*Mossbook zachował go/)).toBeVisible();
 	await page.screenshot({ path: `${SHOTS}/30-unsaved-entry.png`, fullPage: true });
 	await page.getByRole('button', { name: 'Wróć do wpisu' }).click();
-	await expect(page.getByLabel('Notatka')).toHaveValue(NOTE);
+	await expect(page.getByLabel('Notatka', { exact: true })).toHaveValue(NOTE);
 	await page.getByRole('button', { name: 'Zapisz' }).click();
 
 	await expect(page.getByRole('listitem').filter({ hasText: NOTE })).toBeVisible();
@@ -48,7 +48,7 @@ test('locking by hand right after typing keeps the form', async ({ page }) => {
 	await page.getByRole('button', { name: 'Zablokuj' }).click();
 	await unlock(page);
 	await page.getByRole('button', { name: 'Wróć do wpisu' }).click();
-	await expect(page.getByLabel('Notatka')).toHaveValue(NOTE);
+	await expect(page.getByLabel('Notatka', { exact: true })).toHaveValue(NOTE);
 });
 
 test('leaving the form on purpose discards it', async ({ page }) => {

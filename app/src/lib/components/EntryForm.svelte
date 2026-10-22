@@ -18,6 +18,7 @@
 	import MoodPicker from './MoodPicker.svelte';
 	import ScalePicker from './ScalePicker.svelte';
 	import TagPicker from './TagPicker.svelte';
+	import VoiceNoteField from './VoiceNoteField.svelte';
 
 	interface Props {
 		initial: EntryDraft;
@@ -55,6 +56,7 @@
 	let wake = $state(sleep.wake ? toLocalInput(sleep.wake) : '');
 
 	let sensitive = $state(initial.sensitive ?? false);
+	let voice = $state(initial.voice ?? null);
 	// An existing nightmare starts collapsed so it is not read by accident (E-5).
 	let showNightmare = $state(!nightmare.content.trim());
 	let dateFormat = $derived(new Intl.DateTimeFormat(locale(), { dateStyle: 'medium' }));
@@ -98,7 +100,8 @@
 			tags: $state.snapshot(selectedTags),
 			note,
 			incomplete,
-			sensitive
+			sensitive,
+			voice: $state.snapshot(voice)
 		};
 	}
 
@@ -310,6 +313,8 @@
 				<textarea id="note" bind:value={note}></textarea>
 			</div>
 		{/if}
+
+		<VoiceNoteField bind:value={voice} onstored={() => onchange && keepNow()} />
 
 		<TagPicker {tags} bind:selected={selectedTags} />
 

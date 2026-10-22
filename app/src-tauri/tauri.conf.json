@@ -23,8 +23,8 @@
 			}
 		],
 		"security": {
-			"csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; img-src 'self' data:; style-src 'self' 'unsafe-inline'",
-			"devCsp": "default-src 'self'; connect-src ipc: http://ipc.localhost ws://localhost:5173; img-src 'self' data:; style-src 'self' 'unsafe-inline'",
+			"csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; media-src blob:; img-src 'self' data:; style-src 'self' 'unsafe-inline'",
+			"devCsp": "default-src 'self'; connect-src ipc: http://ipc.localhost ws://localhost:5173; media-src blob:; img-src 'self' data:; style-src 'self' 'unsafe-inline'",
 			"freezePrototype": true
 		}
 	},
@@ -44,7 +44,8 @@
 			"debugApplicationIdSuffix": ".debug"
 		},
 		"macOS": {
-			"signingIdentity": "-"
+			"signingIdentity": "-",
+			"entitlements": "Entitlements.plist"
 		}
 	}
 }

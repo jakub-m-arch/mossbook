@@ -530,5 +530,27 @@
 		"disabled": "Fingerprint unlock is off. You can open the journal with your password.",
 		"reminder": "Your password and the 24-word recovery key are still the only way to open the journal on another phone or from a backup. Keep your password well in mind.",
 		"enrollHint": "This phone has a fingerprint sensor, but no fingerprint is set up. Add one in the phone’s settings (Security → Fingerprint), then come back here."
+	},
+	"voice": {
+		"title": "Voice note",
+		"record": "Record a voice note",
+		"hint": "Up to 5 minutes. The recording stays on this device, encrypted like the rest of the journal.",
+		"recording": "Recording",
+		"elapsed": "{time} of 5:00",
+		"stop": "Stop recording",
+		"cancel": "Discard",
+		"saving": "Saving the recording…",
+		"play": "Play the voice note",
+		"pause": "Pause",
+		"rerecord": "Record again",
+		"remove": "Remove the recording",
+		"removed": "The recording will leave the entry when you save it.",
+		"limit": "Five minutes have passed, so the recording stopped by itself.",
+		"denied": "Mossbook has no access to the microphone. You can allow it in the system settings.",
+		"noMicrophone": "No microphone was found.",
+		"unsupported": "Recording is not available on this device.",
+		"failed": "The recording did not work. Please try again.",
+		"playFailed": "The recording could not be played.",
+		"length": "Voice note, {time}"
 	}
 }

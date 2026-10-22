@@ -80,4 +80,13 @@ describe('buildReport', () => {
 		const encrypted = buildReport([fear, mood], { ...options, encrypted: true });
 		expect(encrypted.footer).toBe('Mossbook · ten plik jest zabezpieczony hasłem');
 	});
+
+	it('mentions a voice note and its length, without the recording', () => {
+		const spoken = entry('2026-10-19T08:00:00+02:00', {
+			voice: { id: 'v1', duration_ms: 151_000, mime: 'audio/ogg; codecs=opus' }
+		});
+		const item = buildReport([spoken], options).sections[0].items[0];
+		expect(item.meta).toBe('Notatka głosowa, 2:31');
+		expect(item.fields).toEqual([]);
+	});
 });

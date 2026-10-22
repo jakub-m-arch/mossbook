@@ -1,8 +1,11 @@
 <script lang="ts">
+	import Mic from '@lucide/svelte/icons/mic';
+
 	import { resolve } from '$app/paths';
 	import type { Entry, Tag } from '#lib/api/index.js';
 	import { kindTag, preview } from '#lib/entries.js';
 	import { locale, t } from '#lib/i18n/index.svelte.js';
+	import { formatClock } from '#lib/voice/format.js';
 
 	import KindIcon from './KindIcon.svelte';
 	import MoodIcon from './MoodIcon.svelte';
@@ -34,9 +37,16 @@
 			{:else if text}
 				<p class="text">{text}</p>
 			{/if}
-			{#if !hidden && (entry.incomplete || entry.tags.length > 0)}
+			{#if !hidden && (entry.incomplete || entry.tags.length > 0 || entry.voice)}
 				<div class="meta">
 					{#if entry.incomplete}<span class="pill notice-pill">{t('entry.incomplete')}</span>{/if}
+					{#if entry.voice}
+						<span class="pill voice"
+							><Mic size={14} aria-hidden="true" /><span class="sr-only"
+								>{t('voice.length', { time: formatClock(entry.voice.duration_ms) })}</span
+							><span aria-hidden="true">{formatClock(entry.voice.duration_ms)}</span></span
+						>
+					{/if}
 					{#each entry.tags as id (id)}
 						{@const tag = tags.get(id)}
 						{#if tag}<span class="tag"
@@ -47,7 +57,7 @@
 			{/if}
 		</div>
 	</a>
-	{#if entry.sensitive && text}
+	{#if entry.sensitive && (text || entry.voice)}
 		<button
 			type="button"
 			class="link reveal"
@@ -60,6 +70,12 @@
 </div>
 
 <style>
+	.voice {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		font-variant-numeric: tabular-nums;
+	}
 	.wrap {
 		position: relative;
 	}

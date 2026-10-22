@@ -43,6 +43,8 @@ async function invokedCommands(): Promise<string[]> {
 		() => api.entryGet('id'),
 		() => api.entrySave({ kind: 'note' }),
 		() => api.entryDelete('id'),
+		() => api.voiceSave(new Uint8Array([1, 2, 3])),
+		() => api.voiceGet('id').catch(() => {}),
 		() => api.quickEntry('fear', 5),
 		() => api.quickEntryLocked('fear', 5),
 		api.tagsList,

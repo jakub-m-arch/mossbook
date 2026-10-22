@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Minimal permission set. Every new permission must be justified in its PR (SPEC §8.4).",
+  "description": "Minimal permission set. Every new permission must be justified in its PR (SPEC \u00a78.4).",
   "windows": [
     "main"
   ],
@@ -28,6 +28,8 @@
     "allow-entry-get",
     "allow-entry-save",
     "allow-entry-delete",
+    "allow-voice-save",
+    "allow-voice-get",
     "allow-quick-entry",
     "allow-quick-entry-locked",
     "allow-tags-list",

@@ -2779,6 +2779,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tempfile",
  "time",
+ "webkit2gtk",
  "zeroize",
 ]
 

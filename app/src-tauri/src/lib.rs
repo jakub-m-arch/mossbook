@@ -10,6 +10,7 @@ mod session;
 
 use std::time::{Duration, Instant};
 
+use tauri::webview::{PermissionKind, PermissionResponse};
 use tauri::{AppHandle, Emitter, Manager, RunEvent, Window, WindowEvent};
 
 use commands::{AppState, emit_locked};
@@ -31,11 +32,21 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         // Fingerprint unlock (Android Keystore); a no-op on desktop.
         .plugin(device_key::init())
+        // The web view may use the microphone for voice notes (E-18) and nothing
+        // else: no camera, location, notifications or other web permissions.
+        .on_permission_request(|_, kind| match kind {
+            PermissionKind::Microphone => PermissionResponse::Allow,
+            _ => PermissionResponse::Deny,
+        })
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
             app.manage(AppState::new(Session::new(dir.join("vault.db"))));
             spawn_idle_timer(app.handle().clone());
+            #[cfg(target_os = "linux")]
+            if let Some(window) = app.get_webview_window("main") {
+                enable_microphone(&window);
+            }
             Ok(())
         })
         .on_window_event(on_window_event)
@@ -60,6 +71,8 @@ pub fn run() {
             commands::entry_get,
             commands::entry_save,
             commands::entry_delete,
+            commands::voice_save,
+            commands::voice_get,
             commands::quick_entry,
             commands::quick_entry_locked,
             commands::tags_list,
@@ -124,6 +137,18 @@ fn lock_on_background(app: &AppHandle) {
     if let Ok(Some(reason)) = locked {
         emit_locked(app, reason);
     }
+}
+
+/// WebKitGTK keeps media capture off unless asked; voice notes need the
+/// microphone (E-18). Access is still decided by `on_permission_request`.
+#[cfg(target_os = "linux")]
+fn enable_microphone(window: &tauri::WebviewWindow) {
+    let _ = window.with_webview(|webview| {
+        use webkit2gtk::{SettingsExt, WebViewExt};
+        if let Some(settings) = webview.inner().settings() {
+            settings.set_enable_media_stream(true);
+        }
+    });
 }
 
 /// Locks after inactivity. The timer lives in Rust; the UI only resets it.
@@ -213,6 +238,34 @@ mod tests {
 
         let activity = read("main/java/io/github/jakubmarch/mossbook/MainActivity.kt");
         assert!(activity.contains("FLAG_SECURE"));
+
+        // Voice notes need the microphone; nothing else that senses the user.
+        assert!(main.contains("android.permission.RECORD_AUDIO"));
+        for permission in ["CAMERA", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"] {
+            assert!(!main.contains(&format!("android.permission.{permission}\"")));
+        }
+    }
+
+    /// macOS: the hardened runtime and WebKit both refuse the microphone
+    /// silently without these (spike for D-21).
+    #[test]
+    fn macos_bundle_declares_the_microphone() {
+        let plist = include_str!("../Info.plist");
+        assert!(plist.contains("<key>NSMicrophoneUsageDescription</key>"));
+        let entitlements = include_str!("../Entitlements.plist");
+        assert!(entitlements.contains("<key>com.apple.security.device.audio-input</key>"));
+        assert!(!entitlements.contains("com.apple.security.device.camera"));
+        let conf: serde_json::Value =
+            serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        assert_eq!(
+            conf["bundle"]["macOS"]["entitlements"],
+            serde_json::json!("Entitlements.plist")
+        );
+        let csp = conf["app"]["security"]["csp"].as_str().unwrap();
+        assert!(
+            csp.contains("media-src blob:"),
+            "playback from decrypted bytes"
+        );
     }
 
     /// Every command in the list is registered in `generate_handler!`.

@@ -34,6 +34,10 @@ describe('entries helpers', () => {
 		expect(draft).toMatchObject({ id: 'id-1', intensity: 7, incomplete: false });
 		draft.tags!.push('t2');
 		expect(e.tags).toEqual(['t1']);
+		expect(draft.voice).toBeNull();
+		// The recording stays attached when an entry is edited (E-18).
+		const voice = { id: 'v1', duration_ms: 2000, mime: 'audio/ogg; codecs=opus' };
+		expect(draftFromEntry({ ...entry(), voice }).voice).toEqual(voice);
 		// Entries held in Svelte state are proxies, which structuredClone rejects.
 		expect(draftFromEntry(new Proxy(entry(), {})).kind).toEqual(e.kind);
 		expect(newDraft('note')).toEqual({

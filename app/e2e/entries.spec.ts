@@ -77,7 +77,7 @@ test('full fear form, edit and delete', async ({ page }) => {
 		'aria-pressed',
 		'true'
 	);
-	await page.getByLabel('Notatka').fill('potem było lepiej');
+	await page.getByLabel('Notatka', { exact: true }).fill('potem było lepiej');
 	await page.getByRole('button', { name: 'Zapisz' }).click();
 	await expect(card(page, 'tłum w tramwaju')).toContainText('potem było lepiej');
 
@@ -111,7 +111,7 @@ test('tags, tag filter and diacritic-insensitive search', async ({ page }) => {
 		await page.getByRole('button', { name: 'Szybki wpis' }).click();
 		await dialog(page).getByRole('button', { name: 'Lęk / wyzwalacz' }).click();
 		await dialog(page).getByRole('button', { name: 'Zapisz bez oceny' }).click();
-		await page.getByLabel('Notatka').fill(note);
+		await page.getByLabel('Notatka', { exact: true }).fill(note);
 		if (tagged) await page.getByRole('button', { name: 'Praca' }).click();
 		await page.getByRole('button', { name: 'Zapisz' }).click();
 		await expect(card(page, note)).toBeVisible();

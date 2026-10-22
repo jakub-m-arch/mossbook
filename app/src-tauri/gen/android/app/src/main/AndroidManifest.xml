@@ -4,6 +4,11 @@
          removes this permission from the release build (SPEC §1, §8.4). -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Voice notes (E-18): asked for the first time a recording starts, never
+         at launch. MODIFY_AUDIO_SETTINGS is what the WebView needs for capture. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
     <!-- No system or cloud backups and no device-to-device transfer of app data:
          the vault leaves the device only as a .mossbook backup the user makes. -->
     <application

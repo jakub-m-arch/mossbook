@@ -9,7 +9,12 @@ export default defineConfig({
 	use: {
 		baseURL: 'http://localhost:4173',
 		locale: 'pl-PL',
-		...devices['Pixel 7']
+		...devices['Pixel 7'],
+		// Voice notes (E-18): Chromium's synthetic microphone (a beep), no prompt.
+		permissions: ['microphone'],
+		launchOptions: {
+			args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream']
+		}
 	},
 	webServer: {
 		command: 'npm run build && npm run preview -- --port 4173 --strictPort',

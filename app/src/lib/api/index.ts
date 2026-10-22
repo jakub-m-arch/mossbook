@@ -31,8 +31,10 @@ import type {
 	StatsRange,
 	Status,
 	Tag,
-	UnsavedEntry
+	UnsavedEntry,
+	VoiceNote
 } from './types';
+import { base64ToBytes, bytesToBase64 } from './bytes';
 
 export type * from './types';
 
@@ -96,6 +98,14 @@ export const entriesList = (filter: EntryFilter = {}) =>
 export const entryGet = (id: Id) => invoke<Entry>('entry_get', { id });
 export const entrySave = (draft: EntryDraft) => invoke<Entry>('entry_save', { draft });
 export const entryDelete = (id: Id) => invoke<boolean>('entry_delete', { id });
+
+// ---- voice notes (E-18, D-21) ----
+
+/** Stores an Ogg Opus recording made in the form; attach the result to the entry. */
+export const voiceSave = (data: Uint8Array) =>
+	invoke<VoiceNote>('voice_save', { data: bytesToBase64(data) });
+/** One recording for playback. Keep it in memory only (an object URL, revoked after use). */
+export const voiceGet = (id: Id) => invoke<string>('voice_get', { id }).then(base64ToBytes);
 /** Quick entry (E-10): mood rating 1–5 for `mood`, intensity 0–10 otherwise. */
 export const quickEntry = (kind: EntryKindTag, value: number | null) =>
 	invoke<Entry>('quick_entry', { kind, value });

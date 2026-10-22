@@ -530,5 +530,27 @@
 		"disabled": "Odblokowanie odciskiem palca jest wyłączone. Dziennik otworzysz hasłem.",
 		"reminder": "Hasło i 24 słowa klucza odzyskiwania to nadal jedyny sposób, żeby otworzyć dziennik na innym telefonie albo z kopii zapasowej. Warto dobrze zapamiętać hasło.",
 		"enrollHint": "Ten telefon ma czytnik odcisków palców, ale nie ma zapisanego żadnego odcisku. Dodaj go w ustawieniach telefonu (Zabezpieczenia → Odcisk palca), a potem wróć tutaj."
+	},
+	"voice": {
+		"title": "Notatka głosowa",
+		"record": "Nagraj notatkę głosową",
+		"hint": "Do 5 minut. Nagranie zostaje na tym urządzeniu, zaszyfrowane jak reszta dziennika.",
+		"recording": "Nagrywanie",
+		"elapsed": "{time} z 5:00",
+		"stop": "Zakończ nagrywanie",
+		"cancel": "Przerwij",
+		"saving": "Zapisywanie nagrania…",
+		"play": "Odtwórz notatkę głosową",
+		"pause": "Wstrzymaj",
+		"rerecord": "Nagraj od nowa",
+		"remove": "Usuń nagranie",
+		"removed": "Nagranie zniknie z wpisu po zapisaniu.",
+		"limit": "Minęło 5 minut, więc nagranie zakończyło się samo.",
+		"denied": "Mossbook nie ma dostępu do mikrofonu. Możesz go włączyć w ustawieniach systemu.",
+		"noMicrophone": "Nie znaleziono mikrofonu.",
+		"unsupported": "Na tym urządzeniu nagrywanie nie jest dostępne.",
+		"failed": "Nie udało się nagrać. Spróbuj jeszcze raz.",
+		"playFailed": "Nie udało się odtworzyć nagrania.",
+		"length": "Notatka głosowa, {time}"
 	}
 }

@@ -16,6 +16,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.7.3", features = [] }
 
 [dependencies]
+# Recordings travel over IPC as base64 (voice notes, D-21); on Android also the
+# device key to and from the Keystore plugin (fingerprint unlock).
+base64 = "0.22.1"
 mossbook-core = { path = "../../core" }
 serde = { version = "1.0.229", features = ["derive"] }
 tauri = { version = "2.12.4", features = [] }
@@ -26,9 +29,11 @@ tauri-plugin-opener = "2.7.2"
 time = "0.3.55"
 zeroize = "1.9.1"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+# WebKitGTK settings: media capture for voice notes (same version as wry uses).
+webkit2gtk = "2.0.2"
+
 [target.'cfg(target_os = "android")'.dependencies]
-# The device key goes to and from the Keystore plugin as base64 (fingerprint unlock).
-base64 = "0.22.1"
 serde_json = "1.0.154"
 
 [lints]

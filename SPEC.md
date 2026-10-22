@@ -423,10 +423,10 @@ idle timer lives in Rust; the frontend only resets it.
 
 | Platform | Measure |
 |---|---|
-| All | CSP: `default-src 'self'; connect-src ipc: http://ipc.localhost; img-src 'self' data:; style-src 'self' 'unsafe-inline'`; no `http` plugin; Tauri capabilities limited to the app's own commands; fonts and assets local only |
-| Android | `android.permission.INTERNET` removed from the release manifest (`tools:node="remove"`; the debug build needs it for the dev server); `android:allowBackup="false"` + `dataExtractionRules` excluding everything; `FLAG_SECURE` in `MainActivity` (gen/android) |
+| All | CSP: `default-src 'self'; connect-src ipc: http://ipc.localhost; media-src blob:; img-src 'self' data:; style-src 'self' 'unsafe-inline'` (`blob:` plays a decrypted voice note from memory); no `http` plugin; Tauri capabilities limited to the app's own commands; fonts and assets local only; the web view may ask for the microphone (voice notes) and is refused every other permission |
+| Android | `android.permission.INTERNET` removed from the release manifest (`tools:node="remove"`; the debug build needs it for the dev server); `android:allowBackup="false"` + `dataExtractionRules` excluding everything; `FLAG_SECURE` in `MainActivity` (gen/android); `RECORD_AUDIO` asked on the first recording, no camera or location |
 | iOS | Data directory excluded from backups (`isExcludedFromBackup`); a curtain on `willResignActive`; file protection `NSFileProtectionComplete` |
-| Desktop | Window curtain on focus loss, data in the user's application data directory |
+| Desktop | Window curtain on focus loss, data in the user's application data directory; macOS: `NSMicrophoneUsageDescription` and the `com.apple.security.device.audio-input` entitlement (the hardened runtime refuses the microphone silently without it) |
 
 Android: the native configuration lives in `app/src-tauri/gen/android`, which is
 committed. `tauri android init` regenerates it from a template and would drop these

@@ -162,12 +162,12 @@ Resumed 2026-10-21 (postponed on 2026-10-19 while the tools were missing).
 - [ ] Reviews: a psychotherapist (exercises, IRT, tone), a native Ukrainian speaker
 
 ### Stage 15: Voice notes (E-18, D-21)
-- [ ] Spike: record (`MediaRecorder`) and play back in the Android WebView, WKWebView (macOS), WebView2 (Windows) and WebKitGTK (Linux); which container and codec each produces and which of them the others can play; microphone permission on Android (`RECORD_AUDIO` asked on first use) and macOS (`NSMicrophoneUsageDescription`)
+- [x] Spike (branch `spike/voice-notes`, not merged): `MediaRecorder` gives WebM/Opus on Android and Windows, MP4/AAC by default on macOS and only MP4 on WebKitGTK, whose MP4 does not play on macOS; macOS ignores the bitrate (~16 KB/s AAC). WebCodecs `AudioEncoder` with Opus works on Android and macOS, and Ogg Opus muxed in the page plays on both with the right length. Hence one format: Opus from WebCodecs in Ogg. macOS needs `NSMicrophoneUsageDescription` (or `getUserMedia` is missing) and the `audio-input` entitlement (or the hardened runtime denies silently); WebKitGTK needs `enable-media-stream`; Android passes IPC bodies as JSON, so bytes travel as base64
 - [x] Core: `media` table (SQL migration 2), record type 5 `voice`, decrypted only for playback, Ogg Opus checked by the journal (structure, CRC, ≤ 5 min, ≤ 4 MiB; length from the last granule), deleted with the entry or when replaced, orphans removed on lock/unlock/discard; tests incl. negative ones (blob under another id or among records, foreign files, over the limits, shared or missing recording)
 - [x] Vault `format_version` 2 + migration test (frozen `vault-v1.db`, new `vault-v2.db`); backup version 2 (`media` array, manifest over both lists with AAD `mossbook/backup/v2`, so it cannot pass as version 1) + `backup-v2.mossbook`, version 1 still imports; import re-encrypts recordings one at a time; `tools/read-backup.py` reads both versions
-- [ ] Tauri: raw-bytes commands `voice_save` / `voice_get` (no base64, no file on disk)
-- [ ] UI: record (5:00 limit with a visible countdown), stop, listen, re-record, delete; playback from an object URL revoked on lock; a recording in progress is dropped on lock
-- [ ] Unsaved form (E-17): a finished recording is stored at once and survives a lock with the form
+- [x] Tauri: `voice_save` / `voice_get` with base64 bodies (no file on disk); the web view gets the microphone and no other permission; macOS `Info.plist` + entitlement, Android `RECORD_AUDIO`, WebKitGTK media stream, CSP `media-src blob:`; tests for the Android and macOS declarations
+- [x] UI: record (microphone → AudioWorklet → WebCodecs Opus 32 kbit/s → Ogg, `src/lib/voice/`), 5:00 limit with the time shown, stop, listen, record again, remove; playback from an object URL revoked when the player goes away; a recording in progress is dropped on lock and finished when the app is hidden; the timeline shows the length; texts in pl/en/uk; e2e with Chromium's synthetic microphone
+- [x] Unsaved form (E-17): a finished recording is stored at once and the form kept right away, so it survives a lock
 - [ ] Readable copy as ZIP (JSON + recordings, export version 2), PDF report shows the length only; docs: `crypto.md`, `backup-format.md`, `threat-model.md`
 
 ### Stage 13 (v1)

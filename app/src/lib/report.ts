@@ -11,6 +11,7 @@ import type {
 	Tag
 } from './api/index.js';
 import { groupByDay, kindTag } from './entries.js';
+import { formatClock } from './voice/format.js';
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 
@@ -127,6 +128,8 @@ function item(e: Entry, o: ReportOptions, time: Intl.DateTimeFormat): ReportItem
 	const tagNames = e.tags.map((id) => o.tags.get(id)?.name).filter(Boolean);
 	if (tagNames.length > 0) meta.push(t('report.tagsLine', { tags: tagNames.join(', ') }));
 	if (e.incomplete) meta.push(t('report.incomplete'));
+	// The recording itself is not in the report, only that there is one (D-21).
+	if (e.voice) meta.push(t('voice.length', { time: formatClock(e.voice.duration_ms) }));
 
 	return {
 		title: `${time.format(new Date(e.occurred_at))} · ${t(`kind.${kind}`)}`,

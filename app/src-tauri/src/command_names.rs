@@ -21,6 +21,8 @@ pub const COMMANDS: &[&str] = &[
     "entry_get",
     "entry_save",
     "entry_delete",
+    "voice_save",
+    "voice_get",
     "quick_entry",
     "quick_entry_locked",
     "tags_list",

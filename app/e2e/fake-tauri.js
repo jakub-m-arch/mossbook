@@ -32,6 +32,8 @@
 		failures: 0,
 		blockedUntil: 0,
 		entries: [],
+		/** Voice notes by id, as base64 Ogg Opus (E-18). */
+		voices: new Map(),
 		tags: [],
 		settings: {
 			autolock: 'immediately',
@@ -176,19 +178,36 @@
 				tags: [...new Set(draft.tags ?? [])],
 				note: draft.note ?? '',
 				incomplete: draft.incomplete ?? false,
-				sensitive: draft.sensitive ?? false
+				sensitive: draft.sensitive ?? false,
+				// Like Rust: the length comes from the stored file, not the form.
+				voice: draft.voice ? state.voices.get(draft.voice.id)?.note : undefined
 			};
 			if (
 				(entry.mood !== null && (entry.mood < 1 || entry.mood > 5)) ||
-				entry.tags.some((t) => !tagName(t))
+				entry.tags.some((t) => !tagName(t)) ||
+				(draft.voice && !entry.voice)
 			)
 				return fail('invalid_field');
+			if (!entry.voice) delete entry.voice;
+			if (existing?.voice && existing.voice.id !== entry.voice?.id) {
+				state.voices.delete(existing.voice.id);
+			}
 			state.entries = [...state.entries.filter((e) => e.id !== entry.id), entry];
 			// Like Rust: a saved form no longer needs its kept copy.
 			state.unsaved = null;
 			return entry;
 		},
+		voice_save: ({ data }) => {
+			const note = oggOpusNote(data, `voice-${nextId++}`);
+			if (!note) return fail('invalid_field');
+			state.voices.set(note.id, { data, note });
+			window.__fake.voiceSaves.push(note);
+			return note;
+		},
+		voice_get: ({ id }) => state.voices.get(id)?.data ?? fail('not_found'),
 		entry_delete: ({ id }) => {
+			const gone = state.entries.find((e) => e.id === id);
+			if (gone?.voice) state.voices.delete(gone.voice.id);
 			const before = state.entries.length;
 			state.entries = state.entries.filter((e) => e.id !== id);
 			return before !== state.entries.length;
@@ -504,6 +523,22 @@
 	};
 	window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
 
+	/** Length of an Ogg Opus file from its last granule, like the core does. */
+	function oggOpusNote(base64, id) {
+		const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+		const text = new TextDecoder('latin1').decode(bytes);
+		if (!text.startsWith('OggS')) return null;
+		const head = text.indexOf('OpusHead');
+		const last = text.lastIndexOf('OggS');
+		if (head < 0 || !(bytes[last + 5] & 0x04)) return null;
+		const view = new DataView(bytes.buffer);
+		const preSkip = view.getUint16(head + 10, true);
+		const granule = Number(view.getBigUint64(last + 6, true));
+		const duration_ms = Math.floor(((granule - preSkip) * 1000) / 48000);
+		if (duration_ms <= 0 || duration_ms > 301000) return null;
+		return { id, duration_ms: Math.min(duration_ms, 300000), mime: 'audio/ogg; codecs=opus' };
+	}
+
 	/** Test hooks: simulate Rust-side events (auto-lock, focus loss). */
 	window.__fake = {
 		/** Adds synthetic entries directly (for tests that need many of them). */
@@ -514,6 +549,9 @@
 		reports: [],
 		reportPasswords: [],
 		jsonExports: 0,
+		/** Notes returned by voice_save, newest last. */
+		voiceSaves: [],
+		voiceCount: () => state.voices.size,
 		emit,
 		/** What the next fingerprint prompt does: 'ok', 'cancelled' or an error code. */
 		setBiometric(next) {

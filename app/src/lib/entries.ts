@@ -82,7 +82,8 @@ export function draftFromEntry(entry: Entry): EntryDraft {
 		tags: [...entry.tags],
 		note: entry.note,
 		incomplete: false,
-		sensitive: entry.sensitive
+		sensitive: entry.sensitive,
+		voice: entry.voice ? { ...entry.voice } : null
 	};
 }
 
