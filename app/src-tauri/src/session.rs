@@ -657,7 +657,7 @@ impl Session {
             })
             .unwrap_or_default();
         SyncStatus {
-            location: Some(link.location.clone()),
+            location: Some(link.folder.label()),
             devices,
             other_journal: link.other_journal,
             last_sync: link.last_sync.map(Into::into),

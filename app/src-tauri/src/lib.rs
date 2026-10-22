@@ -34,6 +34,8 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         // Fingerprint unlock (Android Keystore); a no-op on desktop.
         .plugin(device_key::init())
+        // The sync folder through the system's folder picker (Android); a no-op on desktop.
+        .plugin(sync::init())
         // The web view may use the microphone for voice notes (E-18) and nothing
         // else: no camera, location, notifications or other web permissions.
         .on_permission_request(|_, kind| match kind {

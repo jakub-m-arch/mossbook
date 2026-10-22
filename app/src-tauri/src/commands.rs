@@ -551,11 +551,9 @@ pub fn sync_choose_folder(
     state: State<'_, AppState>,
 ) -> AppResult<Option<SyncStatus>> {
     state.session().journal()?;
-    let picked = with_dialog(&state, || app.dialog().file().blocking_pick_folder());
-    let Some(picked) = picked else {
+    let Some((folder, location)) = with_dialog(&state, || crate::sync::pick_folder(&app))? else {
         return Ok(None);
     };
-    let (folder, location) = crate::sync::open_folder(&app, picked)?;
     with_session(&state, |s| s.sync_connect(folder, location)).map(Some)
 }
 
