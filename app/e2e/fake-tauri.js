@@ -36,6 +36,26 @@
 		sync: null,
 		/** Voice notes by id, as base64 Ogg Opus (E-18). */
 		voices: new Map(),
+		/** Transcription on this device (D-23). */
+		transcription: {
+			// Read on first use: tests set these in an init script that may run after this one.
+			imported: null,
+			get installed() {
+				return this.imported ?? window.localStorage.getItem('fake-transcription') === 'installed';
+			},
+			set installed(value) {
+				this.imported = value;
+			},
+			get lowMemory() {
+				return window.localStorage.getItem('fake-low-memory') === 'yes';
+			},
+			busy: false,
+			cancelled: false,
+			delayMs: 150,
+			/** What the next import does: 'ok', 'cancel' (dialog closed) or 'invalid'. */
+			nextImport: 'ok',
+			text: 'Synthetic transcript: a calm walk by the river.'
+		},
 		tags: [],
 		settings: {
 			autolock: 'immediately',
@@ -157,7 +177,12 @@
 				.filter((e) => !filter.to || Date.parse(e.occurred_at) < Date.parse(filter.to))
 				.filter((e) => {
 					const hay = fold(
-						[e.note, ...texts(e.kind), ...e.tags.map((id) => tagName(id))].join(' ')
+						[
+							e.note,
+							...texts(e.kind),
+							e.voice?.transcript ?? '',
+							...e.tags.map((id) => tagName(id))
+						].join(' ')
 					);
 					return terms.every((term) => hay.includes(term));
 				})
@@ -181,8 +206,15 @@
 				note: draft.note ?? '',
 				incomplete: draft.incomplete ?? false,
 				sensitive: draft.sensitive ?? false,
-				// Like Rust: the length comes from the stored file, not the form.
-				voice: draft.voice ? state.voices.get(draft.voice.id)?.note : undefined
+				// Like Rust: the length comes from the stored file, not the form; the
+				// transcript the user kept comes from the form (D-23).
+				voice:
+					draft.voice && state.voices.get(draft.voice.id)
+						? {
+								...state.voices.get(draft.voice.id).note,
+								...(draft.voice.transcript ? { transcript: draft.voice.transcript } : {})
+							}
+						: undefined
 			};
 			if (
 				(entry.mood !== null && (entry.mood < 1 || entry.mood > 5)) ||
@@ -207,6 +239,54 @@
 			return note;
 		},
 		voice_get: ({ id }) => state.voices.get(id)?.data ?? fail('not_found'),
+		// Transcription (D-23): off unless a test imports the model or sets
+		// `fake-transcription`; the text is fixed and synthetic.
+		voice_transcribe: async ({ id }) => {
+			if (state.vault !== 'unlocked') return fail('locked');
+			if (!state.transcription.installed) return fail('transcription_off');
+			if (!state.voices.has(id)) return fail('not_found');
+			state.transcription.cancelled = false;
+			state.transcription.busy = true;
+			for (const done of [0, 1, 2]) {
+				emit('transcription-progress', { done, total: 2 });
+				await new Promise((r) => setTimeout(r, state.transcription.delayMs));
+				if (state.transcription.cancelled) {
+					state.transcription.busy = false;
+					return fail('cancelled');
+				}
+			}
+			state.transcription.busy = false;
+			return state.transcription.text;
+		},
+		transcription_status: () => ({
+			installed: state.transcription.installed,
+			busy: state.transcription.busy,
+			download_bytes: 487170055,
+			disk_bytes: 670478772,
+			total_memory: state.transcription.lowMemory ? 3900000000 : null,
+			low_memory: state.transcription.lowMemory
+		}),
+		transcription_open_download: () => {
+			window.__fake.downloadsOpened += 1;
+		},
+		transcription_import: async () => {
+			if (state.transcription.busy) return fail('busy');
+			if (state.transcription.nextImport === 'cancel') return false;
+			if (state.transcription.nextImport === 'invalid') return fail('model_invalid');
+			for (const done of [243585027, 487170055]) {
+				emit('transcription-progress', { done, total: 487170055 });
+				await new Promise((r) => setTimeout(r, 50));
+			}
+			state.transcription.installed = true;
+			return true;
+		},
+		transcription_cancel: () => {
+			state.transcription.cancelled = true;
+		},
+		transcription_remove: () => {
+			if (state.transcription.busy) return fail('busy');
+			state.transcription.installed = false;
+		},
 		entry_delete: ({ id }) => {
 			const gone = state.entries.find((e) => e.id === id);
 			if (gone?.voice) state.voices.delete(gone.voice.id);
@@ -600,6 +680,11 @@
 		/** Notes returned by voice_save, newest last. */
 		voiceSaves: [],
 		voiceCount: () => state.voices.size,
+		downloadsOpened: 0,
+		/** Transcription knobs (D-23): delay per piece, next import, recognised text. */
+		setTranscription(options) {
+			Object.assign(state.transcription, options);
+		},
 		emit,
 		/** What the next fingerprint prompt does: 'ok', 'cancelled' or an error code. */
 		setBiometric(next) {

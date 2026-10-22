@@ -12,12 +12,17 @@ publish.workspace = true
 argon2 = { version = "0.6.0", default-features = false, features = ["alloc", "zeroize"] }
 bip39 = { version = "3.0.0", default-features = false, features = ["alloc", "zeroize"] }
 chacha20poly1305 = { version = "0.11.0", default-features = false, features = ["alloc", "zeroize"] }
+# Unpacks the transcription model archive the user downloaded (D-23); pure Rust backend.
+bzip2 = "0.6.1"
 ciborium = "0.2.2"
 crypto_box = { version = "0.9.1", features = ["seal"] }
 getrandom = "0.4.3"
 hkdf = "0.13.0"
 # Already a dependency of printpdf; used directly to add optional PDF encryption.
 lopdf = { version = "0.44.0", default-features = false }
+# Opus → PCM for transcription (D-23): the reference libopus, built from its
+# bundled source (needs CMake).
+opus = "0.4.0"
 printpdf = { version = "0.12.8", default-features = false }
 rusqlite = { version = "0.40.2", features = ["bundled"] }
 secrecy = "0.10.3"
@@ -27,6 +32,10 @@ serde = { version = "1.0.229", features = ["derive"] }
 serde_bytes = "0.11.19"
 serde_json = "1.0.154"
 sha2 = "0.11.1"
+# Speech recognition for voice notes (D-23): prebuilt sherpa-onnx + onnxruntime,
+# pinned exactly because tools/sherpa-onnx.sha256 pins its archives.
+sherpa-onnx = "=1.13.8"
+tar = { version = "0.4.46", default-features = false }
 time = { version = "0.3.55", features = ["serde", "formatting", "parsing"] }
 unicode-normalization = "0.1.26"
 uuid = { version = "1.28.0", features = ["serde"] }

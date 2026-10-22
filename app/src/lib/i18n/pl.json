@@ -45,7 +45,13 @@
 		"device_unlock_off": "Odblokowanie odciskiem palca jest wyłączone. Wpisz hasło.",
 		"no_other_journal": "W folderze nie ma dziennika z innego urządzenia.",
 		"folder_unavailable": "Nie mogę otworzyć tego folderu.",
-		"other_journal": "Ten plik należy do innego dziennika."
+		"other_journal": "Ten plik należy do innego dziennika.",
+		"model_invalid": "To nie jest oczekiwany plik modelu albo pobieranie się nie dokończyło. Pobierz go jeszcze raz.",
+		"model_load": "Nie udało się uruchomić modelu. Na tym urządzeniu może brakować pamięci.",
+		"transcription_off": "Zamiana na tekst jest wyłączona. Możesz ją włączyć w Ustawieniach.",
+		"transcription_audio": "Tego nagrania nie da się odczytać.",
+		"busy": "Trwa już zamiana na tekst albo rozpakowywanie modelu. Poczekaj chwilę.",
+		"cancelled": "Przerwano."
 	},
 	"strength": {
 		"label": "Siła hasła",
@@ -554,7 +560,32 @@
 		"unsupported": "Na tym urządzeniu nagrywanie nie jest dostępne.",
 		"failed": "Nie udało się nagrać. Spróbuj jeszcze raz.",
 		"playFailed": "Nie udało się odtworzyć nagrania.",
-		"length": "Notatka głosowa, {time}"
+		"length": "Notatka głosowa, {time}",
+		"transcribe": "Zamień na tekst",
+		"transcribing": "Zamieniam na tekst… {done} z {total}",
+		"transcribeStop": "Przerwij",
+		"transcriptLabel": "Tekst nagrania",
+		"transcriptHint": "Rozpoznany na tym urządzeniu. Może zawierać błędy: przeczytaj go i popraw przed zapisaniem.",
+		"transcriptEmpty": "Nie rozpoznano słów w tym nagraniu."
+	},
+	"transcription": {
+		"title": "Zamiana nagrań na tekst",
+		"intro": "Mossbook może zamieniać notatki głosowe na tekst, który potem przeczytasz i poprawisz. Dzieje się to na tym urządzeniu: nagrania nigdzie nie są wysyłane. Domyślnie ta funkcja jest wyłączona.",
+		"needs": "Potrzebny jest model rozpoznawania mowy: {download} do pobrania, {disk} na dysku. Rozumie polski, ukraiński, angielski i inne języki europejskie.",
+		"step1": "1. Pobierz plik modelu w przeglądarce. Mossbook sam niczego nie pobiera i nie łączy się z siecią.",
+		"download": "Otwórz stronę pobierania",
+		"step2": "2. Wskaż pobrany plik ({file}). Mossbook sprawdzi, czy to dokładnie ten plik, i go rozpakuje.",
+		"import": "Wskaż pobrany plik",
+		"importing": "Rozpakowywanie modelu… {percent}%",
+		"cancel": "Przerwij",
+		"lowMemory": "To urządzenie ma {memory} pamięci. Zamiana na tekst potrzebuje około 1,5 GB, więc może się nie udać albo zamknąć aplikację.",
+		"on": "Włączona. Model zajmuje {disk} na tym urządzeniu. Nie trafia do kopii zapasowych ani do synchronizacji.",
+		"howTo": "Przy notatce głosowej we wpisie pojawia się przycisk „Zamień na tekst”.",
+		"remove": "Usuń model i wyłącz",
+		"removeQuestion": "Usunąć model z tego urządzenia? Teksty zapisane we wpisach zostaną.",
+		"removed": "Model usunięty. Zamiana na tekst jest wyłączona.",
+		"imported": "Gotowe. Zamiana na tekst jest włączona.",
+		"credit": "Model: NVIDIA Parakeet TDT 0.6B v3 (licencja CC BY 4.0), uruchamiany przez sherpa-onnx."
 	},
 	"sync": {
 		"title": "Synchronizacja",

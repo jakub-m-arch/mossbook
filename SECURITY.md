@@ -30,6 +30,17 @@ What Mossbook protects against, and what it does not, is described in
 example web view memory or unsigned installers) are not vulnerabilities by themselves,
 but ideas to reduce them are very welcome.
 
+## Third-party code for transcription
+
+Turning voice notes into text (off by default, D-23) uses code Mossbook does not
+build from source: the sherpa-onnx project's prebuilt libraries with ONNX Runtime,
+and NVIDIA's Parakeet model, which the user downloads in their browser. Both are
+pinned by SHA-256 (`tools/sherpa-onnx.sha256`, `core/src/transcribe/model.rs`). The
+sherpa-onnx build script could download its libraries itself, so `deny.toml` allows
+`ureq` only as that build script's dependency; the builds hand it the checked
+archives, and the app never contains networking code. Problems in that code are in
+scope when they affect Mossbook.
+
 ## Verifying a release
 
 Each release ships `SHA256SUMS`. Check a download before installing:

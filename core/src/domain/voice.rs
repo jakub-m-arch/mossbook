@@ -34,6 +34,11 @@ pub struct VoiceNote {
     pub duration_ms: u32,
     #[serde(default = "default_mime")]
     pub mime: String,
+    /// Text the user kept from transcribing the recording (E-19, D-23); edited
+    /// by the user, never trusted as what was said. Left out when empty, so
+    /// notes without one encode exactly as before.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub transcript: String,
 }
 
 fn default_mime() -> String {
@@ -75,7 +80,7 @@ pub fn inspect_ogg_opus(bytes: &[u8]) -> Result<u32, DomainError> {
             return Err(INVALID);
         }
         match sequence {
-            0 => pre_skip = Some(opus_head(page.body).ok_or(INVALID)?),
+            0 => pre_skip = Some(opus_head(page.body).ok_or(INVALID)?.0),
             1 if !page.body.starts_with(b"OpusTags") => return Err(INVALID),
             _ => {}
         }
@@ -96,8 +101,59 @@ pub fn inspect_ogg_opus(bytes: &[u8]) -> Result<u32, DomainError> {
     Ok(ms.min(MAX_VOICE_MS))
 }
 
-/// The identification header (RFC 7845 §5.1); returns the pre-skip.
-fn opus_head(body: &[u8]) -> Option<u16> {
+/// The audio of a recording [`inspect_ogg_opus`] accepts, for decoding.
+pub(crate) struct OpusStream<'a> {
+    /// Samples at 48 kHz to drop from the start of the decoded audio.
+    pub pre_skip: u16,
+    pub channels: u8,
+    /// Audio packets in order, without the two header packets.
+    pub packets: Vec<&'a [u8]>,
+}
+
+/// Splits a checked Ogg Opus file into its audio packets (RFC 3533 lacing:
+/// a packet ends with the first segment shorter than 255 bytes).
+pub(crate) fn opus_packets(bytes: &[u8]) -> Result<OpusStream<'_>, DomainError> {
+    const INVALID: DomainError = DomainError::InvalidField("voice");
+    inspect_ogg_opus(bytes)?;
+    let mut rest = bytes;
+    let mut head = None;
+    let mut packets = Vec::new();
+    let mut sequence = 0u32;
+    while !rest.is_empty() {
+        let page = OggPage::parse(rest).ok_or(INVALID)?;
+        rest = &rest[page.len..];
+        if sequence == 0 {
+            head = Some(opus_head(page.body).ok_or(INVALID)?);
+        } else if sequence >= 2 {
+            let mut body = page.body;
+            let mut len = 0;
+            for &segment in page.segments {
+                len += usize::from(segment);
+                if segment < 255 {
+                    let (packet, tail) = body.split_at(len);
+                    packets.push(packet);
+                    body = tail;
+                    len = 0;
+                }
+            }
+            // No page continues a packet, so none may be left open.
+            if len != 0 {
+                return Err(INVALID);
+            }
+        }
+        sequence += 1;
+    }
+    let (pre_skip, channels) = head.ok_or(INVALID)?;
+    Ok(OpusStream {
+        pre_skip,
+        channels,
+        packets,
+    })
+}
+
+/// The identification header (RFC 7845 §5.1); returns the pre-skip and the
+/// channel count.
+fn opus_head(body: &[u8]) -> Option<(u16, u8)> {
     if body.len() < 19 || !body.starts_with(b"OpusHead") {
         return None;
     }
@@ -107,7 +163,7 @@ fn opus_head(body: &[u8]) -> Option<u16> {
     if version >> 4 != 0 || !(1..=2).contains(&channels) || body[18] != 0 {
         return None;
     }
-    Some(u16::from_le_bytes([body[10], body[11]]))
+    Some((u16::from_le_bytes([body[10], body[11]]), channels))
 }
 
 struct OggPage<'a> {
@@ -115,6 +171,7 @@ struct OggPage<'a> {
     granule: u64,
     serial: u32,
     sequence: u32,
+    segments: &'a [u8],
     body: &'a [u8],
     len: usize,
 }
@@ -139,6 +196,7 @@ impl<'a> OggPage<'a> {
             granule: u64::from_le_bytes(header[6..14].try_into().ok()?),
             serial: u32::from_le_bytes(header[14..18].try_into().ok()?),
             sequence: u32::from_le_bytes(header[18..22].try_into().ok()?),
+            segments: table,
             body: &page[27 + segments..],
             len,
         })
@@ -305,6 +363,57 @@ pub(crate) mod tests {
         let mut big = ogg_opus(10);
         big.resize(MAX_VOICE_BYTES + 1, 0);
         assert!(inspect_ogg_opus(&big).is_err());
+    }
+
+    #[test]
+    fn packets_are_split_by_lacing() {
+        let file = ogg_opus(3);
+        let stream = opus_packets(&file).unwrap();
+        assert_eq!((stream.pre_skip, stream.channels), (312, 1));
+        assert_eq!(
+            stream.packets,
+            vec![&[0xf8, 0, 0x55][..], &[0xf8, 1, 0x55], &[0xf8, 2, 0x55]]
+        );
+
+        // Two packets in one page, the first longer than one segment and the
+        // second exactly 255 bytes (closed by a zero-length segment).
+        let (long, exact) = (vec![7u8; 300], vec![9u8; 255]);
+        let mut file = page(0x02, 0, 0, &ogg_opus_head());
+        file.extend(page(0, 0, 1, b"OpusTags"));
+        file.extend(laced_page(
+            0x04,
+            1272,
+            2,
+            &[255, 45, 255, 0],
+            &[long.as_slice(), &exact].concat(),
+        ));
+        let stream = opus_packets(&file).unwrap();
+        assert_eq!(stream.packets, vec![long.as_slice(), exact.as_slice()]);
+    }
+
+    #[test]
+    fn a_packet_left_open_is_rejected() {
+        let mut file = page(0x02, 0, 0, &ogg_opus_head());
+        file.extend(page(0, 0, 1, b"OpusTags"));
+        file.extend(laced_page(0x04, 1272, 2, &[255], &[1u8; 255]));
+        assert!(
+            inspect_ogg_opus(&file).is_ok(),
+            "the container itself is fine"
+        );
+        assert!(opus_packets(&file).is_err());
+        assert!(opus_packets(b"not ogg").is_err());
+    }
+
+    fn laced_page(flags: u8, granule: u64, sequence: u32, segments: &[u8], body: &[u8]) -> Vec<u8> {
+        let mut p = page(flags, granule, sequence, b"");
+        p.truncate(26);
+        p[22..26].fill(0);
+        p.push(segments.len() as u8);
+        p.extend_from_slice(segments);
+        p.extend_from_slice(body);
+        let crc = ogg_crc(&p);
+        p[22..26].copy_from_slice(&crc.to_le_bytes());
+        p
     }
 
     fn ogg_opus_head() -> Vec<u8> {

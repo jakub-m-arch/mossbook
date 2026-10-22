@@ -26,8 +26,9 @@ pub use sync::SyncReport;
 
 /// `format` field of the plain JSON export.
 pub const EXPORT_FORMAT: &str = "mossbook-export";
-/// Version of the plain JSON export layout. 2 added `Entry.voice` (E-18).
-pub const EXPORT_VERSION: u16 = 2;
+/// Version of the plain JSON export layout. 2 added `Entry.voice` (E-18), 3 the
+/// voice note's `transcript` (E-19).
+pub const EXPORT_VERSION: u16 = 3;
 /// Name of the JSON file inside the readable copy (ZIP).
 pub const EXPORT_JSON_NAME: &str = "mossbook-export.json";
 
@@ -430,6 +431,7 @@ impl Journal {
             id,
             duration_ms,
             mime: VOICE_MIME.to_owned(),
+            transcript: String::new(),
         })
     }
 

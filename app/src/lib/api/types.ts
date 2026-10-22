@@ -32,6 +32,12 @@ export type ErrorCode =
 	| 'backup_too_large'
 	| 'io'
 	| 'inbox_unavailable'
+	| 'busy'
+	| 'cancelled'
+	| 'transcription_off'
+	| 'model_invalid'
+	| 'model_load'
+	| 'transcription_audio'
 	| 'internal';
 
 export interface AppError {
@@ -162,6 +168,8 @@ export interface VoiceNote {
 	/** Taken from the file by the core, not from the form. */
 	duration_ms: number;
 	mime: string;
+	/** Text the user kept from transcribing it (E-19, D-23); absent when there is none. */
+	transcript?: string;
 }
 
 /** What the UI submits; the core sets id (for new entries), schema and timestamps. */
@@ -391,6 +399,25 @@ export interface ReportField {
 }
 
 /** Sync between the user's own devices through a folder Syncthing carries (D-22). */
+/** Settings → Transcription (E-19, D-23): the model on this device. */
+export interface TranscriptionStatus {
+	/** The model is imported, so transcription is on. */
+	installed: boolean;
+	/** An import or a transcription is running. */
+	busy: boolean;
+	download_bytes: number;
+	disk_bytes: number;
+	/** Total memory of the device, where it can be read (Android, Linux). */
+	total_memory: number | null;
+	low_memory: boolean;
+}
+
+/** Progress of a model import (bytes) or a transcription (pieces). */
+export interface TranscriptionProgress {
+	done: number;
+	total: number;
+}
+
 export interface SyncStatus {
 	/** The folder, when sync is on. */
 	location: string | null;

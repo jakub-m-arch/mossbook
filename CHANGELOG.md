@@ -2,6 +2,25 @@
 
 All notable changes to Mossbook. Versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Added
+- Voice notes can be turned into text, on your device. Off by default: in
+  Settings → Turning recordings into text, open the download page, let your browser
+  download the speech recognition model (487 MB) and pick the file; Mossbook checks
+  that it is exactly that file and unpacks it (about 670 MB). Then a voice note in
+  an entry has a "Turn into text" button. The text is shown for you to read and
+  correct, is saved with the entry and found by search. Mossbook still never
+  connects to the network; recordings are not sent anywhere. Removing the model in
+  the settings turns it off. Transcription needs about 1.5 GB of memory; phones
+  with less than 6 GB get a warning.
+
+### Changed
+- The readable copy includes the text of voice notes (export format version 3).
+- The app is larger: it now contains the speech recognition engine (sherpa-onnx
+  with ONNX Runtime, prebuilt libraries pinned by SHA-256). Building Mossbook
+  needs CMake and `tools/fetch-sherpa-onnx.sh`; see the README.
+
 ## 0.4.0 (2026-10-22)
 
 ### Added

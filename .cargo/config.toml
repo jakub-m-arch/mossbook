@@ -1,4 +1,9 @@
 [env]
+# Voice note transcription (D-23): the sherpa-onnx-sys build script takes its
+# prebuilt libraries from here instead of downloading them. Fill it with
+# tools/fetch-sherpa-onnx.sh, which checks the pinned SHA-256 sums; a missing
+# archive stops the build rather than letting the script fetch one.
+SHERPA_ONNX_ARCHIVE_DIR = { value = "target/sherpa-onnx-archives", relative = true }
 # Android: wry pastes this into its generated RustWebView class. Every text field
 # in the web view asks the keyboard not to learn from what is typed (journal
 # entries, passwords, recovery words), as a keyboard in incognito mode would.

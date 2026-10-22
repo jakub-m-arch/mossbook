@@ -25,7 +25,8 @@ open, so anyone can check.
 ### Non-negotiable principles
 
 1. **Zero network.** The app makes no network connections. On Android the release
-   build does not even hold the `INTERNET` permission.
+   build does not even hold the `INTERNET` permission. (The optional transcription
+   model, E-19, is downloaded by the user's browser, never by the app; D-23.)
 2. **Everything encrypted at rest.** No entry content, tag, date or setting is stored
    on disk in plaintext.
 3. **Zero telemetry and analytics**, "anonymous" included. No error reporting to
@@ -124,6 +125,7 @@ editable), an optional mood rating, intensity, tags and a text note.
 | E-16 | Hiding the content of chosen entries until tapped ("difficult content") | v1 |
 | E-17 | An entry form being filled in survives a lock: kept encrypted and offered after unlocking, discarded when the form is left on purpose (D-20) | v1 |
 | E-18 | **Voice note**: up to 5 minutes recorded in the app, attached to an entry, encrypted like the rest and included in backups; no video or other files; recorded on every platform; the readable copy becomes a ZIP with the recordings (D-21) | v2 |
+| E-19 | **Voice note to text**: off by default; turned on per device by importing a speech recognition model the user downloads in the browser; a recording is transcribed on the device on request, and the text is shown for the user to correct before it is saved with the entry and becomes searchable (D-23) | v2 |
 
 ### 4.3. Plan for a hard moment
 
@@ -205,7 +207,7 @@ pub struct Entry {
     pub note: String,
     pub incomplete: bool,            // quick entry still to complete
     pub sensitive: bool,             // hide the content until tapped
-    pub voice: Option<VoiceNote>,    // E-18: { id, duration_ms, mime } → a row of `media`
+    pub voice: Option<VoiceNote>,    // E-18: { id, duration_ms, mime, transcript } → a row of `media`
 }
 
 pub enum EntryKind {
@@ -473,7 +475,10 @@ for iOS: the same for `gen/apple`.
 - **Migrations**: a database from every earlier version opens correctly (committed
   fixtures).
 - **No network**: CI checks that the dependency tree contains no `reqwest`, `hyper`,
-  `ureq` etc. (`cargo deny` with banned crates); a test of the Android release manifest.
+  `ureq` etc. (`cargo deny` with banned crates; the one exception is the sherpa-onnx
+  build script, which is handed archives checked against pinned SHA-256 sums, D-23);
+  a test of the Android release manifest; the release APK's native libraries import no
+  socket functions.
 - **No leaks to logs**: `AppError` and `Debug` for domain types never print content
   (hand-written, redacting `Debug`).
 - **Frontend**: `svelte-check`, unit tests (Vitest), end-to-end scenarios (Playwright):

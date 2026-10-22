@@ -8,6 +8,7 @@ mod device_key;
 mod error;
 mod session;
 mod sync;
+mod transcription;
 
 use std::time::{Duration, Instant};
 
@@ -17,6 +18,7 @@ use tauri::{AppHandle, Emitter, Manager, RunEvent, Window, WindowEvent};
 use commands::{AppState, emit_locked};
 use mossbook_core::vault::{self, Local};
 use session::Session;
+use transcription::Transcription;
 
 /// Event telling the UI to cover or uncover its content (desktop focus loss, D-11).
 const EVENT_CURTAIN: &str = "privacy-curtain";
@@ -55,7 +57,9 @@ pub fn run() {
             {
                 session.attach_sync(folder, location, device);
             }
-            app.manage(AppState::new(session));
+            // Voice note transcription (D-23): the model, when imported, lives here.
+            let models = dir.join(mossbook_core::transcribe::model::DIR_NAME);
+            app.manage(AppState::new(session, Transcription::new(models)));
             spawn_idle_timer(app.handle().clone());
             #[cfg(target_os = "linux")]
             if let Some(window) = app.get_webview_window("main") {
@@ -87,6 +91,12 @@ pub fn run() {
             commands::entry_delete,
             commands::voice_save,
             commands::voice_get,
+            commands::voice_transcribe,
+            commands::transcription_status,
+            commands::transcription_open_download,
+            commands::transcription_import,
+            commands::transcription_cancel,
+            commands::transcription_remove,
             commands::quick_entry,
             commands::quick_entry_locked,
             commands::tags_list,

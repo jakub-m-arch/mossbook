@@ -9,7 +9,9 @@ shows this file under Settings -> About. It starts with Mossbook's own licence
 - Rust: normal (non-dev, non-build) dependencies of the `mossbook` crate,
   read from `cargo metadata` and the licence files in each crate's directory;
 - npm: non-dev packages from app/package-lock.json and their licence files;
-- fonts embedded in PDF reports (core/data/fonts).
+- fonts embedded in PDF reports (core/data/fonts);
+- native code inside the prebuilt sherpa-onnx libraries for voice note
+  transcription, which ship no licence files (core/data/licenses, D-23).
 
 Identical licence texts are printed once, with the list of packages that use
 them. Needs no network once `cargo fetch` and `npm ci` have run.
@@ -85,8 +87,30 @@ def font_packages() -> list[tuple[str, str, list[str]]]:
     return [("Noto Sans (PDF reports)", "OFL-1.1", licence_texts(fonts))]
 
 
+# Native code inside the prebuilt sherpa-onnx archives (tools/sherpa-onnx.sha256),
+# which carry no licence files; sherpa-onnx itself is covered by its crate.
+NATIVE = [
+    ("ONNX Runtime (in sherpa-onnx)", "MIT", "sherpa-onnx/onnxruntime"),
+    ("kaldi-native-fbank (in sherpa-onnx)", "Apache-2.0", "sherpa-onnx/kaldi-native-fbank"),
+    ("kaldi-decoder (in sherpa-onnx)", "Apache-2.0", "sherpa-onnx/kaldi-decoder"),
+    ("kaldifst and OpenFst (in sherpa-onnx)", "Apache-2.0", "sherpa-onnx/kaldifst"),
+    ("KISS FFT (in sherpa-onnx)", "BSD-3-Clause", "sherpa-onnx/kissfft"),
+    ("simple-sentencepiece (in sherpa-onnx)", "Apache-2.0", "sherpa-onnx/simple-sentencepiece"),
+    ("piper-phonemize (in sherpa-onnx)", "MIT", "sherpa-onnx/piper-phonemize"),
+    ("eSpeak NG and ucd-tools (in sherpa-onnx)", "GPL-3.0-or-later", "sherpa-onnx/espeak-ng"),
+]
+
+
+def native_packages() -> list[tuple[str, str, list[str]]]:
+    base = ROOT / "core/data/licenses"
+    return [(name, licence, licence_texts(base / folder)) for name, licence, folder in NATIVE]
+
+
 def render() -> str:
-    packages = sorted(rust_packages() + npm_packages() + font_packages(), key=lambda p: p[0].lower())
+    packages = sorted(
+        rust_packages() + npm_packages() + font_packages() + native_packages(),
+        key=lambda p: p[0].lower(),
+    )
     # Keyed by the text with whitespace collapsed, so reflowed copies merge.
     groups: dict[str, tuple[str, list[str]]] = {}
     without_text = []

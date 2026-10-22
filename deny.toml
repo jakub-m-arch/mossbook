@@ -13,6 +13,11 @@ ignore = [
   { id = "RUSTSEC-2026-0370", reason = "transitive via tauri-plugin-opener -> zbus 5 (Linux)" },
   { id = "RUSTSEC-2026-0371", reason = "transitive via tauri-plugin-opener -> zbus 5 (Linux)" },
   { id = "RUSTSEC-2026-0372", reason = "transitive via tauri-plugin-opener -> zbus 5 (Linux)" },
+  # zip 2 is a build dependency of sherpa-onnx-sys (D-23): its build script unpacks
+  # only the pinned iOS archive with it, never anything at run time.
+  { id = "RUSTSEC-2026-0367", reason = "zip 2: build script of sherpa-onnx-sys only (pinned archives)" },
+  { id = "RUSTSEC-2026-0368", reason = "zip 2: build script of sherpa-onnx-sys only (pinned archives)" },
+  { id = "RUSTSEC-2026-0369", reason = "zip 2: build script of sherpa-onnx-sys only (pinned archives)" },
 ]
 
 [licenses]
@@ -30,9 +35,17 @@ allow = [
   "MPL-2.0",
   "CC0-1.0",
   "GPL-3.0-or-later",
+  # libbz2-rs-sys (unpacking the transcription model, D-23): the BSD-style bzip2 licence.
+  "bzip2-1.0.6",
 ]
 confidence-threshold = 0.9
 unused-allowed-license = "allow"
+
+# Root certificates (a data licence), pulled in by ureq in the sherpa-onnx-sys
+# build script only (D-23); nothing of it is in the app.
+[[licenses.exceptions]]
+crate = "webpki-roots"
+allow = ["CDLA-Permissive-2.0"]
 
 [[licenses.clarify]]
 crate = "mossbook"
@@ -55,18 +68,24 @@ allow-wildcard-paths = true
 # src/protocol/tauri.rs). That code does not exist in release builds. So reqwest
 # is allowed only as a direct dependency of tauri, and hyper only under reqwest.
 # The hard guarantee on Android is the missing INTERNET permission.
+#
+# Exception (D-23): the build script of sherpa-onnx-sys (voice note transcription)
+# can download its prebuilt libraries with ureq. Our builds hand it archives
+# checked against pinned SHA-256 sums (SHERPA_ONNX_ARCHIVE_DIR, see
+# tools/fetch-sherpa-onnx.sh), so it never connects; ureq and rustls are allowed
+# only on that build-time path and are not part of the app.
 deny = [
   { crate = "reqwest", wrappers = ["tauri"], reason = "zero network (SPEC §1)" },
   { crate = "hyper", wrappers = ["reqwest", "hyper-util"], reason = "zero network (SPEC §1)" },
   { crate = "h2", reason = "zero network (SPEC §1)" },
   { crate = "h3", reason = "zero network (SPEC §1)" },
-  { crate = "ureq", reason = "zero network (SPEC §1)" },
+  { crate = "ureq", wrappers = ["sherpa-onnx-sys"], reason = "zero network (SPEC §1)" },
   { crate = "isahc", reason = "zero network (SPEC §1)" },
   { crate = "surf", reason = "zero network (SPEC §1)" },
   { crate = "attohttpc", reason = "zero network (SPEC §1)" },
   { crate = "curl", reason = "zero network (SPEC §1)" },
   { crate = "curl-sys", reason = "zero network (SPEC §1)" },
-  { crate = "rustls", reason = "zero network (SPEC §1)" },
+  { crate = "rustls", wrappers = ["ureq"], reason = "zero network (SPEC §1)" },
   { crate = "native-tls", reason = "zero network (SPEC §1)" },
   { crate = "openssl", reason = "zero network (SPEC §1)" },
   { crate = "tungstenite", reason = "zero network (SPEC §1)" },

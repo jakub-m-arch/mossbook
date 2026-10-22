@@ -72,7 +72,9 @@ impl Entry {
 
     /// Every piece of free text in the entry, for in-memory search.
     pub fn texts(&self) -> impl Iterator<Item = &str> {
-        core::iter::once(self.note.as_str()).chain(self.kind.texts())
+        core::iter::once(self.note.as_str())
+            .chain(self.kind.texts())
+            .chain(self.voice.iter().map(|v| v.transcript.as_str()))
     }
 }
 

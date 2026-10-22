@@ -168,9 +168,10 @@ half-filled form is not part of the journal.
 shapes of the domain types in `core/src/domain/` (field names in `snake_case`,
 timestamps in RFC 3339 with the local offset, ids as UUID strings, entry kinds as
 `{"fear": {…}}` or `"note"`). An entry with a recording has
-`"voice": { "id": …, "duration_ms": …, "mime": "audio/ogg; codecs=opus" }`.
+`"voice": { "id": …, "duration_ms": …, "mime": "audio/ogg; codecs=opus" }`, plus
+`"transcript": "…"` when the user kept a text made from it (E-19, D-23).
 A change to these shapes increments `version`: version 1 (Mossbook 0.1–0.3) was the
-JSON file alone, without `voice`.
+JSON file alone, without `voice`; version 2 (0.4) had no `transcript`.
 
 ## Versioning
 

@@ -96,6 +96,9 @@ Mossbook never connects to the internet, so it does not check for updates by its
   written-down recovery key works.
 - **Voice notes** of up to five minutes, recorded in the app and encrypted like the
   rest.
+- **Voice notes to text**, off by default: after you download a speech recognition
+  model in your browser and point Mossbook to the file, a recording can be turned into
+  text on the device, for you to read and correct (see below).
 - **The same journal on your phone and your computer** through a folder that
   [Syncthing](https://syncthing.net) shares between them (see below); Mossbook itself
   still never connects anywhere.
@@ -131,11 +134,41 @@ whoever can see the folder learns how many devices there are, how big each file 
 when it changed, nothing more. The details are in
 [`docs/backup-format.md`](docs/backup-format.md) (*Sync files*).
 
+## Turning voice notes into text
+
+Optional and off by default. Recognition runs on your device with NVIDIA's Parakeet
+model (Polish, Ukrainian, English and other European languages); recordings are never
+sent anywhere.
+
+1. Settings → *Turning recordings into text* → *Open the download page*. Your browser
+   downloads the model (`sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2`, 487 MB).
+   Mossbook itself downloads nothing.
+2. *Pick the downloaded file*. Mossbook accepts only that exact file (checked by its
+   SHA-256) and unpacks what it needs (about 670 MB). You can then delete the download.
+3. In an entry with a voice note, *Turn into text*. Read the text and correct it before
+   saving; it is stored with the entry, encrypted, and found by search.
+
+Transcription needs about 1.5 GB of memory while it runs, so on a phone with less than
+6 GB it may fail. The model belongs to this device: it is not in backups or sync, and
+removing it in Settings turns the feature off. Five minutes of speech take about 20
+seconds on a recent computer and longer on a phone.
+
+**What this means for "zero network".** The app still makes no connections and has no
+networking code. The recognition engine, however, comes as libraries prebuilt by the
+[sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) project (with ONNX Runtime), not
+built from source by Mossbook. Their build script can download those libraries, so it
+brings a networking crate (`ureq`) into the *build* tools: `deny.toml` allows it there
+and nowhere else, and Mossbook's builds hand the script archives checked against
+SHA-256 sums pinned in [`tools/sherpa-onnx.sha256`](tools/sherpa-onnx.sha256), so it
+never connects. The details and the trade-offs are in decision D-23 in
+[`docs/PLAN.md`](docs/PLAN.md), [`SECURITY.md`](SECURITY.md) and the
+[threat model](docs/threat-model.md).
+
 ## Privacy and security
 
 | Principle | How |
 |---|---|
-| Zero network | No networking code or dependencies (enforced by `cargo deny`). The Android release build does not even hold the `INTERNET` permission (checked in CI). |
+| Zero network | No networking code in the app (enforced by `cargo deny`; the one build-time exception is described under *Turning voice notes into text*). The Android release build does not even hold the `INTERNET` permission, and none of its native libraries imports socket functions (checked in CI). |
 | Everything encrypted at rest | Every record, tag, date and setting is encrypted with XChaCha20-Poly1305. Nothing readable is stored on disk. |
 | Strong password hashing | The key is derived from your password with Argon2id (64 MiB, calibrated to ~0.75 s on your device). |
 | Recovery key | 24 words (BIP-39) generated when you create the journal. Without your password **and** this key, nobody can recover your entries, including us. |
@@ -212,6 +245,11 @@ mossbook/
 - **Rust**: installed with [rustup](https://rustup.rs). The exact toolchain is pinned in
   [`rust-toolchain.toml`](rust-toolchain.toml) and installed automatically.
 - **Node.js** 24 or newer, with npm.
+- **CMake**, which builds libopus (used to decode voice notes for transcription).
+- **The sherpa-onnx libraries** for transcription, fetched once and checked against
+  pinned SHA-256 sums: `tools/fetch-sherpa-onnx.sh` (add `android` for Android
+  builds). The build takes them from `target/sherpa-onnx-archives` and stops if they
+  are missing, rather than downloading anything itself.
 - **Tauri CLI**: `cargo install tauri-cli --locked`
 - **Platform libraries** for Tauri, see the
   [Tauri prerequisites](https://tauri.app/start/prerequisites/). On Debian/Ubuntu:
@@ -237,7 +275,8 @@ or `~/.local/share/io.github.jakubmarch.mossbook/` on Linux.
 ### Android
 
 You need JDK 17, the Android SDK command-line tools (platform-tools, a platform,
-build-tools) and an NDK, with `JAVA_HOME`, `ANDROID_HOME` and `NDK_HOME` set (see
+build-tools) and an NDK, with `JAVA_HOME`, `ANDROID_HOME` and `NDK_HOME` set, and
+`ANDROID_NDK_ROOT` pointing to the same NDK for CMake (see
 the [Tauri Android prerequisites](https://tauri.app/start/prerequisites/#android)),
 and the Rust targets:
 

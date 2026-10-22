@@ -32,6 +32,8 @@ import type {
 	Status,
 	Tag,
 	SyncStatus,
+	TranscriptionProgress,
+	TranscriptionStatus,
 	UnsavedEntry,
 	VoiceNote
 } from './types';
@@ -107,6 +109,22 @@ export const voiceSave = (data: Uint8Array) =>
 	invoke<VoiceNote>('voice_save', { data: bytesToBase64(data) });
 /** One recording for playback. Keep it in memory only (an object URL, revoked after use). */
 export const voiceGet = (id: Id) => invoke<string>('voice_get', { id }).then(base64ToBytes);
+
+// ---- transcription (E-19, D-23) ----
+
+/** Turns a stored recording into text on this device; the user checks it before saving. */
+export const voiceTranscribe = (id: Id) => invoke<string>('voice_transcribe', { id });
+export const transcriptionStatus = () => invoke<TranscriptionStatus>('transcription_status');
+/** Opens the model's download address in the system browser; the app never connects. */
+export const transcriptionOpenDownload = () => invoke<void>('transcription_open_download');
+/** Picks the downloaded model and imports it. `false` if cancelled. */
+export const transcriptionImport = () => invoke<boolean>('transcription_import');
+export const transcriptionCancel = () => invoke<void>('transcription_cancel');
+export const transcriptionRemove = () => invoke<void>('transcription_remove');
+export const onTranscriptionProgress = (
+	handler: (progress: TranscriptionProgress) => void
+): Promise<UnlistenFn> =>
+	listen<TranscriptionProgress>('transcription-progress', (event) => handler(event.payload));
 /** Quick entry (E-10): mood rating 1–5 for `mood`, intensity 0–10 otherwise. */
 export const quickEntry = (kind: EntryKindTag, value: number | null) =>
 	invoke<Entry>('quick_entry', { kind, value });

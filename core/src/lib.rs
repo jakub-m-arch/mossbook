@@ -12,6 +12,7 @@ pub mod journal;
 pub mod query;
 pub mod report;
 pub mod store;
+pub mod transcribe;
 pub mod vault;
 
 /// Version of the `mossbook-core` crate.

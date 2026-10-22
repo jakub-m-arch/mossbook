@@ -29,6 +29,7 @@
 	import PasswordField from '#lib/components/PasswordField.svelte';
 	import StrengthMeter from '#lib/components/StrengthMeter.svelte';
 	import SyncSettings from '#lib/components/SyncSettings.svelte';
+	import TranscriptionSettings from '#lib/components/TranscriptionSettings.svelte';
 	import UnlockedShell from '#lib/components/UnlockedShell.svelte';
 	import { detectLocale, locale, setLocale, t } from '#lib/i18n/index.svelte.js';
 	import { MIN_PASSWORD_CHARS } from '#lib/password.js';
@@ -285,6 +286,8 @@
 		</section>
 
 		<SyncSettings />
+
+		<TranscriptionSettings />
 
 		<section class="card stack" aria-labelledby="export-readable">
 			<h2 id="export-readable">{t('exportReadable.title')}</h2>

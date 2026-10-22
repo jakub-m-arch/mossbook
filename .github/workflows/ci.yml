@@ -30,6 +30,8 @@ jobs:
       - name: Toolchain (rust-toolchain.toml)
         run: rustup show active-toolchain || rustup toolchain install
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: sherpa-onnx libraries (pinned SHA-256, D-23)
+        run: tools/fetch-sherpa-onnx.sh linux-x64
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
@@ -117,6 +119,9 @@ jobs:
       - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
         with:
           tool: tauri-cli
+      - name: sherpa-onnx libraries (pinned SHA-256, D-23)
+        shell: bash
+        run: tools/fetch-sherpa-onnx.sh
       - run: cargo tauri build --ci --no-bundle
         working-directory: app
 
@@ -131,6 +136,8 @@ jobs:
         run: |
           echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
           echo "NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
+          # CMake (libopus for transcription, D-23) finds the NDK through this one.
+          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
       - name: Rust Android target
         run: rustup target add aarch64-linux-android
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -146,6 +153,8 @@ jobs:
       - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
         with:
           tool: tauri-cli
+      - name: sherpa-onnx libraries (pinned SHA-256, D-23)
+        run: tools/fetch-sherpa-onnx.sh android
       - name: Release APK (unsigned)
         # RUSTFLAGS would replace the Android linker flags that tauri-cli sets.
         run: env -u RUSTFLAGS cargo tauri android build --ci --apk --target aarch64

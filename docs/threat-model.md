@@ -27,7 +27,7 @@ It complements [`crypto.md`](crypto.md) (cryptography) and
 | Tampering with a backup | Removing or reordering records | DEK-sealed SHA-256 manifest over all records | `core/src/backup/` |
 | Plaintext dates on disk | Row keys revealing when entries were written | Random v4 ids (decision D-13); no date columns | `domain/mod.rs`, `core/migrations/` |
 | Forgotten password | Loss of access | Recovery key, confirmed by retyping 3 words before anything is written | `vault/create.rs`, `routes/setup/` |
-| Network exfiltration | A dependency phones home | No networking code; networking crates banned by `cargo deny`; strict CSP; no HTTP plugin | `deny.toml`, `tauri.conf.json` |
+| Network exfiltration | A dependency phones home | No networking code; networking crates banned by `cargo deny` (one build-time exception, see "Prebuilt native code"); strict CSP; no HTTP plugin | `deny.toml`, `tauri.conf.json` |
 | Compromised web view calling commands | Injected script | Only the app's own commands are granted; keys never reach the web view; dialing limited to crisis numbers and saved plan contacts | `capabilities/default.json`, `commands.rs` |
 | Content in logs | Crash or debug output | Logging macros forbidden by lints; redacted `Debug`; errors carry codes, not data | `clippy.toml`, `domain/`, `error.rs` |
 | Quick entry while locked | Writing down a moment without the password | Sealed box to the vault's public key: entries can be added but nothing can be read; validated on unlock | `crypto/sealed.rs`, `journal.rs` |
@@ -37,6 +37,8 @@ It complements [`crypto.md`](crypto.md) (cryptography) and
 | Voice notes outside the journal | A plaintext copy in the gallery, a temporary file, a cloud-synced folder | Recorded only inside the app (no import); encoded in memory and stored encrypted like records; decrypted one at a time for playback into an object URL that is revoked when the player goes away; never written to a file; the archive has no metadata or timestamps; recordings nothing points to are deleted on lock | `app/src/lib/voice/`, `journal.rs`, `vault/mod.rs` |
 | Sync between devices (D-22) | The sync folder is copied by Syncthing, read by another app on the phone, or a file in it is replaced | Each file is a full encrypted backup under the journal's key: unreadable without it, and a changed, cut or foreign file is refused (manifest over records, recordings and the password wrap; vault id checked). An old file replayed cannot undo a newer edit, a deletion or a password change (newer `updated_at` and `password_epoch` win). Mossbook never connects; Syncthing does, between the user's own devices | `core/src/journal/sync.rs`, `backup/`, `app/src-tauri/src/sync.rs` |
 | Joining another device's journal | Someone puts their own journal file into the folder | Joining needs that journal's password, is throttled like unlocking, warns that the password and recovery key change, and keeps this device's journal in its automatic backups first | `session.rs` (`sync_join`), Settings → Sync |
+| Transcription (E-19, D-23) | A recording or its text sent to a speech service; a tampered model file | Off by default. Recognition runs on the device (sherpa-onnx, ONNX Runtime); the app never downloads the model, the user's browser does, and the import accepts only the archive with the pinned size and SHA-256 and unpacks only the four files it needs, by name, into a staging folder. The recording is decrypted for the job only and its decoded audio zeroed after it; the text goes to the form, not to disk, until the user saves the entry; a lock stops the job and drops the text | `core/src/transcribe/`, `app/src-tauri/src/transcription.rs` |
+| Prebuilt native code (D-23) | The transcription engine's libraries, built by the sherpa-onnx project, are replaced or do something else | The archives are pinned by SHA-256 in `tools/sherpa-onnx.sha256` and checked before every build; the build script never downloads on its own; the Android release APK is checked for socket imports in every native library; the app holds no network permission on Android. What the pinned binaries do inside is trusted, not rebuilt from source | `tools/fetch-sherpa-onnx.sh`, `deny.toml`, `tools/check-android-apk.sh` |
 | A web view asking for more | Script asking for the camera or location | The web view is allowed the microphone (voice notes) and refused every other permission; Android declares only `RECORD_AUDIO`, asked on the first recording | `app/src-tauri/src/lib.rs`, `AndroidManifest.xml` |
 
 ## Accepted metadata leaks
@@ -93,6 +95,16 @@ Visible to someone with the vault file or a backup, by design:
   which cannot be wiped, like typed text. The operating system shows that the
   microphone is in use; Mossbook does not record in the background (leaving the app
   ends the recording).
+- **Transcription (D-23).** The model and the inference engine are third-party:
+  NVIDIA's Parakeet model and the sherpa-onnx project's prebuilt libraries with
+  ONNX Runtime, used as published (pinned by hash, not rebuilt from source). Their
+  build script can download libraries, so `ureq` is allowed in the dependency tree
+  as a build-time exception; Mossbook's builds hand it checked archives instead, and
+  nothing of it ships in the app. While a recording is transcribed, its audio and the
+  text pass through native memory (sherpa-onnx, libopus) that cannot be wiped, and
+  the text then passes through the web view like typed text. The text is a guess:
+  the user reads and corrects it before it is saved. The model itself is not
+  encrypted (it holds no user data) and its presence shows that transcription is on.
 - **Sync and clocks.** Which of two edits is newer comes from each device's clock: a
   device whose clock is far ahead can make its older edit win. A sync file holds the
   whole journal, so anyone who can open the folder can copy it, though not read it;

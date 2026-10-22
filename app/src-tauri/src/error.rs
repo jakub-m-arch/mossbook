@@ -6,6 +6,7 @@ use std::time::Duration;
 use mossbook_core::backup::BackupError;
 use mossbook_core::domain::DomainError;
 use mossbook_core::journal::JournalError;
+use mossbook_core::transcribe::TranscribeError;
 use mossbook_core::vault::VaultError;
 use serde::Serialize;
 
@@ -106,6 +107,20 @@ impl From<BackupError> for AppError {
             BackupError::WrongRecoveryKey => "wrong_recovery_key",
             BackupError::InvalidRecoveryPhrase => "invalid_recovery_phrase",
             BackupError::Vault(e) => return e.into(),
+        };
+        Self::new(code, e.to_string())
+    }
+}
+
+impl From<TranscribeError> for AppError {
+    fn from(e: TranscribeError) -> Self {
+        let code = match e {
+            TranscribeError::ModelMissing => "transcription_off",
+            TranscribeError::ModelInvalid => "model_invalid",
+            TranscribeError::ModelLoad => "model_load",
+            TranscribeError::Audio => "transcription_audio",
+            TranscribeError::Cancelled => "cancelled",
+            TranscribeError::Io => "io",
         };
         Self::new(code, e.to_string())
     }

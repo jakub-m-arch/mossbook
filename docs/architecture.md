@@ -41,6 +41,7 @@ command contract.
 | `query/` | Read-only computations over the in-memory journal: `filter`, `search` (case- and diacritic-insensitive), `stats` (mood series), `patterns` (overviews A-2–A-4, with minimum data thresholds). |
 | `backup/` | The `.mossbook` file: export (header + encrypted records 1:1 + sealed manifest), open with password or recovery key, restore without re-encryption, decode for import. `auto`: automatic backups on lock (slots, rotation, clearing; D-16). |
 | `report/` | The therapist PDF: takes a `ReportDoc` built by the UI and lays it out on A4 with embedded Noto Sans; optionally encrypts the finished file with AES-256 (`lopdf`, PDF 2.0 V5/R6). |
+| `transcribe/` | Voice notes to text on the device (E-19, D-23): `audio` (Ogg Opus → 16 kHz mono with libopus, cut into 15–25 s pieces at pauses), `model` (import of the pinned model archive: size and SHA-256, only the needed files, staging folder + rename; check, removal), `Transcriber` (sherpa-onnx with NVIDIA Parakeet; cancel flag and progress between pieces). |
 | `crisis.rs` | Static crisis phone numbers from `core/data/crisis/*.json`, embedded at compile time. |
 
 ## App layer (`app/src-tauri/src`)
@@ -51,6 +52,7 @@ command contract.
 | `session.rs` | `Session`: the state machine `NoVault → Creating(PendingVault) → Locked ⇄ Unlocked(Journal)`, plus the throttle, the auto-lock policy, the UTC offset from the UI and the "system dialog in progress" flag. Plain Rust, unit-tested without Tauri. |
 | `commands.rs` | One `#[tauri::command(async)]` per operation; each locks the session, calls the core and maps errors. Passwords are moved into `Zeroizing` at once. |
 | `error.rs` | `AppError { code, message, retry_after_ms }`: codes, never user data. |
+| `transcription.rs` | Where the transcription model lives on this device, one job (import or transcription) at a time with a cancel flag, and the memory figure behind the low-memory warning. |
 | `command_names.rs` | The single command list, shared with `build.rs` (permission manifest) and the tests that check the capability file and the handler. |
 
 `AppState` is a `Mutex<Session>`. Long operations that open a system dialog (backup,
@@ -142,6 +144,14 @@ lock → `Journal::keep_unsaved_entry` stores it in the encrypted settings. Savi
 entry clears it; leaving the form for another screen sends `unsaved_discard`; a lock
 keeps it. After unlocking, the timeline offers to continue or discard it
 (`unsaved_get`).
+
+**Transcribe a voice note (D-23).** Settings: `transcription_open_download` opens the
+model's address in the browser; `transcription_import` picks the downloaded archive
+and `core::transcribe::model::install` checks and unpacks it. In the entry form,
+`voice_transcribe(id)` decrypts the recording under the session lock, releases it, then
+loads the model, decodes and transcribes piece by piece (progress events with counts
+only; a lock seen between pieces cancels) and returns the text to the form. The text
+is stored only when the user saves the entry, as `VoiceNote.transcript`.
 
 **Lock.** Manual, background, idle or exit → if an automatic backup is due (D-16), one
 is written to `backups/` (best effort: a failure never blocks locking) → the `Journal`

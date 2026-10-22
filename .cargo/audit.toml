@@ -1,0 +1,9 @@
+# cargo audit: advisories accepted with a reason (kept in step with deny.toml).
+[advisories]
+ignore = [
+  # zip 2 is a build dependency of sherpa-onnx-sys (D-23): its build script
+  # unpacks only the pinned iOS archive with it, never anything at run time.
+  "RUSTSEC-2026-0367",
+  "RUSTSEC-2026-0368",
+  "RUSTSEC-2026-0369",
+]

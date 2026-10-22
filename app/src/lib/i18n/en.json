@@ -45,7 +45,13 @@
 		"device_unlock_off": "Fingerprint unlock is off. Enter your password.",
 		"no_other_journal": "The folder holds no journal from another device.",
 		"folder_unavailable": "This folder cannot be opened.",
-		"other_journal": "This file belongs to another journal."
+		"other_journal": "This file belongs to another journal.",
+		"model_invalid": "This is not the expected model file, or the download did not finish. Download it again.",
+		"model_load": "The model could not start. This device may not have enough memory.",
+		"transcription_off": "Turning recordings into text is off. You can turn it on in Settings.",
+		"transcription_audio": "This recording cannot be read.",
+		"busy": "A recording is already being turned into text, or the model is being unpacked. Wait a moment.",
+		"cancelled": "Stopped."
 	},
 	"strength": {
 		"label": "Password strength",
@@ -554,7 +560,32 @@
 		"unsupported": "Recording is not available on this device.",
 		"failed": "The recording did not work. Please try again.",
 		"playFailed": "The recording could not be played.",
-		"length": "Voice note, {time}"
+		"length": "Voice note, {time}",
+		"transcribe": "Turn into text",
+		"transcribing": "Turning into text… {done} of {total}",
+		"transcribeStop": "Stop",
+		"transcriptLabel": "Text of the recording",
+		"transcriptHint": "Recognised on this device. It may contain mistakes: read it and correct it before saving.",
+		"transcriptEmpty": "No words were recognised in this recording."
+	},
+	"transcription": {
+		"title": "Turning recordings into text",
+		"intro": "Mossbook can turn voice notes into text that you then read and correct. It happens on this device: recordings are not sent anywhere. This is off by default.",
+		"needs": "It needs a speech recognition model: {download} to download, {disk} on disk. It understands Polish, Ukrainian, English and other European languages.",
+		"step1": "1. Download the model file in your browser. Mossbook itself downloads nothing and does not connect to the network.",
+		"download": "Open the download page",
+		"step2": "2. Pick the downloaded file ({file}). Mossbook checks that it is exactly that file and unpacks it.",
+		"import": "Pick the downloaded file",
+		"importing": "Unpacking the model… {percent}%",
+		"cancel": "Stop",
+		"lowMemory": "This device has {memory} of memory. Turning recordings into text needs about 1.5 GB, so it may fail or close the app.",
+		"on": "On. The model takes {disk} on this device. It is not part of backups or sync.",
+		"howTo": "A voice note in an entry now has a \"Turn into text\" button.",
+		"remove": "Remove the model and turn off",
+		"removeQuestion": "Remove the model from this device? Texts saved in entries stay.",
+		"removed": "Model removed. Turning recordings into text is off.",
+		"imported": "Done. Turning recordings into text is on.",
+		"credit": "Model: NVIDIA Parakeet TDT 0.6B v3 (CC BY 4.0 licence), run by sherpa-onnx."
 	},
 	"sync": {
 		"title": "Sync",

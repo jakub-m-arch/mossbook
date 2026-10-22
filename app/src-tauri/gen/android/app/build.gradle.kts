@@ -45,6 +45,12 @@ android {
             }
         }
     }
+    sourceSets.getByName("main") {
+        // Voice note transcription (D-23): the sherpa-onnx C API and ONNX Runtime,
+        // unpacked from the pinned archive by tools/fetch-sherpa-onnx.sh android.
+        // libmossbook_lib.so needs them; tools/check-android-apk.sh fails without them.
+        jniLibs.srcDir(rootProject.file("../../../../target/sherpa-onnx-android/jniLibs"))
+    }
     buildTypes {
         getByName("debug") {
             applicationIdSuffix = ".debug"

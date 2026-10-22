@@ -63,6 +63,15 @@ jobs:
       - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
         with:
           tool: tauri-cli
+      - name: sherpa-onnx libraries (pinned SHA-256, D-23)
+        shell: bash
+        run: |
+          # The macOS runner builds both architectures.
+          if [ "$RUNNER_OS" = macOS ]; then
+            tools/fetch-sherpa-onnx.sh osx-arm64 osx-x64
+          else
+            tools/fetch-sherpa-onnx.sh
+          fi
       - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -109,6 +118,8 @@ jobs:
         run: |
           echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
           echo "NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
+          # CMake (libopus for transcription, D-23) finds the NDK through this one.
+          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
           rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         if: steps.key.outputs.present == 'true'
@@ -141,6 +152,9 @@ jobs:
             echo "keyAlias=$ANDROID_KEY_ALIAS"
             echo "password=$ANDROID_KEY_PASSWORD"
           } > keystore.properties
+      - name: sherpa-onnx libraries (pinned SHA-256, D-23)
+        if: steps.key.outputs.present == 'true'
+        run: tools/fetch-sherpa-onnx.sh android
       - name: Release APK
         if: steps.key.outputs.present == 'true'
         working-directory: app

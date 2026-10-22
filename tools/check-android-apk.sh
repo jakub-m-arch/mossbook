@@ -1,6 +1,7 @@
 #!/bin/sh
 # Checks a release APK against SPEC §1 and §8.4: no network permissions, no
-# system backups, and native libraries that import no socket functions.
+# system backups, and native libraries that import no socket functions; and that
+# every library a native library needs is in the APK (D-23: sherpa-onnx).
 #
 #   tools/check-android-apk.sh <release.apk>
 #
@@ -36,7 +37,17 @@ done
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 unzip -q -o "$apk" 'lib/*' -d "$work"
+readelf=$(dirname "$nm")/llvm-readelf
+# Libraries every Android device provides; anything else must be in the APK.
+system='libc.so libm.so libdl.so liblog.so libandroid.so'
 for so in "$work"/lib/*/*.so; do
+  for needed in $("$readelf" -d "$so" | sed -n 's/.*Shared library: \[\(.*\)\]/\1/p'); do
+    case " $system " in *" $needed "*) continue ;; esac
+    if [ ! -f "$(dirname "$so")/$needed" ]; then
+      echo "FAIL: ${so#"$work"/} needs $needed, which is not in the APK" >&2
+      fail=1
+    fi
+  done
   imports=$("$nm" -D --undefined-only "$so" | awk '{print $NF}')
   network=$(echo "$imports" | grep -xE 'socket|connect|bind|listen|accept4?|getaddrinfo|gethostbyname|sendto|recvfrom' || true)
   if [ -n "$network" ]; then

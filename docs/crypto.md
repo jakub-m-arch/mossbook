@@ -158,8 +158,10 @@ without one encode as before.
   Adding a field with a default is therefore not a format change.
 - A record whose decoded `id` differs from its row id, or that does not decode, is
   counted as unreadable on unlock, like a record that fails authentication.
-- `Entry.voice` (`{ id, duration_ms, mime }`, left out when absent) points to a row of
-  `media`. Its plaintext is an Ogg Opus file (RFC 3533, RFC 7845) of at most 4 MiB and
+- `Entry.voice` (`{ id, duration_ms, mime, transcript }`, left out when absent) points
+  to a row of `media`. `transcript` (E-19, D-23) is the text the user kept from
+  transcribing the recording, left out when empty, so notes without one encode as in
+  0.4; an older build ignores it and drops it if it saves that entry again. Its plaintext is an Ogg Opus file (RFC 3533, RFC 7845) of at most 4 MiB and
   5 minutes; the journal checks the container and takes the length from the last
   granule position, so the UI cannot store something else or claim another length.
 

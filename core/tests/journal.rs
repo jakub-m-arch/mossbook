@@ -223,7 +223,7 @@ fn json_export_holds_the_whole_journal() {
     let bytes = j.export_json(NOW).unwrap();
     let doc: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(doc["format"], "mossbook-export");
-    assert_eq!(doc["version"], 2);
+    assert_eq!(doc["version"], 3);
     assert_eq!(doc["exported_at"], "2026-10-19T20:00:00+02:00");
     let entries = doc["entries"].as_array().unwrap();
     assert_eq!(entries.len(), 2);
@@ -652,6 +652,39 @@ fn a_recording_is_stored_encrypted_and_read_back() {
 }
 
 #[test]
+fn a_transcript_is_kept_encrypted_and_searchable() {
+    let (fx, mut j) = create();
+    let mut e = note_with_voice(&mut j, 50, 4);
+    // Without a transcript the entry encodes exactly as before (D-23): no new key.
+    assert!(!contains(&encode(&e).unwrap(), b"transcript"));
+
+    e.voice.as_mut().unwrap().transcript = "Synthetic walk with Żaneta".into();
+    j.save_entry(e.clone(), NOW).unwrap();
+    let j = reopen(&fx, j);
+    let kept = j.entry(&e.id).unwrap().voice.clone().unwrap();
+    assert_eq!(kept.transcript, "Synthetic walk with Żaneta");
+    assert_eq!(
+        kept.duration_ms, 1000,
+        "the length still comes from the file"
+    );
+    let found = j.entries(&EntryFilter {
+        text: Some("zaneta".into()),
+        ..Default::default()
+    });
+    assert_eq!(found.len(), 1, "found by its transcript");
+    assert_eq!(found[0].id, e.id);
+    // The readable copy carries it (export version 3).
+    let doc: serde_json::Value = serde_json::from_slice(&j.export_json(NOW).unwrap()).unwrap();
+    assert_eq!(doc["version"], 3);
+    assert_eq!(
+        doc["entries"][0]["voice"]["transcript"],
+        "Synthetic walk with Żaneta"
+    );
+    j.lock().unwrap();
+    assert!(!contains(&raw_vault_bytes(&fx), b"Synthetic walk"));
+}
+
+#[test]
 fn only_valid_recordings_are_accepted() {
     let (_fx, mut j) = create();
     let invalid = Err(JournalError::Domain(DomainError::InvalidField("voice")));
@@ -775,7 +808,7 @@ fn readable_copy_is_a_zip_with_the_json_and_the_recordings() {
         .read_to_string(&mut json)
         .unwrap();
     let json: serde_json::Value = serde_json::from_str(&json).unwrap();
-    assert_eq!(json["version"], 2);
+    assert_eq!(json["version"], 3);
     let entries = json["entries"].as_array().unwrap();
     let with_voice: Vec<_> = entries
         .iter()
@@ -784,6 +817,10 @@ fn readable_copy_is_a_zip_with_the_json_and_the_recordings() {
     assert_eq!(with_voice.len(), 1);
     assert_eq!(with_voice[0]["voice"]["id"], voice.id.to_string());
     assert_eq!(with_voice[0]["voice"]["duration_ms"], 1000);
+    assert!(
+        with_voice[0]["voice"].get("transcript").is_none(),
+        "left out when there is none"
+    );
 
     let mut file = zip.by_name(&voice_name).unwrap();
     assert_eq!(file.compression(), zip::CompressionMethod::Stored);

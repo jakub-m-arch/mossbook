@@ -19,6 +19,8 @@ use mossbook_core::domain::{
 use mossbook_core::journal::ImportMode;
 use mossbook_core::query::{EntryFilter, MoodPoint, Patterns, StatsRange};
 use mossbook_core::report::{ReportDoc, ReportError, render_pdf};
+use mossbook_core::transcribe::{PARAKEET_V3, Transcriber, model};
+use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::DialogExt;
@@ -32,18 +34,21 @@ use crate::session::{
     BackupInfo, BackupSecret, BackupSummary, ImportOutcome, LockReason, RecoveryAnswer,
     RecoverySetup, Session, Status, SyncStatus,
 };
+use crate::transcription::{Transcription, TranscriptionStatus};
 
 /// Event sent to the UI whenever the vault locks.
 pub const EVENT_LOCKED: &str = "vault-locked";
 
 pub struct AppState {
     session: Mutex<Session>,
+    transcription: Transcription,
 }
 
 impl AppState {
-    pub fn new(session: Session) -> Self {
+    pub fn new(session: Session, transcription: Transcription) -> Self {
         Self {
             session: Mutex::new(session),
+            transcription,
         }
     }
 
@@ -332,6 +337,113 @@ pub fn voice_get(state: State<'_, AppState>, id: Id) -> AppResult<String> {
         let bytes = s.journal()?.voice(&id)?;
         Ok(BASE64.encode(bytes.as_slice()))
     })
+}
+
+// ---- transcription (E-19, D-23) ----
+
+/// Event with the progress of an import or a transcription. Counts only, no content.
+pub const EVENT_TRANSCRIPTION_PROGRESS: &str = "transcription-progress";
+
+#[derive(Clone, Serialize)]
+struct Progress {
+    done: u64,
+    total: u64,
+}
+
+fn emit_progress(app: &AppHandle, done: u64, total: u64) {
+    let _ = app.emit(EVENT_TRANSCRIPTION_PROGRESS, Progress { done, total });
+}
+
+/// Transcribes one recording on this device and returns the text for the user
+/// to check; nothing is stored until the entry is saved. The session is not
+/// held while the model runs; a lock in the meantime stops the job and the
+/// text is dropped.
+#[tauri::command(async)]
+pub fn voice_transcribe(app: AppHandle, state: State<'_, AppState>, id: Id) -> AppResult<String> {
+    let recording = with_session(&state, |s| Ok(s.journal()?.voice(&id)?))?;
+    let job = state.transcription.start()?;
+    let threads = std::thread::available_parallelism().map_or(2, |n| n.get().min(4));
+    let transcriber = Transcriber::load(state.transcription.root(), &PARAKEET_V3, threads)?;
+    let text = transcriber.transcribe(&recording, job.cancelled(), &mut |done, total| {
+        let mut session = state.session();
+        if session.journal().is_err() {
+            job.cancel();
+            return;
+        }
+        // The user is waiting for the result: not idle.
+        session.touch(Instant::now());
+        drop(session);
+        emit_progress(&app, done as u64, total as u64);
+    });
+    drop(transcriber);
+    drop(recording);
+    let text = Zeroizing::new(text?);
+    state.session().journal()?;
+    Ok(text.to_string())
+}
+
+#[tauri::command(async)]
+pub fn transcription_status(state: State<'_, AppState>) -> TranscriptionStatus {
+    state.transcription.status()
+}
+
+/// Opens the model's fixed download address in the user's browser. Mossbook
+/// itself never connects (D-23).
+#[tauri::command(async)]
+pub fn transcription_open_download(app: AppHandle) -> AppResult<()> {
+    app.opener()
+        .open_url(PARAKEET_V3.url, None::<&str>)
+        .map_err(|_| AppError::new("internal", "cannot open the browser"))
+}
+
+/// Lets the user pick the downloaded model archive and imports it, which turns
+/// transcription on. `false` if the dialog was cancelled.
+#[tauri::command(async)]
+pub fn transcription_import(app: AppHandle, state: State<'_, AppState>) -> AppResult<bool> {
+    let job = state.transcription.start()?;
+    let picked = with_dialog(&state, || {
+        app.dialog()
+            .file()
+            .add_filter("tar.bz2", &["bz2"])
+            .blocking_pick_file()
+    });
+    let Some(picked) = picked else {
+        return Ok(false);
+    };
+    let mut options = OpenOptions::new();
+    options.read(true);
+    let file = app
+        .fs()
+        .open(picked, options)
+        .map_err(|_| AppError::new("io", "cannot read the file"))?;
+    let total = PARAKEET_V3.archive_bytes;
+    let mut shown = 0;
+    model::install(
+        state.transcription.root(),
+        &PARAKEET_V3,
+        std::io::BufReader::new(file),
+        job.cancelled(),
+        &mut |done| {
+            // About a hundred updates in all.
+            if done - shown >= total / 100 || done == total {
+                shown = done;
+                emit_progress(&app, done, total);
+            }
+        },
+    )?;
+    Ok(true)
+}
+
+/// Stops a running import or transcription.
+#[tauri::command(async)]
+pub fn transcription_cancel(state: State<'_, AppState>) {
+    state.transcription.cancel();
+}
+
+/// Removes the model from this device, which turns transcription off.
+#[tauri::command(async)]
+pub fn transcription_remove(state: State<'_, AppState>) -> AppResult<()> {
+    state.transcription.remove()
 }
 
 #[tauri::command(async)]
