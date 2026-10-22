@@ -137,6 +137,40 @@ export function muxOggOpus(packets: OpusPacket[], o: OggOpusOptions): Uint8Array
 	return out;
 }
 
+/**
+ * Samples (at 48 kHz) an Opus packet decodes to, from its TOC byte (RFC 6716
+ * §3.1), so granule positions do not depend on what an encoder reports as a
+ * chunk's duration. `undefined` for a malformed packet.
+ */
+export function opusPacketSamples(packet: Uint8Array): number | undefined {
+	if (packet.length === 0) return undefined;
+	const toc = packet[0];
+	const config = toc >> 3;
+	// Frame length in units of 2.5 ms: SILK 10/20/40/60, hybrid 10/20, CELT 2.5/5/10/20 ms.
+	const quarterMs =
+		config < 12
+			? [4, 8, 16, 24][config % 4]
+			: config < 16
+				? [4, 8][config % 2]
+				: [1, 2, 4, 8][config % 4];
+	let frames: number;
+	switch (toc & 0x03) {
+		case 0:
+			frames = 1;
+			break;
+		case 1:
+		case 2:
+			frames = 2;
+			break;
+		default:
+			if (packet.length < 2) return undefined;
+			frames = packet[1] & 0x3f;
+	}
+	const samples = frames * quarterMs * 120; // 2.5 ms at 48 kHz = 120 samples
+	// A packet holds at most 120 ms (RFC 6716 §3.2.5).
+	return frames > 0 && samples <= 5760 ? samples : undefined;
+}
+
 /** Pre-skip from an OpusHead the encoder may hand out as its description. */
 export function preSkipFrom(description: BufferSource | undefined): number {
 	if (!description) return DEFAULT_PRE_SKIP;

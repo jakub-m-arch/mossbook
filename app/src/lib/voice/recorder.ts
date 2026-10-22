@@ -3,7 +3,7 @@
 // gives WebM on some, MP4 on others, and WebKitGTK's MP4 does not play on
 // macOS (spike for D-21). Nothing touches the disk; the bytes go to the core.
 
-import { OPUS_RATE, muxOggOpus, preSkipFrom, type OpusPacket } from './ogg';
+import { OPUS_RATE, muxOggOpus, opusPacketSamples, preSkipFrom, type OpusPacket } from './ogg';
 
 /** Longest recording (D-21); the core refuses anything longer. */
 export const MAX_RECORDING_MS = 5 * 60 * 1000;
@@ -137,7 +137,9 @@ export class VoiceRecorder {
 		this.preSkip ??= meta?.decoderConfig ? preSkipFrom(meta.decoderConfig.description) : undefined;
 		const data = new Uint8Array(chunk.byteLength);
 		chunk.copyTo(data);
-		const samples = chunk.duration ? Math.round((chunk.duration * OPUS_RATE) / 1e6) : FRAME;
+		const samples =
+			opusPacketSamples(data) ??
+			(chunk.duration ? Math.round((chunk.duration * OPUS_RATE) / 1e6) : FRAME);
 		this.packets.push({ data, samples });
 	}
 

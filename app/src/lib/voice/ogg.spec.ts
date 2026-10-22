@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_PRE_SKIP, muxOggOpus, oggCrc, preSkipFrom, type OpusPacket } from './ogg';
+import {
+	DEFAULT_PRE_SKIP,
+	muxOggOpus,
+	oggCrc,
+	opusPacketSamples,
+	preSkipFrom,
+	type OpusPacket
+} from './ogg';
 
 const OPTIONS = { preSkip: 312, channels: 1, inputRate: 48_000, serial: 0x12345678 };
 
@@ -96,5 +103,24 @@ describe('Ogg Opus muxer', () => {
 		expect(preSkipFrom(head.buffer)).toBe(512);
 		expect(preSkipFrom(undefined)).toBe(DEFAULT_PRE_SKIP);
 		expect(preSkipFrom(new Uint8Array(4))).toBe(DEFAULT_PRE_SKIP);
+	});
+
+	it('counts samples from the Opus TOC byte', () => {
+		const toc = (config: number, code: number) => (config << 3) | code;
+		// CELT 20 ms, one frame: what WebCodecs produces at 32 kbit/s.
+		expect(opusPacketSamples(Uint8Array.of(toc(31, 0), 1, 2))).toBe(960);
+		// CELT 2.5 ms; SILK 60 ms; hybrid 10 ms.
+		expect(opusPacketSamples(Uint8Array.of(toc(16, 0)))).toBe(120);
+		expect(opusPacketSamples(Uint8Array.of(toc(3, 0)))).toBe(2880);
+		expect(opusPacketSamples(Uint8Array.of(toc(12, 0)))).toBe(480);
+		// Two frames (codes 1 and 2), or a counted number (code 3).
+		expect(opusPacketSamples(Uint8Array.of(toc(31, 1)))).toBe(1920);
+		expect(opusPacketSamples(Uint8Array.of(toc(31, 2)))).toBe(1920);
+		expect(opusPacketSamples(Uint8Array.of(toc(31, 3), 3))).toBe(2880);
+		// Malformed: empty, no frame count, zero frames, over 120 ms.
+		expect(opusPacketSamples(new Uint8Array())).toBeUndefined();
+		expect(opusPacketSamples(Uint8Array.of(toc(31, 3)))).toBeUndefined();
+		expect(opusPacketSamples(Uint8Array.of(toc(31, 3), 0))).toBeUndefined();
+		expect(opusPacketSamples(Uint8Array.of(toc(3, 3), 3))).toBeUndefined();
 	});
 });
