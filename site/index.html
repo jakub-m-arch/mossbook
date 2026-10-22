@@ -128,6 +128,11 @@
 							<dd>Wszystko inne. Z tagami i wyszukiwaniem.</dd>
 						</div>
 					</dl>
+					<p>
+						Czasem łatwiej coś powiedzieć niż napisać. Do każdego wpisu możesz nagrać notatkę
+						głosową, do pięciu minut. Nagrywasz w aplikacji, a nagranie jest szyfrowane jak reszta
+						dziennika.
+					</p>
 				</div>
 			</section>
 
@@ -199,8 +204,37 @@
 					<p>
 						Gdy blokujesz dziennik, najwyżej raz na dobę, Mossbook robi zaszyfrowaną kopię i trzyma
 						siedem ostatnich. Pełną kopię zapiszesz też w jednym pliku, gdzie chcesz, a cały
-						dziennik wyeksportujesz do czytelnego JSON-a. Format jest opisany publicznie.
+						dziennik wyeksportujesz do czytelnego archiwum ZIP: wpisy w pliku JSON, notatki
+						głosowe jako pliki dźwiękowe. Format jest opisany publicznie.
 					</p>
+				</div>
+			</section>
+
+			<section class="wrap feature duo" aria-labelledby="synchronizacja">
+				<div class="text">
+					<p class="label">Telefon i komputer</p>
+					<h2 id="synchronizacja">Ten sam dziennik <em>na każdym urządzeniu.</em></h2>
+					<p>
+						Mossbook nadal nie łączy się z siecią. Każde urządzenie zapisuje zaszyfrowany plik w
+						folderze, który między Twoimi urządzeniami przenosi
+						<a href="https://syncthing.net">Syncthing</a>: bezpłatny program z otwartym kodem,
+						bez chmury i bez konta. Gdy ten sam wpis zmienisz w dwóch miejscach, zostaje nowsza
+						wersja. Usunięcia, plan na trudną chwilę i ustawienia też się przenoszą.
+					</p>
+				</div>
+				<div class="text">
+					<p class="label">Jak to włączyć</p>
+					<ol class="steps">
+						<li>Zainstaluj Syncthing na telefonie i komputerze i udostępnij między nimi jeden folder.</li>
+						<li>
+							Na urządzeniu, którego hasło chcesz zachować, wybierz ten folder w Ustawieniach →
+							Synchronizacja.
+						</li>
+						<li>
+							Na drugim urządzeniu wybierz ten sam folder i dołącz do dziennika jego hasłem. Wpisy
+							z obu urządzeń się połączą, a dotychczasowy dziennik trafi do kopii zapasowych.
+						</li>
+					</ol>
 				</div>
 			</section>
 
@@ -220,6 +254,8 @@
 								W aplikacji nie ma kodu sieciowego. Automatyczne sprawdzenie przy każdej zmianie
 								odrzuca biblioteki, które mogłyby go dodać.<!--android--> Na Androidzie aplikacja nie ma nawet
 								uprawnienia do internetu, a każde wydanie jest pod tym kątem sprawdzane.<!--/android-->
+								Synchronizację między Twoimi urządzeniami robi osobny program, który wybierasz sam;
+								Mossbook tylko zapisuje i czyta zaszyfrowany plik w folderze.
 							</p>
 						</li>
 						<li>
@@ -274,7 +310,8 @@
 				<h2 id="pobierz-h">Pobierz Mossbook</h2>
 				<p>
 					<!--pre-android-->Bezpłatnie, na komputer. Wersja na Androida jest w przygotowaniu.<!--/pre-android--><!--android-->Bezpłatnie, na telefon z Androidem i na komputer.<!--/android--> Twój dziennik
-					zostaje na tym urządzeniu, a kopię przeniesiesz na inne jednym plikiem.
+					zostaje na tym urządzeniu. Na inne przeniesiesz go jednym plikiem kopii albo
+					zsynchronizujesz przez Syncthing.
 				</p>
 
 				<div class="systems">
@@ -434,6 +471,24 @@
 							obok. Nigdzie indziej. Zmieniasz urządzenie? Zapisz kopię w ustawieniach i otwórz ją na
 							nowym.<!--android--> Na Androidzie dane są w prywatnym katalogu aplikacji i nie trafiają do kopii
 							zapasowej Google ani na nowy telefon przy przenoszeniu danych.<!--/android-->
+						</p>
+					</details>
+					<details>
+						<summary>Czy mogę mieć ten sam dziennik na telefonie i komputerze?</summary>
+						<p>
+							Tak. Mossbook nie łączy się z siecią, więc korzysta z programu Syncthing, który
+							przenosi folder bezpośrednio między Twoimi urządzeniami, bez chmury. W folderze leży
+							plik zaszyfrowany tak jak kopia zapasowa. Kto go zobaczy, dowie się tylko, ile jest
+							urządzeń, jak duży jest plik i kiedy się zmienił. Po połączeniu oba urządzenia
+							otwiera to samo hasło i te same 24 słowa.
+						</p>
+					</details>
+					<details>
+						<summary>Kiedy Mossbook używa mikrofonu?</summary>
+						<p>
+							Tylko wtedy, gdy sam zaczniesz nagrywać notatkę głosową, i tylko do jej końca. O
+							dostęp system zapyta przy pierwszym nagraniu. Nagranie zostaje w dzienniku,
+							zaszyfrowane, i nigdy nie trafia do osobnego pliku na urządzeniu.
 						</p>
 					</details>
 					<details>

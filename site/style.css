@@ -724,14 +724,16 @@ h2 em {
 	font-size: 0.85rem;
 }
 
-.system .steps {
+.system .steps,
+.feature .steps {
 	margin: 0.9rem 0 0;
 	padding-left: 1.25rem;
 	font-size: 0.93rem;
 	max-width: 42rem;
 }
 
-.system .steps li + li {
+.system .steps li + li,
+.feature .steps li + li {
 	margin-top: 0.35rem;
 }
 
@@ -756,6 +758,9 @@ h2 em {
 
 .brew code {
 	flex: 1;
+	/* A flex item would otherwise be as wide as the whole command and push the
+	   page sideways on a phone; it scrolls inside the box instead. */
+	min-width: 0;
 	overflow-x: auto;
 	white-space: nowrap;
 	font-size: 0.88rem;
@@ -797,7 +802,7 @@ h2 em {
 
 @media (max-width: 46rem) {
 	.system {
-		grid-template-columns: 1fr;
+		grid-template-columns: minmax(0, 1fr);
 	}
 }
 
@@ -967,6 +972,6 @@ h2 em {
 
 @media (max-width: 52rem) {
 	.feature.duo {
-		grid-template-columns: 1fr;
+		grid-template-columns: minmax(0, 1fr);
 	}
 }

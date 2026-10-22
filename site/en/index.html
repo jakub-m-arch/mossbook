@@ -128,6 +128,11 @@
 							<dd>Everything else. With tags and search.</dd>
 						</div>
 					</dl>
+					<p>
+						Sometimes saying it is easier than writing it. Any entry can have a voice note of up to
+						five minutes. You record it in the app, and it is encrypted like the rest of the
+						journal.
+					</p>
 				</div>
 			</section>
 
@@ -198,8 +203,37 @@
 					<p>
 						When you lock it, at most once a day, Mossbook makes an encrypted backup and keeps the
 						last seven. You can also save a full backup as a single file wherever you like, and
-						export the whole journal as readable JSON. The format is publicly documented.
+						export the whole journal as a readable ZIP archive: the entries as JSON and the voice
+						notes as audio files. The format is publicly documented.
 					</p>
+				</div>
+			</section>
+
+			<section class="wrap feature duo" aria-labelledby="sync">
+				<div class="text">
+					<p class="label">Phone and computer</p>
+					<h2 id="sync">The same journal <em>on every device.</em></h2>
+					<p>
+						Mossbook still never goes online. Each device writes an encrypted file into a folder
+						that <a href="https://syncthing.net">Syncthing</a> carries between your devices: a
+						free, open-source program with no cloud and no account. If you change the same entry
+						in two places, the newer version stays. Deletions, your plan for a hard moment and your
+						settings travel too.
+					</p>
+				</div>
+				<div class="text">
+					<p class="label">How to turn it on</p>
+					<ol class="steps">
+						<li>Install Syncthing on your phone and computer and share one folder between them.</li>
+						<li>
+							On the device whose password you want to keep, choose that folder in Settings → Sync.
+						</li>
+						<li>
+							On the other device, choose the same folder and join the journal with its password.
+							The entries from both devices are combined, and the journal it had before goes to
+							its backups.
+						</li>
+					</ol>
 				</div>
 			</section>
 
@@ -219,6 +253,8 @@
 								There is no networking code in the app. An automatic check on every change rejects
 								libraries that could add it.<!--android--> On Android the app does not even hold the permission
 								to go online, and every release is checked for it.<!--/android-->
+								Syncing between your devices is done by a separate program you choose; Mossbook
+								only writes and reads an encrypted file in a folder.
 							</p>
 						</li>
 						<li>
@@ -272,7 +308,7 @@
 				<h2 id="download-h">Download Mossbook</h2>
 				<p>
 					<!--pre-android-->Free, for your computer. An Android version is in the works.<!--/pre-android--><!--android-->Free, for Android phones and computers.<!--/android--> Your journal stays on this
-					device, and a single backup file moves it to another one.
+					device. A single backup file moves it to another one, or Syncthing keeps them in sync.
 				</p>
 
 				<div class="systems">
@@ -433,6 +469,24 @@
 							next to it. Nowhere else. Moving to a new device? Save a backup in Settings and open
 							it on the new one.<!--android--> On Android the data stays in the app's private storage and is
 							left out of Google backups and phone-to-phone transfers.<!--/android-->
+						</p>
+					</details>
+					<details>
+						<summary>Can I have the same journal on my phone and computer?</summary>
+						<p>
+							Yes. Mossbook never goes online, so it relies on Syncthing, which carries a folder
+							directly between your devices, without a cloud. The folder holds a file encrypted like
+							a backup. Anyone who sees it learns only how many devices there are, how big the file
+							is and when it changed. Once joined, both devices open with the same password and the
+							same 24 words.
+						</p>
+					</details>
+					<details>
+						<summary>When does Mossbook use the microphone?</summary>
+						<p>
+							Only when you start recording a voice note, and only until you stop. The system asks
+							for access on the first recording. The recording stays in the journal, encrypted, and
+							is never saved as a separate file on the device.
 						</p>
 					</details>
 					<details>
