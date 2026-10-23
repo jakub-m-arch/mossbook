@@ -35,7 +35,7 @@ for your system. The site has no cookies, analytics or third-party resources.
 ## Status
 
 **0.1 is out for desktop** (Linux, Windows, macOS). It is early software: keep a
-backup (Settings → Backup).
+backup (Settings → Backups and sync).
 
 - **Done:** every desktop feature of the MVP, and from v1 the PDF report, nightmares,
   difficult content, the mood calendar, overviews, and quick entry while locked.
@@ -120,9 +120,9 @@ carries that folder between your phone and your computer.
 1. Install Syncthing on both devices and share one folder between them, for example
    `MossbookSync`.
 2. On the device whose journal you want to keep (its password and 24-word recovery key
-   stay), open Settings → Sync → *Choose folder* and pick that folder.
+   stay), open Settings → Backups and sync → *Choose folder* and pick that folder.
 3. Wait until Syncthing has copied its file to the other device. There, choose the same
-   folder in Settings → Sync. Mossbook finds the other journal and offers to join it:
+   folder in Settings → Backups and sync. Mossbook finds the other journal and offers to join it:
    type **that** journal's password. The entries of this device are added to it, and
    from then on both devices have the same journal, password and recovery key. The
    journal this device had before is kept in its automatic backups.
@@ -140,7 +140,7 @@ Optional and off by default. Recognition runs on your device with NVIDIA's Parak
 model (Polish, Ukrainian, English and other European languages); recordings are never
 sent anywhere.
 
-1. Settings → *Turning recordings into text* → *Open the download page*. Your browser
+1. Settings → Voice notes → *Open the download page*. Your browser
    downloads the model (`sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2`, 487 MB).
    Mossbook itself downloads nothing.
 2. *Pick the downloaded file*. Mossbook accepts only that exact file (checked by its

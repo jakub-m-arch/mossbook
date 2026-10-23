@@ -129,14 +129,44 @@
 						</div>
 					</dl>
 					<p>
-						Czasem łatwiej coś powiedzieć niż napisać. Do każdego wpisu możesz nagrać notatkę
-						głosową, do pięciu minut. Nagrywasz w aplikacji, a nagranie jest szyfrowane jak reszta
-						dziennika.
+						Nowe wpisy pokazują na liście tylko rodzaj i godzinę, dopóki ich nie otworzysz. Gdyby
+						ktoś zerknął Ci przez ramię, nie przeczyta, co piszesz.
 					</p>
 				</div>
 			</section>
 
-			<section class="wrap feature flip" aria-labelledby="wzorce">
+			<section class="wrap feature flip" aria-labelledby="glos">
+				<figure class="shot phone">
+					<picture><source srcset="img/pl-voice-dark.png" media="(prefers-color-scheme: dark)" /><img
+						src="img/pl-voice.png"
+						width="824"
+						height="1678"
+						loading="lazy"
+						alt="Notatka głosowa trwająca 2:34, a pod nią rozpoznany tekst do przeczytania i poprawienia."
+					/></picture>
+				</figure>
+				<div class="text">
+					<p class="label">Notatki głosowe</p>
+					<h2 id="glos">Czasem łatwiej powiedzieć <em>niż napisać.</em></h2>
+					<p>
+						Do każdego wpisu nagrasz do pięciu minut. Nagrywasz w aplikacji, a nagranie jest
+						szyfrowane jak reszta dziennika i nigdy nie trafia do osobnego pliku na urządzeniu.
+					</p>
+					<p>
+						Jeśli chcesz, Mossbook zamieni nagranie na tekst, który przeczytasz, poprawisz i potem
+						znajdziesz w wyszukiwarce. Rozpoznawanie działa na Twoim urządzeniu, po polsku,
+						ukraińsku, angielsku i w innych językach europejskich. Nagrania nigdzie nie są
+						wysyłane.
+					</p>
+					<p class="aside">
+						Domyślnie wyłączone. Żeby włączyć, pobierasz w przeglądarce model rozpoznawania mowy
+						(487 MB) i wskazujesz plik w Ustawieniach → Notatki głosowe. Model to NVIDIA Parakeet
+						(licencja CC BY 4.0) i potrzebuje około 1,5 GB pamięci, gdy pracuje.
+					</p>
+				</div>
+			</section>
+
+			<section class="wrap feature" aria-labelledby="wzorce">
 				<figure class="shot phone">
 					<picture><source srcset="img/pl-patterns-dark.png" media="(prefers-color-scheme: dark)" /><img
 						src="img/pl-patterns.png"
@@ -164,7 +194,7 @@
 				</div>
 			</section>
 
-			<section class="wrap feature" aria-labelledby="trudna-chwila">
+			<section class="wrap feature flip" aria-labelledby="trudna-chwila">
 				<figure class="shot phone">
 					<picture><source srcset="img/pl-lock-dark.png" media="(prefers-color-scheme: dark)" /><img
 						src="img/pl-lock.png"
@@ -228,7 +258,7 @@
 						<li>Zainstaluj Syncthing na telefonie i komputerze i udostępnij między nimi jeden folder.</li>
 						<li>
 							Na urządzeniu, którego hasło chcesz zachować, wybierz ten folder w Ustawieniach →
-							Synchronizacja.
+							Kopie i synchronizacja.
 						</li>
 						<li>
 							Na drugim urządzeniu wybierz ten sam folder i dołącz do dziennika jego hasłem. Wpisy
@@ -255,7 +285,15 @@
 								odrzuca biblioteki, które mogłyby go dodać.<!--android--> Na Androidzie aplikacja nie ma nawet
 								uprawnienia do internetu, a każde wydanie jest pod tym kątem sprawdzane.<!--/android-->
 								Synchronizację między Twoimi urządzeniami robi osobny program, który wybierasz sam;
-								Mossbook tylko zapisuje i czyta zaszyfrowany plik w folderze.
+								Mossbook tylko zapisuje i czyta zaszyfrowany plik w folderze. Model do zamiany
+								nagrań na tekst pobiera Twoja przeglądarka, nie aplikacja.
+							</p>
+							<p>
+								Jeden wyjątek dotyczy budowania aplikacji, nie jej działania. Silnik rozpoznawania
+								mowy to gotowe biblioteki projektu sherpa-onnx, a ich narzędzie budujące potrafi
+								pobrać je z sieci. Nie pozwalamy mu na to: dostaje pliki sprawdzone po sumach
+								kontrolnych zapisanych w repozytorium. Do aplikacji nie trafia z tego żaden kod
+								sieciowy.
 							</p>
 						</li>
 						<li>
@@ -489,6 +527,16 @@
 							Tylko wtedy, gdy sam zaczniesz nagrywać notatkę głosową, i tylko do jej końca. O
 							dostęp system zapyta przy pierwszym nagraniu. Nagranie zostaje w dzienniku,
 							zaszyfrowane, i nigdy nie trafia do osobnego pliku na urządzeniu.
+						</p>
+					</details>
+					<details>
+						<summary>Czy zamiana nagrań na tekst wysyła je gdzieś?</summary>
+						<p>
+							Nie. Rozpoznawanie mowy działa na Twoim urządzeniu (model NVIDIA Parakeet, licencja CC
+							BY 4.0). Model pobierasz sam w przeglądarce, a Mossbook przyjmuje tylko dokładnie ten
+							plik, sprawdzony po sumie kontrolnej. Tekst jest propozycją: czytasz go i poprawiasz,
+							zanim zapiszesz wpis. Potrzeba około 1,5 GB pamięci, więc na telefonach z mniej niż
+							6 GB może się nie udać.
 						</p>
 					</details>
 					<details>

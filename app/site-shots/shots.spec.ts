@@ -25,6 +25,8 @@ const TEXT = {
 			['Spacer nad rzeką po pracy', 'bulwary', 'Głowa trochę odpoczęła.'],
 			['Pierwszy trening od miesiąca', 'basen', 'Zmęczenie, ale dobre.']
 		],
+		voice:
+			'Rano ciężko było wstać, ale po spacerze z psem zrobiło się lżej. Zadzwoniłam do siostry i umówiłyśmy się na sobotę. Wieczorem chcę spróbować zasnąć przed jedenastą.',
 		notes: [
 			'Zasypiam łatwiej, kiedy odkładam telefon przed dziesiątą.',
 			'Dzień bez planu. Trochę czytania i długi obiad.',
@@ -41,6 +43,8 @@ const TEXT = {
 			['Walk by the river after work', 'riverside', 'My head got a little rest.'],
 			['First swim in a month', 'pool', 'Tired, the good kind.']
 		],
+		voice:
+			'It was hard to get up this morning, but the walk with the dog made it lighter. I called my sister and we made plans for Saturday. Tonight I want to try to fall asleep before eleven.',
 		notes: [
 			'I fall asleep more easily when the phone goes away before ten.',
 			'A day with no plans. Some reading and a long lunch.',
@@ -147,6 +151,17 @@ function journal(lang: Lang) {
 			});
 		}
 	}
+	// A voice note turned into text (E-19), opened for the website's screenshot.
+	add(at(0, 12), {
+		id: 'site-voice',
+		kind: 'note',
+		voice: {
+			id: 'site-voice-recording',
+			duration_ms: 154_000,
+			mime: 'audio/ogg; codecs=opus',
+			transcript: text.voice
+		}
+	});
 	return { tags, entries };
 }
 
@@ -215,6 +230,16 @@ for (const lang of ['pl', 'en'] as const) {
 				await page.locator('body').click({ position: { x: 5, y: 5 } });
 				await page.evaluate(() => window.scrollTo(0, 0));
 				await shot(page, name('entry'));
+
+				await page.goto('/entry/site-voice');
+				await page.getByRole('heading', { level: 1 }).waitFor();
+				const voice = page.getByRole('region', {
+					name: lang === 'pl' ? 'Notatka głosowa' : 'Voice note'
+				});
+				// The recording and its text at the top, with the mood above for context.
+				await voice.evaluate((el) => el.scrollIntoView({ block: 'start' }));
+				await page.evaluate(() => window.scrollBy(0, -330));
+				await shot(page, name('voice'));
 
 				await page.goto('/patterns');
 				await page.getByRole('heading', { level: 1 }).waitFor();

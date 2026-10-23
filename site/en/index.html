@@ -129,14 +129,44 @@
 						</div>
 					</dl>
 					<p>
-						Sometimes saying it is easier than writing it. Any entry can have a voice note of up to
-						five minutes. You record it in the app, and it is encrypted like the rest of the
-						journal.
+						New entries show only their type and time in the list until you open them. If someone
+						glances over your shoulder, they will not read what you wrote.
 					</p>
 				</div>
 			</section>
 
-			<section class="wrap feature flip" aria-labelledby="patterns">
+			<section class="wrap feature flip" aria-labelledby="voice">
+				<figure class="shot phone">
+					<picture><source srcset="../img/en-voice-dark.png" media="(prefers-color-scheme: dark)" /><img
+						src="../img/en-voice.png"
+						width="824"
+						height="1678"
+						loading="lazy"
+						alt="A voice note of 2:34 with the recognised text below it, ready to read and correct."
+					/></picture>
+				</figure>
+				<div class="text">
+					<p class="label">Voice notes</p>
+					<h2 id="voice">Sometimes saying it <em>is easier than writing it.</em></h2>
+					<p>
+						Any entry can have up to five minutes of recording. You record it in the app, it is
+						encrypted like the rest of the journal, and it is never saved as a separate file on
+						the device.
+					</p>
+					<p>
+						If you like, Mossbook turns the recording into text that you read, correct and later
+						find with search. Recognition runs on your device, in English, Polish, Ukrainian and
+						other European languages. Recordings are not sent anywhere.
+					</p>
+					<p class="aside">
+						Off by default. To turn it on, download the speech recognition model in your browser
+						(487 MB) and pick the file in Settings → Voice notes. The model is NVIDIA Parakeet
+						(CC BY 4.0 licence) and needs about 1.5 GB of memory while it works.
+					</p>
+				</div>
+			</section>
+
+			<section class="wrap feature" aria-labelledby="patterns">
 				<figure class="shot phone">
 					<picture><source srcset="../img/en-patterns-dark.png" media="(prefers-color-scheme: dark)" /><img
 						src="../img/en-patterns.png"
@@ -162,7 +192,7 @@
 				</div>
 			</section>
 
-			<section class="wrap feature" aria-labelledby="hard-moment">
+			<section class="wrap feature flip" aria-labelledby="hard-moment">
 				<figure class="shot phone">
 					<picture><source srcset="../img/en-lock-dark.png" media="(prefers-color-scheme: dark)" /><img
 						src="../img/en-lock.png"
@@ -226,7 +256,7 @@
 					<ol class="steps">
 						<li>Install Syncthing on your phone and computer and share one folder between them.</li>
 						<li>
-							On the device whose password you want to keep, choose that folder in Settings → Sync.
+							On the device whose password you want to keep, choose that folder in Settings → Backups and sync.
 						</li>
 						<li>
 							On the other device, choose the same folder and join the journal with its password.
@@ -254,7 +284,14 @@
 								libraries that could add it.<!--android--> On Android the app does not even hold the permission
 								to go online, and every release is checked for it.<!--/android-->
 								Syncing between your devices is done by a separate program you choose; Mossbook
-								only writes and reads an encrypted file in a folder.
+								only writes and reads an encrypted file in a folder. The model for turning
+								recordings into text is downloaded by your browser, not by the app.
+							</p>
+							<p>
+								One exception concerns building the app, not running it. The speech recognition
+								engine is a set of prebuilt libraries from the sherpa-onnx project, and their
+								build tool can download them. We do not let it: it is given files checked against
+								checksums kept in the repository. No networking code ends up in the app.
 							</p>
 						</li>
 						<li>
@@ -487,6 +524,16 @@
 							Only when you start recording a voice note, and only until you stop. The system asks
 							for access on the first recording. The recording stays in the journal, encrypted, and
 							is never saved as a separate file on the device.
+						</p>
+					</details>
+					<details>
+						<summary>Does turning recordings into text send them anywhere?</summary>
+						<p>
+							No. Speech recognition runs on your device (NVIDIA's Parakeet model, CC BY 4.0
+							licence). You download the model yourself in your browser, and Mossbook accepts only
+							that exact file, checked by its checksum. The text is a suggestion: you read and
+							correct it before saving the entry. It needs about 1.5 GB of memory, so on phones with
+							less than 6 GB it may fail.
 						</p>
 					</details>
 					<details>

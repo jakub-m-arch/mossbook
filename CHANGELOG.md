@@ -6,7 +6,7 @@ All notable changes to Mossbook. Versions follow [Semantic Versioning](https://s
 
 ### Added
 - Voice notes can be turned into text, on your device. Off by default: in
-  Settings → Turning recordings into text, open the download page, let your browser
+  Settings → Voice notes, open the download page, let your browser
   download the speech recognition model (487 MB) and pick the file; Mossbook checks
   that it is exactly that file and unpacks it (about 670 MB). Then a voice note in
   an entry has a "Turn into text" button. The text is shown for you to read and
