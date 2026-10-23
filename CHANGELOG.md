@@ -37,6 +37,11 @@ All notable changes to Mossbook. Versions follow [Semantic Versioning](https://s
   with ONNX Runtime, prebuilt libraries pinned by SHA-256). Building Mossbook
   needs CMake and `tools/fetch-sherpa-onnx.sh`; see the README.
 
+### Fixed
+- Updated a helper library used by the encryption code (`ctutils` 0.4.5,
+  RUSTSEC-2026-0385): some of its comparisons meant to take the same time
+  whatever the data could take slightly different times.
+
 ## 0.4.0 (2026-10-22)
 
 ### Added
