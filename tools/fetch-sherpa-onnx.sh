@@ -1,9 +1,10 @@
 #!/bin/sh
 # Fetches the prebuilt sherpa-onnx + onnxruntime libraries for voice note
 # transcription (D-23) and checks them against the SHA-256 sums pinned in
-# tools/sherpa-onnx.sha256. The build reads them from target/sherpa-onnx-archives
-# (SHERPA_ONNX_ARCHIVE_DIR in .cargo/config.toml), so the sherpa-onnx-sys build
-# script never downloads anything itself. Only the build machine connects here;
+# tools/sherpa-onnx.sha256, then unpacks them where the build expects them. The
+# build reads the archives from target/sherpa-onnx-archives (SHERPA_ONNX_ARCHIVE_DIR
+# in .cargo/config.toml), so the sherpa-onnx-sys build script never downloads
+# anything itself. Only the build machine connects here;
 # the app never does.
 #
 #   tools/fetch-sherpa-onnx.sh [android|linux-x64|osx-arm64|osx-x64|win-x64|all]...
@@ -60,6 +61,21 @@ for name in $names; do
   mv "$file.part" "$file"
   echo "ok: $name"
 done
+
+# Unpack each checked archive where the sherpa-onnx-sys 1.13.8 build script looks
+# for it (target/sherpa-onnx-prebuilt/<archive>/lib, or jniLibs/<abi> for Android).
+# CI restores a cached build without that folder, and the build script does not
+# run again to recreate it, so the link would fail without this.
+prebuilt="$root/target/sherpa-onnx-prebuilt"
+mkdir -p "$prebuilt"
+for name in $names; do
+  case "$name" in
+    *-android.tar.bz2) rm -rf "$prebuilt/jniLibs" ;;
+    *) rm -rf "$prebuilt/${name%.tar.bz2}" ;;
+  esac
+  tar -xjf "$dir/$name" -C "$prebuilt"
+done
+echo "ok: unpacked into target/sherpa-onnx-prebuilt"
 
 case "$names" in
   *-android.tar.bz2*)
