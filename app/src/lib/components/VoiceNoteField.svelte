@@ -6,6 +6,8 @@
 	// device (E-19, D-23); the text is shown for checking and saved with the entry.
 	// Removing or replacing a recording with text asks whether the text moves
 	// to the entry's note or goes with the recording.
+	// While recording, the screen stays on and the journal does not lock for
+	// inactivity; a background lock waits until the recording is stored (D-25).
 	import Captions from '@lucide/svelte/icons/captions';
 	import Mic from '@lucide/svelte/icons/mic';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
@@ -18,6 +20,7 @@
 		onTranscriptionProgress,
 		transcriptionCancel,
 		transcriptionStatus,
+		voiceRecording,
 		voiceSave,
 		voiceTranscribe,
 		type VoiceNote
@@ -33,7 +36,7 @@
 	interface Props {
 		value: VoiceNote | null;
 		/** Called after a recording was stored or removed, to keep the form now. */
-		onstored?: () => void;
+		onstored?: () => void | Promise<void>;
 		/** Called with the text of a recording the user removes but whose text they keep. */
 		onkeeptext?: (text: string) => void;
 	}
@@ -82,6 +85,7 @@
 
 	onDestroy(() => {
 		clearInterval(ticker);
+		if (recorder) void voiceRecording(false).catch(() => {});
 		recorder?.cancel();
 		recorder = undefined;
 		carried = null;
@@ -128,6 +132,7 @@
 			return;
 		}
 		recording = true;
+		void voiceRecording(true).catch(() => {});
 		elapsed = 0;
 		ticker = setInterval(() => (elapsed = recorder?.elapsedMs ?? 0), 250);
 	}
@@ -147,16 +152,20 @@
 				onkeeptext?.(carried);
 				if (!problem) problem = 'textMoved';
 			}
-			onstored?.();
+			await onstored?.();
 		} catch (e) {
 			if (!(await handleLocked(e))) problem = 'failed';
 		} finally {
 			carried = null;
 			saving = false;
+			// Only now, with the recording stored and the form kept, may a lock
+			// that waited for it happen (D-25).
+			void voiceRecording(false).catch(() => {});
 		}
 	}
 
 	function cancel() {
+		void voiceRecording(false).catch(() => {});
 		recorder?.cancel();
 		recorder = undefined;
 		carried = null;

@@ -27,7 +27,7 @@
 		tags: Tag[];
 		onsave: (draft: EntryDraft) => Promise<void>;
 		/** Called with the form's state shortly after each change, so a lock does not lose it (D-20). */
-		onchange?: (draft: EntryDraft) => void;
+		onchange?: (draft: EntryDraft) => void | Promise<void>;
 		/** For a saved entry: deleting it, next to saving, after a confirmation. */
 		ondelete?: () => Promise<void>;
 	}
@@ -119,7 +119,7 @@
 	function keepNow() {
 		clearTimeout(keepTimer);
 		keepTimer = undefined;
-		onchange?.(current(initial.incomplete ?? false));
+		return onchange?.(current(initial.incomplete ?? false));
 	}
 
 	// Any change after the form opened is kept once typing pauses.
@@ -321,7 +321,9 @@
 
 		<VoiceNoteField
 			bind:value={voice}
-			onstored={() => onchange && keepNow()}
+			onstored={async () => {
+				if (onchange) await keepNow();
+			}}
 			onkeeptext={(text) => (note = note.trim() ? `${note.trimEnd()}\n\n${text}` : text)}
 		/>
 

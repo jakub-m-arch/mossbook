@@ -23,6 +23,12 @@ use crate::sync::{Folder, file_name};
 /// Inactivity timeout when the policy is "immediately": locking on background
 /// covers phones, and on desktop (where background is fuzzy) this timer does (D-11).
 pub const IMMEDIATE_IDLE_TIMEOUT: Duration = Duration::from_secs(5 * 60);
+/// How long a background lock waits for a voice note being recorded to be
+/// stored and the form kept (D-25).
+pub const RECORDING_GRACE: Duration = Duration::from_secs(3);
+/// Longest a recording can keep the idle timer away: the 5-minute limit (D-21)
+/// plus slack. A flag the UI never cleared stops counting after this.
+const RECORDING_SPAN: Duration = Duration::from_secs(5 * 60 + 30);
 
 enum VaultState {
     NoVault,
@@ -82,6 +88,11 @@ pub struct Session {
     /// System dialogs (file pickers) currently open; they suspend the
     /// background lock but not the idle timer (D-6).
     dialogs_open: u32,
+    /// A voice note is being recorded, since then (D-25). Counts as activity.
+    recording_since: Option<Instant>,
+    /// The app went to the background while recording: lock once the UI says
+    /// the recording is stored, at the latest at this instant (D-25).
+    deferred_lock: Option<Instant>,
     utc_offset: UtcOffset,
     /// Cheap KDF params for tests; `None` in the app (calibrated params).
     kdf_override: Option<KdfParams>,
@@ -188,6 +199,8 @@ impl Session {
             throttle: UnlockThrottle::new(),
             last_activity: Instant::now(),
             dialogs_open: 0,
+            recording_since: None,
+            deferred_lock: None,
             utc_offset: UtcOffset::UTC,
             kdf_override: None,
             pending_backup: None,
@@ -353,6 +366,8 @@ impl Session {
     /// is kept: it holds no user data yet, and the user may switch apps to store
     /// the recovery phrase in a password manager.
     pub fn lock(&mut self) -> AppResult<bool> {
+        self.recording_since = None;
+        self.deferred_lock = None;
         if !matches!(self.state, VaultState::Unlocked(_)) {
             return Ok(false);
         }
@@ -857,25 +872,63 @@ impl Session {
 
     /// The app went to the background (mobile) or was minimized (desktop).
     /// Locks immediately under the default policy, unless a system dialog we
-    /// opened ourselves is the reason (D-6).
-    pub fn on_background(&mut self) -> AppResult<Option<LockReason>> {
-        if self.dialogs_open == 0
-            && self.autolock_policy() == Some(AutoLock::Immediately)
-            && self.lock()?
-        {
-            return Ok(Some(LockReason::Background));
+    /// opened ourselves is the reason (D-6). While a voice note is recorded the
+    /// lock waits up to [`RECORDING_GRACE`] for it to be stored (D-25); the
+    /// caller then runs [`Self::on_tick`] after that time.
+    pub fn on_background(&mut self, now: Instant) -> AppResult<Option<LockReason>> {
+        if self.dialogs_open > 0 || self.autolock_policy() != Some(AutoLock::Immediately) {
+            return Ok(None);
+        }
+        if self.is_recording(now) {
+            self.deferred_lock.get_or_insert(now + RECORDING_GRACE);
+            return Ok(None);
+        }
+        Ok(self.lock()?.then_some(LockReason::Background))
+    }
+
+    /// Called periodically. Locks after the inactivity timeout of the policy,
+    /// or once a background lock waited long enough for a recording (D-25).
+    pub fn on_tick(&mut self, now: Instant) -> AppResult<Option<LockReason>> {
+        if self.deferred_lock.is_some_and(|at| now >= at) {
+            return Ok(self.lock()?.then_some(LockReason::Background));
+        }
+        let Some(policy) = self.autolock_policy() else {
+            return Ok(None);
+        };
+        // Someone speaking does not touch the screen.
+        if self.is_recording(now) {
+            return Ok(None);
+        }
+        let timeout = policy.timeout().unwrap_or(IMMEDIATE_IDLE_TIMEOUT);
+        if now.saturating_duration_since(self.last_activity) >= timeout && self.lock()? {
+            return Ok(Some(LockReason::Idle));
         }
         Ok(None)
     }
 
-    /// Called periodically. Locks after the inactivity timeout of the policy.
-    pub fn on_tick(&mut self, now: Instant) -> AppResult<Option<LockReason>> {
-        let Some(policy) = self.autolock_policy() else {
+    /// A background lock is waiting for a recording (D-25).
+    pub fn lock_pending(&self) -> bool {
+        self.deferred_lock.is_some()
+    }
+
+    fn is_recording(&self, now: Instant) -> bool {
+        self.recording_since
+            .is_some_and(|since| now.saturating_duration_since(since) < RECORDING_SPAN)
+    }
+
+    /// The UI started or finished recording a voice note (D-25). It reports
+    /// the end only once the recording is stored and the form kept, so a lock
+    /// that waited for it happens now.
+    pub fn set_recording(&mut self, active: bool, now: Instant) -> AppResult<Option<LockReason>> {
+        self.last_activity = now;
+        if active {
+            self.journal()?;
+            self.recording_since = Some(now);
             return Ok(None);
-        };
-        let timeout = policy.timeout().unwrap_or(IMMEDIATE_IDLE_TIMEOUT);
-        if now.saturating_duration_since(self.last_activity) >= timeout && self.lock()? {
-            return Ok(Some(LockReason::Idle));
+        }
+        self.recording_since = None;
+        if self.deferred_lock.take().is_some() {
+            return Ok(self.lock()?.then_some(LockReason::Background));
         }
         Ok(None)
     }
@@ -1236,12 +1289,15 @@ mod tests {
         let (_dir, mut s) = unlocked();
         s.begin_dialog();
         assert_eq!(
-            s.on_background().unwrap(),
+            s.on_background(Instant::now()).unwrap(),
             None,
             "own file dialog must not lock"
         );
         s.end_dialog(Instant::now());
-        assert_eq!(s.on_background().unwrap(), Some(LockReason::Background));
+        assert_eq!(
+            s.on_background(Instant::now()).unwrap(),
+            Some(LockReason::Background)
+        );
         assert_eq!(state(&s), StatusKind::Locked);
 
         s.unlock(PASSWORD, Instant::now()).unwrap();
@@ -1252,7 +1308,7 @@ mod tests {
             .unwrap()
             .save_settings(settings, now)
             .unwrap();
-        assert_eq!(s.on_background().unwrap(), None);
+        assert_eq!(s.on_background(Instant::now()).unwrap(), None);
         assert_eq!(state(&s), StatusKind::Unlocked);
     }
 
@@ -1279,11 +1335,109 @@ mod tests {
     }
 
     #[test]
+    fn recording_keeps_the_idle_timer_away_for_at_most_its_span() {
+        let (_dir, mut s) = unlocked();
+        let t0 = Instant::now();
+        s.set_recording(true, t0).unwrap();
+        assert_eq!(s.on_tick(t0 + IMMEDIATE_IDLE_TIMEOUT).unwrap(), None);
+        // A flag the UI never cleared stops counting.
+        assert_eq!(
+            s.on_tick(t0 + RECORDING_SPAN).unwrap(),
+            Some(LockReason::Idle)
+        );
+
+        s.unlock(PASSWORD, t0).unwrap();
+        s.set_recording(true, t0).unwrap();
+        s.set_recording(false, t0).unwrap();
+        assert_eq!(
+            s.on_tick(t0 + IMMEDIATE_IDLE_TIMEOUT).unwrap(),
+            Some(LockReason::Idle),
+            "after recording the timer counts again"
+        );
+    }
+
+    #[test]
+    fn background_lock_waits_for_a_recording_to_be_stored() {
+        let (_dir, mut s) = unlocked();
+        let t0 = Instant::now();
+        s.set_recording(true, t0).unwrap();
+        assert_eq!(s.on_background(t0).unwrap(), None);
+        assert_eq!(state(&s), StatusKind::Unlocked);
+        // Going to the background again does not move the deadline.
+        assert_eq!(s.on_background(t0 + Duration::from_secs(2)).unwrap(), None);
+        // The UI stored the recording and kept the form: the lock happens now.
+        assert_eq!(
+            s.set_recording(false, t0 + Duration::from_secs(1)).unwrap(),
+            Some(LockReason::Background)
+        );
+        assert_eq!(state(&s), StatusKind::Locked);
+        assert_eq!(
+            s.on_tick(t0 + RECORDING_GRACE).unwrap(),
+            None,
+            "already locked"
+        );
+    }
+
+    #[test]
+    fn background_lock_happens_after_the_grace_even_without_the_ui() {
+        let (_dir, mut s) = unlocked();
+        let t0 = Instant::now();
+        s.set_recording(true, t0).unwrap();
+        s.on_background(t0).unwrap();
+        assert_eq!(
+            s.on_tick(t0 + RECORDING_GRACE - Duration::from_millis(1))
+                .unwrap(),
+            None
+        );
+        assert_eq!(
+            s.on_tick(t0 + RECORDING_GRACE).unwrap(),
+            Some(LockReason::Background)
+        );
+        assert_eq!(state(&s), StatusKind::Locked);
+
+        // Nothing carries over to the next unlock.
+        s.unlock(PASSWORD, t0).unwrap();
+        assert_eq!(s.set_recording(false, t0).unwrap(), None);
+        assert_eq!(state(&s), StatusKind::Unlocked);
+        assert_eq!(
+            s.on_background(t0).unwrap(),
+            Some(LockReason::Background),
+            "no recording: locks at once"
+        );
+    }
+
+    #[test]
+    fn recording_needs_an_open_journal_and_other_policies_are_unchanged() {
+        let (_dir, mut s) = unlocked();
+        let t0 = Instant::now();
+        s.lock().unwrap();
+        assert!(s.set_recording(true, t0).is_err());
+        assert_eq!(s.set_recording(false, t0).unwrap(), None);
+
+        s.unlock(PASSWORD, t0).unwrap();
+        let mut settings = Settings::default();
+        settings.autolock = AutoLock::After5Min;
+        let now = s.now();
+        s.journal_mut()
+            .unwrap()
+            .save_settings(settings, now)
+            .unwrap();
+        s.set_recording(true, t0).unwrap();
+        assert_eq!(s.on_background(t0).unwrap(), None);
+        assert_eq!(
+            s.set_recording(false, t0).unwrap(),
+            None,
+            "no lock was waiting"
+        );
+        assert_eq!(state(&s), StatusKind::Unlocked);
+    }
+
+    #[test]
     fn creation_survives_lock_requests() {
         let (_dir, mut s) = session();
         s.create(PASSWORD).unwrap();
         assert!(!s.lock().unwrap());
-        assert_eq!(s.on_background().unwrap(), None);
+        assert_eq!(s.on_background(Instant::now()).unwrap(), None);
         assert_eq!(state(&s), StatusKind::Creating);
     }
 

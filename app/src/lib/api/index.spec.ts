@@ -45,6 +45,7 @@ async function invokedCommands(): Promise<string[]> {
 		() => api.entryDelete('id'),
 		() => api.voiceSave(new Uint8Array([1, 2, 3])),
 		() => api.voiceGet('id').catch(() => {}),
+		() => api.voiceRecording(true),
 		() => api.voiceTranscribe('id'),
 		api.transcriptionStatus,
 		api.transcriptionOpenDownload,

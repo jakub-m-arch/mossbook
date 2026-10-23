@@ -4,6 +4,13 @@ All notable changes to Mossbook. Versions follow [Semantic Versioning](https://s
 
 ## Unreleased
 
+### Fixed
+- A voice note is no longer lost when the phone's screen turns off while you
+  speak. The screen now stays on while recording, the journal does not lock for
+  inactivity during a recording, and if the app goes to the background anyway
+  (the power button, a call), what you said so far is stored before the journal
+  locks; after unlocking, the entry comes back with the recording.
+
 ### Changed
 - Removing a voice note that has text, or recording it again, now asks what to do
   with the text: keep it in the entry's note or remove it with the recording.

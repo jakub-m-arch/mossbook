@@ -6,6 +6,7 @@ mod command_names;
 mod commands;
 mod device_key;
 mod error;
+mod screen;
 mod session;
 mod sync;
 mod transcription;
@@ -17,7 +18,7 @@ use tauri::{AppHandle, Emitter, Manager, RunEvent, Window, WindowEvent};
 
 use commands::{AppState, emit_locked};
 use mossbook_core::vault::{self, Local};
-use session::Session;
+use session::{RECORDING_GRACE, Session};
 use transcription::Transcription;
 
 /// Event telling the UI to cover or uncover its content (desktop focus loss, D-11).
@@ -36,6 +37,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         // Fingerprint unlock (Android Keystore); a no-op on desktop.
         .plugin(device_key::init())
+        .plugin(screen::init())
         // The sync folder through the system's folder picker (Android); a no-op on desktop.
         .plugin(sync::init())
         // The web view may use the microphone for voice notes (E-18) and nothing
@@ -91,6 +93,7 @@ pub fn run() {
             commands::entry_delete,
             commands::voice_save,
             commands::voice_get,
+            commands::voice_recording,
             commands::voice_transcribe,
             commands::transcription_status,
             commands::transcription_open_download,
@@ -162,9 +165,22 @@ fn on_window_event(window: &Window, event: &WindowEvent) {
 
 fn lock_on_background(app: &AppHandle) {
     let state = app.state::<AppState>();
-    let locked = state.session().on_background();
-    if let Ok(Some(reason)) = locked {
-        emit_locked(app, reason);
+    let mut session = state.session();
+    match session.on_background(Instant::now()) {
+        Ok(Some(reason)) => emit_locked(app, reason),
+        // A voice note is being recorded: the lock waits for it to be stored,
+        // but never longer than the grace (D-25).
+        Ok(None) if session.lock_pending() => {
+            let app = app.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(RECORDING_GRACE);
+                let locked = app.state::<AppState>().session().on_tick(Instant::now());
+                if let Ok(Some(reason)) = locked {
+                    emit_locked(&app, reason);
+                }
+            });
+        }
+        _ => {}
     }
 }
 

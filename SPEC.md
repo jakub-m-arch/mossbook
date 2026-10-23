@@ -87,7 +87,7 @@ tracked in [`docs/PLAN.md`](docs/PLAN.md).
 |---|---|---|
 | V-1 | Creating the vault: a password (min. 8 characters, strength meter) and a generated **recovery key** (24 words) that the user must confirm by retyping 3 random words | MVP |
 | V-2 | Unlocking with the password | MVP |
-| V-3 | Auto-lock: immediately on going to the background (default) or after 1, 5 or 15 minutes, configurable | MVP |
+| V-3 | Auto-lock: immediately on going to the background (default) or after 1, 5 or 15 minutes, configurable; while a voice note is recorded the screen stays on, inactivity is not counted, and a background lock waits up to 3 s for the recording to be stored (D-25) | MVP |
 | V-4 | Manual lock with a single, always visible button | MVP |
 | V-5 | Changing the password without re-encrypting the data (key rewrap, see §6) | MVP |
 | V-6 | Regaining access with the recovery key and setting a new password | MVP |

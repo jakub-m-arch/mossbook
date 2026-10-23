@@ -109,6 +109,12 @@ export const voiceSave = (data: Uint8Array) =>
 	invoke<VoiceNote>('voice_save', { data: bytesToBase64(data) });
 /** One recording for playback. Keep it in memory only (an object URL, revoked after use). */
 export const voiceGet = (id: Id) => invoke<string>('voice_get', { id }).then(base64ToBytes);
+/**
+ * Recording started or finished (D-25): meanwhile the screen stays on and the
+ * idle timer waits. Report the end only once the recording is stored and the
+ * form kept, since a background lock may be waiting for it.
+ */
+export const voiceRecording = (active: boolean) => invoke<void>('voice_recording', { active });
 
 // ---- transcription (E-19, D-23) ----
 

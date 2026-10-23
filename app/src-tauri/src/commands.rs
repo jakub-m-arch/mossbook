@@ -30,6 +30,7 @@ use zeroize::Zeroizing;
 
 use crate::device_key::{self, PlatformError, PromptText, Support};
 use crate::error::{AppError, AppResult};
+use crate::screen;
 use crate::session::{
     BackupInfo, BackupSecret, BackupSummary, ImportOutcome, LockReason, RecoveryAnswer,
     RecoverySetup, Session, Status, SyncStatus,
@@ -69,6 +70,8 @@ fn with_session<T>(
 }
 
 pub fn emit_locked(app: &AppHandle, reason: LockReason) {
+    // A recording in progress is dropped on lock; the screen may sleep again.
+    screen::keep_on(app, false);
     // Nothing useful can be done if the webview is gone; the vault is locked either way.
     let _ = app.emit(EVENT_LOCKED, reason);
 }
@@ -327,6 +330,20 @@ pub fn voice_save(state: State<'_, AppState>, data: String) -> AppResult<VoiceNo
             .map_err(|_| AppError::new("invalid_field", "recording is not base64"))?,
     );
     with_session(&state, |s| Ok(s.journal_mut()?.save_voice(&bytes)?))
+}
+
+/// The UI started or finished recording a voice note (D-25). While it records,
+/// the screen stays on and the idle timer waits. It reports the end once the
+/// recording is stored and the form kept; a background lock waiting for that
+/// happens then.
+#[tauri::command(async)]
+pub fn voice_recording(app: AppHandle, state: State<'_, AppState>, active: bool) -> AppResult<()> {
+    let locked = state.session().set_recording(active, Instant::now());
+    screen::keep_on(&app, active && locked.is_ok());
+    if let Some(reason) = locked? {
+        emit_locked(&app, reason);
+    }
+    Ok(())
 }
 
 /// One recording for playback, as base64. Decrypted only now; nothing is

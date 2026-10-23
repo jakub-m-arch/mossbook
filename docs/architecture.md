@@ -95,6 +95,9 @@ place:
   Android Keystore and runs `BiometricPrompt`. It is registered by
   `src/device_key.rs` and called only from Rust (`vault_unlock_device`,
   `device_unlock_*`); on desktop the same module reports "unavailable".
+- `ScreenPlugin.kt` keeps the screen on while a voice note is recorded (D-25). It is
+  registered by `src/screen.rs` and called only from Rust (`voice_recording` and
+  every lock); on desktop the module does nothing.
 - Files and dialogs go through `tauri-plugin-dialog` and `tauri-plugin-fs`, which
   hand back content URIs; the vault and automatic backups stay in the app's private
   storage.

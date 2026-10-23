@@ -23,6 +23,7 @@ pub const COMMANDS: &[&str] = &[
     "entry_delete",
     "voice_save",
     "voice_get",
+    "voice_recording",
     "voice_transcribe",
     "transcription_status",
     "transcription_open_download",

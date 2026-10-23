@@ -17,7 +17,7 @@ It complements [`crypto.md`](crypto.md) (cryptography) and
 
 | Threat | Example | Mitigation | Where |
 |---|---|---|---|
-| Someone picks up the unlocked device | A housemate opens the app | Separate app password; lock on minimize/background (default) or after 1/5/15 min idle; lock button on every screen; lock on app exit | `app/src-tauri/src/session.rs`, `lib.rs` |
+| Someone picks up the unlocked device | A housemate opens the app | Separate app password; lock on minimize/background (default; while a voice note is recorded it waits up to 3 s for the recording to be stored, D-25) or after 1/5/15 min idle (not counted while recording, at most 5.5 min); lock button on every screen; lock on app exit | `app/src-tauri/src/session.rs`, `lib.rs` |
 | Over-the-shoulder on desktop | Switching windows | Content is covered while the window is not focused | `privacy-curtain` event, `routes/+layout.svelte` |
 | Password guessing in the app | Repeated attempts | Delay 1, 2, 4… 60 s after failures; Argon2id makes each guess slow | `core/src/vault/throttle.rs`, `crypto/kdf.rs` |
 | Access to the files | Theft, repair shop, disk image, cloud copy of the data folder | Every record and setting encrypted with XChaCha20-Poly1305 under a random DEK; the DEK wrapped under Argon2id(password) and HKDF(recovery key) | `core/src/crypto/`, `core/src/vault/` |

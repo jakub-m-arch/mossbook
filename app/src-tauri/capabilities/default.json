@@ -30,6 +30,7 @@
     "allow-entry-delete",
     "allow-voice-save",
     "allow-voice-get",
+    "allow-voice-recording",
     "allow-voice-transcribe",
     "allow-transcription-status",
     "allow-transcription-open-download",

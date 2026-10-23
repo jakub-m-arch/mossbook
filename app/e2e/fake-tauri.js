@@ -36,6 +36,8 @@
 		sync: null,
 		/** Voice notes by id, as base64 Ogg Opus (E-18). */
 		voices: new Map(),
+		/** A recording in progress keeps the screen on and delays a background lock (D-25). */
+		recording: { active: false, screenOn: false, deferred: null },
 		/** Transcription on this device (D-23). */
 		transcription: {
 			// Read on first use: tests set these in an init script that may run after this one.
@@ -239,6 +241,17 @@
 			return note;
 		},
 		voice_get: ({ id }) => state.voices.get(id)?.data ?? fail('not_found'),
+		voice_recording: ({ active }) => {
+			if (active && state.vault !== 'unlocked') return fail('locked');
+			state.recording.active = active;
+			state.recording.screenOn = active;
+			// Like Rust: the end of a recording releases a background lock that waited for it.
+			if (!active && state.recording.deferred) {
+				clearTimeout(state.recording.deferred);
+				lockInBackground();
+			}
+			return null;
+		},
 		// Transcription (D-23): off unless a test imports the model or sets
 		// `fake-transcription`; the text is fixed and synthetic.
 		voice_transcribe: async ({ id }) => {
@@ -667,6 +680,15 @@
 		return { id, duration_ms: Math.min(duration_ms, 300000), mime: 'audio/ogg; codecs=opus' };
 	}
 
+	/** The background lock under "lock immediately", as Rust does it. */
+	function lockInBackground() {
+		state.recording = { active: false, screenOn: false, deferred: null };
+		if (state.vault !== 'unlocked') return;
+		state.vault = 'locked';
+		save();
+		emit('vault-locked', 'background');
+	}
+
 	/** Test hooks: simulate Rust-side events (auto-lock, focus loss). */
 	window.__fake = {
 		/** Adds synthetic entries directly (for tests that need many of them). */
@@ -689,6 +711,15 @@
 		/** What the next fingerprint prompt does: 'ok', 'cancelled' or an error code. */
 		setBiometric(next) {
 			state.biometric.next = next;
+		},
+		get screenOn() {
+			return state.recording.screenOn;
+		},
+		/** The app went to the background; a recording delays the lock up to 3 s (D-25). */
+		goBackground() {
+			if (state.recording.active) {
+				state.recording.deferred ??= setTimeout(lockInBackground, 3000);
+			} else lockInBackground();
 		},
 		lockFromRust(reason) {
 			state.vault = 'locked';
