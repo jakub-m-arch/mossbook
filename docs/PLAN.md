@@ -146,6 +146,7 @@ Resumed 2026-10-21 (postponed on 2026-10-19 while the tools were missing).
 - [x] `v0.2.0`: first Android release (signed APK), fingerprint unlock (2026-10-21)
 - [x] `v0.3.0`: an entry form survives a lock (E-17, D-20); licence and no-warranty notice in the app (D-19) (2026-10-21)
 - [x] `v0.4.0`: voice notes (E-18, D-21), sync between the user's devices through Syncthing (D-22), readable copy as ZIP, vault and backup format 3; tested as `v0.4.0-rc.1` (2026-10-22)
+- [x] `v0.5.0`: voice notes to text on the device (E-19, D-23), UI polish (D-24: confirmations in a sheet, hiding content by default, entry menu, settings screens); tested as `v0.5.0-rc.1`–`rc.3` (2026-10-23)
 - [ ] Enable private vulnerability reporting in the repository settings
 - [ ] Code signing: Apple Developer ID + notarisation (macOS), SignPath or Azure Trusted Signing (Windows)
 
