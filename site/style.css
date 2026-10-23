@@ -601,6 +601,8 @@ h2 em {
 }
 
 .ledger p {
+	/* Every paragraph of a promise in the text column, however many there are. */
+	grid-column: 3;
 	margin: 0;
 	color: var(--band-muted);
 	font-size: 0.98rem;
