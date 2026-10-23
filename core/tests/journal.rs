@@ -223,7 +223,7 @@ fn json_export_holds_the_whole_journal() {
     let bytes = j.export_json(NOW).unwrap();
     let doc: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(doc["format"], "mossbook-export");
-    assert_eq!(doc["version"], 3);
+    assert_eq!(doc["version"], 4);
     assert_eq!(doc["exported_at"], "2026-10-19T20:00:00+02:00");
     let entries = doc["entries"].as_array().unwrap();
     assert_eq!(entries.len(), 2);
@@ -388,6 +388,16 @@ fn kind() -> impl Strategy<Value = EntryKind> {
             }
         ),
         Just(EntryKind::Note),
+        (
+            text(),
+            text(),
+            proptest::collection::vec(any::<[u8; 16]>(), 0..3)
+        )
+            .prop_map(|(agreed, todo, ids)| EntryKind::Session {
+                agreed,
+                todo,
+                discussed: ids.into_iter().map(Id::from_bytes).collect(),
+            }),
     ]
 }
 
@@ -401,9 +411,12 @@ fn entry() -> impl Strategy<Value = Entry> {
         any::<bool>(),
         any::<bool>(),
         any::<[u8; 16]>(),
+        any::<bool>(),
     )
         .prop_map(
-            |(kind, occurred_at, mood, intensity, note, incomplete, sensitive, id)| {
+            |(kind, occurred_at, mood, intensity, note, incomplete, sensitive, id, discuss)| {
+                // A session cannot be flagged for one.
+                let discuss = discuss && kind.tag() != EntryKindTag::Session;
                 let mut e = Entry::new(kind, NOW).unwrap();
                 e.id = Id::from_bytes(id);
                 e.occurred_at = occurred_at;
@@ -412,6 +425,7 @@ fn entry() -> impl Strategy<Value = Entry> {
                 e.note = note;
                 e.incomplete = incomplete;
                 e.sensitive = sensitive;
+                e.discuss = discuss;
                 e
             },
         )
@@ -675,7 +689,7 @@ fn a_transcript_is_kept_encrypted_and_searchable() {
     assert_eq!(found[0].id, e.id);
     // The readable copy carries it (export version 3).
     let doc: serde_json::Value = serde_json::from_slice(&j.export_json(NOW).unwrap()).unwrap();
-    assert_eq!(doc["version"], 3);
+    assert_eq!(doc["version"], 4);
     assert_eq!(
         doc["entries"][0]["voice"]["transcript"],
         "Synthetic walk with Żaneta"
@@ -780,6 +794,137 @@ fn entries_without_a_recording_encode_as_before() {
     let e = Entry::new(EntryKind::Note, NOW).unwrap();
     let bytes = encode(&e).unwrap();
     assert!(!contains(&bytes, b"voice"));
+    assert!(!contains(&bytes, b"discuss"));
+}
+
+// ---- preparing for a session (E-7, E-20, D-26) ----
+
+fn flagged_note(j: &mut Journal, text: &str) -> Id {
+    let mut e = Entry::new(EntryKind::Note, NOW).unwrap();
+    e.note = text.into();
+    e.discuss = true;
+    j.save_entry(e, NOW).unwrap().id
+}
+
+fn session(discussed: Vec<Id>) -> Entry {
+    Entry::new(
+        EntryKind::Session {
+            agreed: "synthetic agreement".into(),
+            todo: "synthetic homework".into(),
+            discussed,
+        },
+        NOW,
+    )
+    .unwrap()
+}
+
+#[test]
+fn saving_a_session_clears_the_flag_of_what_was_talked_about() {
+    let (fx, mut j) = create();
+    let a = flagged_note(&mut j, "synthetic topic A");
+    let b = flagged_note(&mut j, "synthetic topic B");
+    let later = NOW + Duration::hours(2);
+    let id = j.save_entry(session(vec![a]), later).unwrap().id;
+    assert!(!j.entry(&a).unwrap().discuss);
+    assert_eq!(
+        j.entry(&a).unwrap().updated_at,
+        Timestamp(later),
+        "travels by sync"
+    );
+    assert!(
+        j.entry(&b).unwrap().discuss,
+        "not talked about: waits for the next one"
+    );
+
+    let flagged = EntryFilter {
+        discuss_only: true,
+        ..EntryFilter::default()
+    };
+    let j = reopen(&fx, j);
+    let still: Vec<Id> = j.entries(&flagged).iter().map(|e| e.id).collect();
+    assert_eq!(still, vec![b]);
+    // The text is searchable like the rest.
+    let search = EntryFilter {
+        text: Some("homework".into()),
+        ..EntryFilter::default()
+    };
+    assert_eq!(j.entries(&search)[0].id, id);
+}
+
+#[test]
+fn a_session_lists_only_existing_entries_once_and_not_itself() {
+    let (_fx, mut j) = create();
+    let a = flagged_note(&mut j, "synthetic topic A");
+    let gone = flagged_note(&mut j, "synthetic deleted topic");
+    j.delete_entry(&gone, NOW).unwrap();
+    let mut s = session(Vec::new());
+    let own = s.id;
+    if let EntryKind::Session { discussed, .. } = &mut s.kind {
+        *discussed = vec![a, gone, a, own, Id::from_bytes([7; 16])];
+    }
+    let saved = j.save_entry(s, NOW).unwrap();
+    assert_eq!(
+        saved.kind,
+        EntryKind::Session {
+            agreed: "synthetic agreement".into(),
+            todo: "synthetic homework".into(),
+            discussed: vec![a],
+        }
+    );
+    // Flagged again for the next session, then the old session is edited:
+    // the new flag stays.
+    let mut again = j.entry(&a).unwrap().clone();
+    again.discuss = true;
+    j.save_entry(again, NOW).unwrap();
+    let mut edited = j.entry(&own).unwrap().clone();
+    edited.note = "synthetic edit".into();
+    j.save_entry(edited, NOW).unwrap();
+    assert!(j.entry(&a).unwrap().discuss);
+}
+
+#[test]
+fn a_session_cannot_be_flagged_quick_or_list_too_much() {
+    let (_fx, mut j) = create();
+    let mut flagged = session(Vec::new());
+    flagged.discuss = true;
+    assert_eq!(
+        j.save_entry(flagged, NOW).unwrap_err(),
+        JournalError::Domain(DomainError::InvalidField("discuss"))
+    );
+    assert_eq!(
+        j.quick_entry(EntryKindTag::Session, None, NOW).unwrap_err(),
+        JournalError::Domain(DomainError::InvalidField("kind"))
+    );
+    let too_many = (0..=mossbook_core::domain::MAX_DISCUSSED)
+        .map(|i| Id::from_bytes([(i % 251) as u8; 16]))
+        .collect();
+    assert_eq!(
+        j.save_entry(session(too_many), NOW).unwrap_err(),
+        JournalError::Domain(DomainError::InvalidField("discussed"))
+    );
+    assert!(j.entries(&EntryFilter::default()).is_empty());
+}
+
+#[test]
+fn the_flag_and_sessions_reach_the_readable_copy() {
+    let (_fx, mut j) = create();
+    let a = flagged_note(&mut j, "synthetic topic");
+    flagged_note(&mut j, "synthetic open question");
+    j.save_entry(session(vec![a]), NOW).unwrap();
+    let doc: serde_json::Value = serde_json::from_slice(&j.export_json(NOW).unwrap()).unwrap();
+    assert_eq!(doc["version"], 4);
+    let entries = doc["entries"].as_array().unwrap();
+    let open = entries
+        .iter()
+        .find(|e| e["note"] == "synthetic open question")
+        .unwrap();
+    assert_eq!(open["discuss"], true);
+    let s = entries
+        .iter()
+        .find(|e| e["kind"].get("session").is_some())
+        .unwrap();
+    assert_eq!(s["kind"]["session"]["todo"], "synthetic homework");
+    assert_eq!(s["kind"]["session"]["discussed"][0], a.to_string());
 }
 
 #[test]
@@ -808,7 +953,7 @@ fn readable_copy_is_a_zip_with_the_json_and_the_recordings() {
         .read_to_string(&mut json)
         .unwrap();
     let json: serde_json::Value = serde_json::from_str(&json).unwrap();
-    assert_eq!(json["version"], 3);
+    assert_eq!(json["version"], 4);
     let entries = json["entries"].as_array().unwrap();
     let with_voice: Vec<_> = entries
         .iter()

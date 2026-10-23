@@ -24,9 +24,11 @@ use super::BackupError;
 
 /// File signature.
 pub const MAGIC: &[u8; 8] = b"MOSSBOOK";
-/// Backup format version written by this build. Versions 1 (no recordings) and
-/// 2 (no tombstones) are still read.
-pub const BACKUP_VERSION: u16 = 3;
+/// Backup format version written by this build. Versions 1 (no recordings),
+/// 2 (no tombstones) and 3 (no session entries) are still read. Version 4 has
+/// the body of version 3; it comes from vault format 4, whose entries an older
+/// build cannot all read (D-26).
+pub const BACKUP_VERSION: u16 = 4;
 /// Largest file accepted on import, as a guard against memory exhaustion.
 pub const MAX_BACKUP_BYTES: usize = 512 * 1024 * 1024;
 
@@ -133,7 +135,7 @@ impl Backup {
         let version = u16::from_le_bytes([version[0], version[1]]);
         // Each backup version comes from exactly one vault format.
         let vault_format = match version {
-            1 | 2 => version,
+            1..=3 => version,
             BACKUP_VERSION => VAULT_FORMAT_VERSION,
             _ => return Err(BackupError::UnsupportedVersion),
         };

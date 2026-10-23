@@ -998,6 +998,7 @@ fn receive(
     let files = link.folder.list().map_err(|_| "folder_unavailable")?;
     let mut total = SyncReport::default();
     let mut damaged = false;
+    let mut newer = false;
     link.other_journal = false;
     for f in files {
         let stamp = (f.modified, f.len);
@@ -1013,6 +1014,11 @@ fn receive(
                 Ok(opened) => opened,
                 Err(BackupError::OtherJournal) => {
                     link.other_journal = true;
+                    continue;
+                }
+                // Another device runs a newer Mossbook (D-26): this one must be updated.
+                Err(BackupError::UnsupportedVersion) => {
+                    newer = true;
                     continue;
                 }
                 Err(_) => {
@@ -1037,6 +1043,9 @@ fn receive(
         total.deleted += report.deleted;
         total.skipped += report.skipped;
         link.seen.insert(f.name, stamp);
+    }
+    if newer {
+        return Err("newer_version");
     }
     if damaged {
         return Err("damaged_file");
@@ -1761,6 +1770,21 @@ mod tests {
         b.sync_now().unwrap();
         b.lock().unwrap();
         assert_eq!(std::fs::metadata(&own).unwrap().modified().unwrap(), before);
+    }
+
+    #[test]
+    fn a_file_from_a_newer_build_asks_for_an_update() {
+        let shared = tempfile::tempdir().unwrap();
+        let (_dir, mut a) = unlocked_with(PASSWORD);
+        a.sync_connect(folder(&shared), "shared".into()).unwrap();
+        add_note(&mut a, "kept here");
+        let mut newer = mossbook_core::backup::MAGIC.to_vec();
+        newer.extend_from_slice(&(mossbook_core::backup::BACKUP_VERSION + 1).to_le_bytes());
+        newer.extend_from_slice(b"synthetic body");
+        std::fs::write(shared.path().join(file_name("other-device")), newer).unwrap();
+        let status = a.sync_now().unwrap();
+        assert_eq!(status.problem, Some("newer_version"));
+        assert_eq!(notes(&a), vec!["kept here"]);
     }
 
     #[test]

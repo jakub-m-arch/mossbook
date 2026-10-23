@@ -27,8 +27,9 @@ pub use sync::SyncReport;
 /// `format` field of the plain JSON export.
 pub const EXPORT_FORMAT: &str = "mossbook-export";
 /// Version of the plain JSON export layout. 2 added `Entry.voice` (E-18), 3 the
-/// voice note's `transcript` (E-19).
-pub const EXPORT_VERSION: u16 = 3;
+/// voice note's `transcript` (E-19), 4 the `session` entry type (E-7) and
+/// `Entry.discuss` (E-20).
+pub const EXPORT_VERSION: u16 = 4;
 /// Name of the JSON file inside the readable copy (ZIP).
 pub const EXPORT_JSON_NAME: &str = "mossbook-export.json";
 
@@ -306,15 +307,60 @@ impl Journal {
             .map(|id| *id.as_bytes())
             .into_iter()
             .collect();
+        let cleared = self.discussed_in(&mut entry, now);
         let bytes = encode(&entry)?;
-        self.vault.write_batch_with_media(
-            &[(*entry.id.as_bytes(), RecordType::Entry, &bytes)],
-            &[],
-            &media_deletes,
-        )?;
+        let cleared_bytes = cleared.iter().map(encode).collect::<Result<Vec<_>, _>>()?;
+        let mut puts = vec![(*entry.id.as_bytes(), RecordType::Entry, bytes.as_slice())];
+        for (other, other_bytes) in cleared.iter().zip(&cleared_bytes) {
+            puts.push((
+                *other.id.as_bytes(),
+                RecordType::Entry,
+                other_bytes.as_slice(),
+            ));
+        }
+        // The session and the flags it clears go in one write.
+        self.vault
+            .write_batch_with_media(&puts, &[], &media_deletes)?;
+        for other in cleared {
+            self.entries.insert(other.id, other);
+        }
         let id = entry.id;
         self.entries.insert(id, entry);
         Ok(&self.entries[&id])
+    }
+
+    /// For a session (E-7, D-26): keeps in `discussed` only entries that exist
+    /// (not the session itself, each once) and returns those it newly lists
+    /// that are still flagged, with the flag cleared, to be saved with it.
+    /// Editing a session later leaves alone an entry flagged again since.
+    fn discussed_in(&self, entry: &mut Entry, now: OffsetDateTime) -> Vec<Entry> {
+        let before: &[Id] = match self.entries.get(&entry.id).map(|e| &e.kind) {
+            Some(EntryKind::Session { discussed, .. }) => discussed,
+            _ => &[],
+        };
+        let EntryKind::Session { discussed, .. } = &mut entry.kind else {
+            return Vec::new();
+        };
+        let mut kept: Vec<Id> = Vec::with_capacity(discussed.len());
+        for id in discussed.iter() {
+            // Deleted since the form opened (possibly on another device): left out.
+            if *id != entry.id && !kept.contains(id) && self.entries.contains_key(id) {
+                kept.push(*id);
+            }
+        }
+        *discussed = kept;
+        discussed
+            .iter()
+            .filter(|id| !before.contains(id))
+            .map(|id| &self.entries[id])
+            .filter(|other| other.discuss)
+            .map(|other| {
+                let mut other = other.clone();
+                other.discuss = false;
+                other.updated_at = now.into();
+                other
+            })
+            .collect()
     }
 
     /// Saves an entry submitted by the UI: creates it if `draft.id` is `None`,
@@ -382,6 +428,9 @@ impl Journal {
         value: Option<u8>,
         now: OffsetDateTime,
     ) -> Result<&Entry, JournalError> {
+        if !kind.quick() {
+            return Err(DomainError::InvalidField("kind").into());
+        }
         let mut entry = Entry::new(EntryKind::empty(kind), now)?;
         match kind {
             EntryKindTag::Mood => entry.mood = value,

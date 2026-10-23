@@ -21,7 +21,9 @@ use zeroize::Zeroizing;
 
 use crate::crypto::{CryptoError, random_bytes};
 
-pub use entry::{Emotion, Entry, EntryDraft, EntryKind, EntryKindTag, InboxEntry, Symptom};
+pub use entry::{
+    Emotion, Entry, EntryDraft, EntryKind, EntryKindTag, InboxEntry, MAX_DISCUSSED, Symptom,
+};
 pub use plan::{Contact, SafetyPlan};
 pub use settings::{AutoLock, Reminder, Settings, UnsavedEntry};
 pub use tag::Tag;

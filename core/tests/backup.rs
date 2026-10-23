@@ -360,14 +360,14 @@ fn tampering_is_detected() {
         Backup::from_bytes(&bytes[..bytes.len() / 2]).unwrap_err(),
         BackupError::Corrupted
     );
-    let mut v4 = bytes.clone();
-    v4[8] = 4;
+    let mut v5 = bytes.clone();
+    v5[8] = 5;
     assert_eq!(
-        Backup::from_bytes(&v4).unwrap_err(),
+        Backup::from_bytes(&v5).unwrap_err(),
         BackupError::UnsupportedVersion
     );
-    // A version 3 body labelled as an older version.
-    for older in [1, 2] {
+    // A version 4 body labelled as an older version.
+    for older in [1, 2, 3] {
         let mut relabelled = bytes.clone();
         relabelled[8] = older;
         assert_eq!(
@@ -422,7 +422,7 @@ fn imports_format_v1_fixture() {
 }
 
 /// A backup written by format version 2, with a recording (E-18, D-21,
-/// Mossbook 0.4). Frozen: this build writes version 3.
+/// Mossbook 0.4). Frozen: this build writes version 4.
 const FIXTURE_V2: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/backup-v2.mossbook"
@@ -617,9 +617,34 @@ fn a_version_2_backup_cannot_pass_as_version_1_without_its_recordings() {
     );
 }
 
-/// A backup written by format version 3 (sync, D-22): an entry, a deleted
-/// entry and a password changed once.
-/// Regenerate only on purpose: `cargo test -p mossbook-core --test backup -- --ignored`.
+#[test]
+fn a_version_4_backup_cannot_pass_as_version_3() {
+    use ciborium::Value;
+    let (_fx, j) = populated();
+    let bytes = export(&j);
+    assert_eq!(&bytes[8..10], &4u16.to_le_bytes());
+    let mut body: Value = ciborium::from_reader(&bytes[10..]).unwrap();
+    let Value::Map(fields) = &mut body else {
+        panic!("body is a map")
+    };
+    for (k, v) in fields.iter_mut() {
+        if k.as_text() == Some("vault_format") {
+            *v = Value::Integer(3.into());
+        }
+    }
+    let mut forged = bytes[..8].to_vec();
+    forged.extend_from_slice(&3u16.to_le_bytes());
+    ciborium::into_writer(&body, &mut forged).unwrap();
+    let backup = Backup::from_bytes(&forged).expect("well-formed version 3");
+    assert_eq!(
+        backup.open_with_password(PASSWORD).unwrap_err(),
+        BackupError::Corrupted,
+        "the manifest is sealed for version 4"
+    );
+}
+
+/// A backup written by format version 3 (sync, D-22, Mossbook 0.5): an entry,
+/// a deleted entry and a password changed once. Frozen: this build writes version 4.
 const FIXTURE_V3: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/backup-v3.mossbook"
@@ -643,18 +668,75 @@ fn imports_format_v3_fixture() {
     assert_eq!(entries[0].note, "fixture kept");
 }
 
+/// A backup written by format version 4 (D-26): a note flagged for the
+/// session, a session that talked about another note (no longer flagged), a
+/// deleted entry and a password changed once.
+/// Regenerate only on purpose: `cargo test -p mossbook-core --test backup -- --ignored`.
+const FIXTURE_V4: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/backup-v4.mossbook"
+);
+const FIXTURE_V4_PASSWORD: &str = "fixture password v4";
+
 #[test]
-#[ignore = "writes tests/fixtures/backup-v3.mossbook"]
-fn generate_backup_v3_fixture() {
+fn imports_format_v4_fixture() {
+    let bytes = std::fs::read(FIXTURE_V4).unwrap();
+    assert_eq!(&bytes[8..10], &4u16.to_le_bytes());
+    let dir = tempfile::tempdir().unwrap();
+    let opened = Backup::from_bytes(&bytes)
+        .unwrap()
+        .open_with_password(FIXTURE_V4_PASSWORD)
+        .unwrap();
+    assert_eq!(opened.header().password_epoch, 1);
+    let j = Journal::open(opened.restore(&dir.path().join("vault.db")).unwrap());
+    assert_eq!(j.vault().unreadable_records(), 0);
+    let entries = j.entries(&EntryFilter::default());
+    assert_eq!(entries.len(), 3);
+    let note = |text: &str| entries.iter().find(|e| e.note == text).unwrap();
+    assert!(note("fixture flagged").discuss);
+    let talked = note("fixture talked about");
+    assert!(!talked.discuss);
+    let session = entries
+        .iter()
+        .find(|e| e.kind.tag() == EntryKindTag::Session)
+        .unwrap();
+    assert_eq!(
+        session.kind,
+        EntryKind::Session {
+            agreed: "fixture agreed".into(),
+            todo: "fixture todo".into(),
+            discussed: vec![talked.id],
+        }
+    );
+}
+
+#[test]
+#[ignore = "writes tests/fixtures/backup-v4.mossbook"]
+fn generate_backup_v4_fixture() {
     let (_fx, mut j) = create("first password");
     j.vault_mut()
-        .change_password("first password", FIXTURE_V3_PASSWORD)
+        .change_password("first password", FIXTURE_V4_PASSWORD)
         .unwrap();
-    let mut kept = Entry::new(EntryKind::Note, NOW).unwrap();
-    kept.note = "fixture kept".into();
-    j.save_entry(kept, NOW).unwrap();
+    let mut flagged = Entry::new(EntryKind::Note, NOW).unwrap();
+    flagged.note = "fixture flagged".into();
+    flagged.discuss = true;
+    j.save_entry(flagged, NOW).unwrap();
+    let mut talked = Entry::new(EntryKind::Note, NOW).unwrap();
+    talked.note = "fixture talked about".into();
+    talked.discuss = true;
+    let talked = j.save_entry(talked, NOW).unwrap().id;
+    let session = Entry::new(
+        EntryKind::Session {
+            agreed: "fixture agreed".into(),
+            todo: "fixture todo".into(),
+            discussed: vec![talked],
+        },
+        NOW,
+    )
+    .unwrap();
+    j.save_entry(session, NOW).unwrap();
     let gone = Entry::new(EntryKind::Note, NOW).unwrap();
     let gone = j.save_entry(gone, NOW).unwrap().id;
     j.delete_entry(&gone, NOW).unwrap();
-    std::fs::write(Path::new(FIXTURE_V3), export(&j)).unwrap();
+    std::fs::write(Path::new(FIXTURE_V4), export(&j)).unwrap();
 }

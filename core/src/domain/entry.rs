@@ -41,7 +41,18 @@ pub struct Entry {
     /// entries without one encode exactly as before.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub voice: Option<VoiceNote>,
+    /// Marked to bring to the next therapy session (E-20, D-26). Left out when
+    /// false, so entries without it encode exactly as before.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub discuss: bool,
 }
+
+fn is_false(value: &bool) -> bool {
+    !value
+}
+
+/// Most entries one session can list as talked about (E-7).
+pub const MAX_DISCUSSED: usize = 1000;
 
 impl Entry {
     /// A new, empty entry of the given kind, happening at `now`.
@@ -60,11 +71,16 @@ impl Entry {
             incomplete: false,
             sensitive: false,
             voice: None,
+            discuss: false,
         })
     }
 
     /// Range checks for every numeric field.
     pub fn validate(&self) -> Result<(), DomainError> {
+        // A session is what brings flagged entries up; it is not one itself.
+        if self.discuss && matches!(self.kind, EntryKind::Session { .. }) {
+            return Err(DomainError::InvalidField("discuss"));
+        }
         check_range(self.mood, 1..=5, "mood")?;
         check_range(self.intensity, 0..=10, "intensity")?;
         self.kind.validate()
@@ -102,6 +118,9 @@ pub struct InboxEntry {
 impl InboxEntry {
     /// The entry it becomes once the vault is unlocked.
     pub fn into_entry(self, id: Id, received: OffsetDateTime) -> Result<Entry, DomainError> {
+        if !self.kind.quick() {
+            return Err(DomainError::InvalidField("kind"));
+        }
         let mut e = Entry::new(EntryKind::empty(self.kind), received)?;
         e.id = id;
         e.occurred_at = self.occurred_at;
@@ -144,6 +163,8 @@ pub struct EntryDraft {
     /// is trusted, the length is taken from the file again on save.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub voice: Option<VoiceNote>,
+    #[serde(default)]
+    pub discuss: bool,
 }
 
 impl EntryDraft {
@@ -160,6 +181,7 @@ impl EntryDraft {
         entry.incomplete = self.incomplete;
         entry.sensitive = self.sensitive;
         entry.voice = self.voice.clone();
+        entry.discuss = self.discuss;
     }
 }
 
@@ -233,6 +255,19 @@ pub enum EntryKind {
     },
     /// E-6: free note; the text is [`Entry::note`].
     Note,
+    /// E-7 (D-26): notes after a therapy session.
+    Session {
+        /// What was agreed.
+        #[serde(default)]
+        agreed: String,
+        /// What to do before the next session.
+        #[serde(default)]
+        todo: String,
+        /// Entries flagged for the session that were talked about; saving the
+        /// session clears their flag.
+        #[serde(default)]
+        discussed: Vec<Id>,
+    },
 }
 
 impl EntryKind {
@@ -270,6 +305,11 @@ impl EntryKind {
                 rehearsals: Vec::new(),
             },
             EntryKindTag::Note => Self::Note,
+            EntryKindTag::Session => Self::Session {
+                agreed: String::new(),
+                todo: String::new(),
+                discussed: Vec::new(),
+            },
         }
     }
 
@@ -281,6 +321,7 @@ impl EntryKind {
             Self::Sleep { .. } => EntryKindTag::Sleep,
             Self::Nightmare { .. } => EntryKindTag::Nightmare,
             Self::Note => EntryKindTag::Note,
+            Self::Session { .. } => EntryKindTag::Session,
         }
     }
 
@@ -291,7 +332,12 @@ impl EntryKind {
                 intensity_after, ..
             } => check_range(*intensity_after, 0..=10, "intensity_after"),
             Self::Sleep { quality, .. } => check_range(*quality, 1..=5, "quality"),
-            Self::Event { .. } | Self::Nightmare { .. } | Self::Note => Ok(()),
+            Self::Session { discussed, .. } if discussed.len() > MAX_DISCUSSED => {
+                Err(DomainError::InvalidField("discussed"))
+            }
+            Self::Event { .. } | Self::Nightmare { .. } | Self::Note | Self::Session { .. } => {
+                Ok(())
+            }
         }
     }
 
@@ -326,6 +372,9 @@ impl EntryKind {
                 rescripted,
                 ..
             } => Box::new([content.as_str(), rescripted.as_str()].into_iter()),
+            Self::Session { agreed, todo, .. } => {
+                Box::new([agreed.as_str(), todo.as_str()].into_iter())
+            }
             Self::Sleep { .. } | Self::Note => Box::new(core::iter::empty()),
         }
     }
@@ -347,6 +396,15 @@ pub enum EntryKindTag {
     Sleep,
     Nightmare,
     Note,
+    Session,
+}
+
+impl EntryKindTag {
+    /// Whether quick entry offers this type: a type plus one value (E-10, E-15).
+    /// A session is written in the form only.
+    pub fn quick(self) -> bool {
+        self != Self::Session
+    }
 }
 
 /// Emotion; the snake_case names double as translation keys (`emotion.<name>`).

@@ -24,6 +24,8 @@ pub struct EntryFilter {
     pub text: Option<String>,
     /// Only quick entries still to be completed.
     pub incomplete_only: bool,
+    /// Only entries flagged for the next session (E-20).
+    pub discuss_only: bool,
 }
 
 impl fmt::Debug for EntryFilter {
@@ -51,6 +53,7 @@ impl EntryFilter {
             .filter(|e| self.from.is_none_or(|from| e.occurred_at >= from))
             .filter(|e| self.to.is_none_or(|to| e.occurred_at < to))
             .filter(|e| !self.incomplete_only || e.incomplete)
+            .filter(|e| !self.discuss_only || e.discuss)
             .filter(|e| {
                 query.as_ref().is_none_or(|q| {
                     let tag_names = e

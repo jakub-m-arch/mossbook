@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Independent reader for `.mossbook` backups, written from docs/backup-format.md.
 
-Opens a backup (format version 1, 2 or 3) with its password, verifies the manifest,
+Opens a backup (format version 1, 2, 3 or 4) with its password, verifies the manifest,
 every record and every recording, and prints a summary (no content unless --show
 is given). With --voice DIR, recordings are written there as .ogg files.
 
     python3 -m venv .venv && .venv/bin/pip install pynacl argon2-cffi cbor2
-    .venv/bin/python tools/read-backup.py core/tests/fixtures/backup-v3.mossbook "fixture password v3"
+    .venv/bin/python tools/read-backup.py core/tests/fixtures/backup-v4.mossbook "fixture password v4"
 """
 import argparse
 import hashlib
@@ -38,7 +38,7 @@ def main() -> int:
     if data[:8] != b"MOSSBOOK":
         sys.exit("not a Mossbook backup")
     (version,) = struct.unpack("<H", data[8:10])
-    if version not in (1, 2, 3):
+    if version not in (1, 2, 3, 4):
         sys.exit(f"unsupported backup version {version}")
     body = cbor2.loads(data[10:])
     # Backup version N comes from vault format N.

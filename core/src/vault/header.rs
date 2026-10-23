@@ -9,7 +9,7 @@ use crate::store::Store;
 use super::VaultError;
 
 /// Vault format version written by this build.
-pub const FORMAT_VERSION: u16 = 3;
+pub const FORMAT_VERSION: u16 = 4;
 
 const K_FORMAT_VERSION: &str = "format_version";
 const K_VAULT_ID: &str = "vault_id";

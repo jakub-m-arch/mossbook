@@ -88,6 +88,9 @@ fn invalid_values_are_rejected_before_writing() {
     let (_dir, path) = locked_vault();
     let err = Journal::quick_entry_locked(&path, EntryKindTag::Mood, Some(9), NOW).unwrap_err();
     assert!(matches!(err, JournalError::Domain(_)));
+    // A session is written in the form only (D-26).
+    let err = Journal::quick_entry_locked(&path, EntryKindTag::Session, None, NOW).unwrap_err();
+    assert!(matches!(err, JournalError::Domain(_)));
     assert_eq!(inbox_rows(&path), 0);
 }
 
@@ -145,6 +148,13 @@ fn garbage_and_out_of_range_items_are_not_trusted() {
         occurred_at: Timestamp(NOW),
     };
     vault::append_to_inbox(&path, &encode(&hostile).unwrap()).unwrap();
+    // A sealed session, which quick entry never writes.
+    let session = InboxEntry {
+        kind: EntryKindTag::Session,
+        value: None,
+        occurred_at: Timestamp(NOW),
+    };
+    vault::append_to_inbox(&path, &encode(&session).unwrap()).unwrap();
 
     let j = open(&path);
     assert_eq!(
@@ -152,5 +162,5 @@ fn garbage_and_out_of_range_items_are_not_trusted() {
         1,
         "only the valid entry"
     );
-    assert_eq!(j.vault().unreadable_records(), 2);
+    assert_eq!(j.vault().unreadable_records(), 3);
 }

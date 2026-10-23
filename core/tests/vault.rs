@@ -385,7 +385,7 @@ fn tampered_records_are_isolated() {
 
 #[test]
 fn tampered_header_is_detected() {
-    let cases: [(&str, &str, VaultError); 5] = [
+    let cases: [(&str, &str, VaultError); 6] = [
         (
             "UPDATE meta SET value = randomblob(16) WHERE key = 'vault_id'",
             "vault_id",
@@ -397,14 +397,19 @@ fn tampered_header_is_detected() {
             VaultError::Corrupted,
         ),
         (
-            "UPDATE meta SET value = x'0400' WHERE key = 'format_version'",
+            "UPDATE meta SET value = x'0500' WHERE key = 'format_version'",
             "newer version",
             VaultError::UnsupportedFormat,
         ),
         (
-            // Schema 3 always comes with format 3; a mismatch is not guessed at.
+            // Schema 4 always comes with format 4; a mismatch is not guessed at.
             "UPDATE meta SET value = x'0100' WHERE key = 'format_version'",
             "older version label",
+            VaultError::UnsupportedFormat,
+        ),
+        (
+            "UPDATE meta SET value = x'0300' WHERE key = 'format_version'",
+            "previous version label",
             VaultError::UnsupportedFormat,
         ),
         (
@@ -429,7 +434,7 @@ fn tampered_header_is_detected() {
 }
 
 /// A vault file written by format version 1 (Mossbook 0.1–0.3) must keep
-/// opening in every later build. Frozen: this build writes version 2.
+/// opening in every later build. Frozen: this build writes version 4.
 const FIXTURE_V1: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/vault-v1.db");
 const FIXTURE_PASSWORD: &str = "fixture password v1";
 
@@ -464,8 +469,8 @@ fn opens_format_v1_fixture() {
             |r| r.get(0),
         )
         .unwrap();
-    assert_eq!(schema, 3);
-    assert_eq!(format, 3u16.to_le_bytes());
+    assert_eq!(schema, 4);
+    assert_eq!(format, 4u16.to_le_bytes());
     drop(conn);
     let v = vault::unlock(&path, FIXTURE_PASSWORD).unwrap();
     assert_eq!(
@@ -479,7 +484,7 @@ fn a_vault_from_a_newer_build_is_refused_untouched() {
     let (fx, v) = create_vault();
     v.lock().unwrap();
     let conn = rusqlite::Connection::open(&fx.path).unwrap();
-    conn.pragma_update(None, "user_version", 4).unwrap();
+    conn.pragma_update(None, "user_version", 5).unwrap();
     drop(conn);
     let before = std::fs::read(&fx.path).unwrap();
     assert!(vault::unlock(&fx.path, PASSWORD).is_err());
@@ -520,7 +525,7 @@ fn recordings_are_bound_to_their_place() {
 }
 
 /// A vault file written by format version 2 (voice notes, E-18, Mossbook 0.4).
-/// Frozen: this build writes version 3.
+/// Frozen: this build writes version 4.
 const FIXTURE_V2: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/vault-v2.db");
 const FIXTURE_V2_PASSWORD: &str = "fixture password v2";
 
@@ -541,9 +546,9 @@ fn opens_format_v2_fixture() {
     );
 }
 
-/// A vault file written by format version 3 (sync, D-22): an entry, a
-/// recording, a tombstone and a password changed once.
-/// Regenerate only on purpose: `cargo test -p mossbook-core -- --ignored generate_v3_fixture`.
+/// A vault file written by format version 3 (sync, D-22, Mossbook 0.5): an
+/// entry, a recording, a tombstone and a password changed once. Frozen: this
+/// build writes version 4.
 const FIXTURE_V3: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/vault-v3.db");
 const FIXTURE_V3_PASSWORD: &str = "fixture password v3";
 
@@ -570,15 +575,73 @@ fn opens_format_v3_fixture() {
 }
 
 #[test]
-#[ignore = "writes tests/fixtures/vault-v3.db"]
-fn generate_v3_fixture() {
+fn a_format_v3_vault_is_migrated_to_v4_and_stays_there() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("vault.db");
+    std::fs::copy(FIXTURE_V3, &path).unwrap();
+    let schema = |path: &std::path::Path| -> (u32, Vec<u8>) {
+        let conn = rusqlite::Connection::open(path).unwrap();
+        let user_version = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        let format = conn
+            .query_row(
+                "SELECT value FROM meta WHERE key = 'format_version'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        (user_version, format)
+    };
+    assert_eq!(schema(&path), (3, 3u16.to_le_bytes().to_vec()));
+    vault::unlock(&path, FIXTURE_V3_PASSWORD)
+        .unwrap()
+        .lock()
+        .unwrap();
+    assert_eq!(schema(&path), (4, 4u16.to_le_bytes().to_vec()));
+    let mut v = vault::unlock(&path, FIXTURE_V3_PASSWORD).unwrap();
+    assert_eq!(v.unreadable_records(), 0);
+    assert_eq!(loaded(&mut v).len(), 2, "the entry and the tombstone");
+}
+
+/// A vault file written by format version 4 (session entries, D-26): an
+/// entry, a recording, a tombstone and a password changed once.
+/// Regenerate only on purpose: `cargo test -p mossbook-core -- --ignored generate_v4_fixture`.
+const FIXTURE_V4: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/vault-v4.db");
+const FIXTURE_V4_PASSWORD: &str = "fixture password v4";
+
+#[test]
+fn opens_format_v4_fixture() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("vault.db");
+    std::fs::copy(FIXTURE_V4, &path).unwrap();
+    let mut v = vault::unlock(&path, FIXTURE_V4_PASSWORD).unwrap();
+    assert_eq!(v.unreadable_records(), 0);
+    let records = loaded(&mut v);
+    assert_eq!(
+        records[&[1; 16]],
+        (RecordType::Entry, b"fixture entry".to_vec())
+    );
+    assert_eq!(
+        records[&[2; 16]],
+        (RecordType::Tombstone, b"fixture tombstone".to_vec())
+    );
+    assert_eq!(
+        v.open_media(&[3; 16]).unwrap().unwrap().as_slice(),
+        b"fixture recording"
+    );
+}
+
+#[test]
+#[ignore = "writes tests/fixtures/vault-v4.db"]
+fn generate_v4_fixture() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("vault.db");
     let mut pending = PendingVault::with_kdf_params("first password", fast()).unwrap();
     let phrase = pending.recovery_phrase().to_string();
     confirm(&mut pending, &phrase);
     let mut v = pending.write(&path).unwrap();
-    v.change_password("first password", FIXTURE_V3_PASSWORD)
+    v.change_password("first password", FIXTURE_V4_PASSWORD)
         .unwrap();
     v.put([1; 16], RecordType::Entry, b"fixture entry").unwrap();
     v.put([2; 16], RecordType::Tombstone, b"fixture tombstone")
@@ -586,5 +649,5 @@ fn generate_v3_fixture() {
     v.put_media([3; 16], RecordType::Voice, b"fixture recording")
         .unwrap();
     v.lock().unwrap();
-    std::fs::copy(&path, FIXTURE_V3).unwrap();
+    std::fs::copy(&path, FIXTURE_V4).unwrap();
 }
