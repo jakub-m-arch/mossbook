@@ -202,11 +202,12 @@
 		"incomplete": "do uzupełnienia",
 		"notFound": "Nie ma takiego wpisu.",
 		"hidden": "Treść ukryta",
-		"reveal": "Pokaż treść",
-		"conceal": "Ukryj treść",
 		"menuOpen": "Otwórz",
 		"menuHide": "Ukrywaj treść",
-		"menuUnhide": "Nie ukrywaj treści"
+		"menuUnhide": "Nie ukrywaj treści",
+		"sleepLength": "{hours} godz. {minutes} min",
+		"sleepQuality": "jakość {value}/5",
+		"sleepAwakenings": "wybudzenia: {value}"
 	},
 	"quick": {
 		"open": "Szybki wpis",

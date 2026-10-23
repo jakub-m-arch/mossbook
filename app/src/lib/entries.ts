@@ -122,6 +122,23 @@ export function preview(entry: Entry, max = 120): string {
 	return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
+/** What a sleep entry says at a glance: minutes asleep (bedtime to wake), quality, awakenings. */
+export function sleepFacts(entry: Entry): {
+	minutes: number | null;
+	quality: number | null;
+	awakenings: number | null;
+} | null {
+	if (typeof entry.kind === 'string' || !('sleep' in entry.kind)) return null;
+	const { bedtime, wake, quality, awakenings } = entry.kind.sleep;
+	const span = bedtime && wake ? (Date.parse(wake) - Date.parse(bedtime)) / 60_000 : NaN;
+	return {
+		// Only a plausible night counts; anything else was mistyped.
+		minutes: span > 0 && span < 24 * 60 ? Math.round(span) : null,
+		quality,
+		awakenings
+	};
+}
+
 /** Translation key or custom text for an emotion or symptom. */
 export function chipKey(item: Emotion | Symptom): { key: string } | { custom: string } {
 	return typeof item === 'string' ? { key: item } : { custom: item.custom };

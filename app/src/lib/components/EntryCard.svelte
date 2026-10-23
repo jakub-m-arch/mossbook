@@ -1,9 +1,10 @@
 <script lang="ts">
+	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import Mic from '@lucide/svelte/icons/mic';
 
 	import { resolve } from '$app/paths';
 	import type { Entry, Tag } from '#lib/api/index.js';
-	import { kindTag, preview } from '#lib/entries.js';
+	import { kindTag, preview, sleepFacts } from '#lib/entries.js';
 	import { locale, t } from '#lib/i18n/index.svelte.js';
 	import { formatClock } from '#lib/voice/format.js';
 
@@ -24,9 +25,25 @@
 		new Intl.DateTimeFormat(locale(), { timeStyle: 'short' }).format(new Date(entry.occurred_at))
 	);
 	let text = $derived(preview(entry, 160));
-	/** E-16: hidden content stays hidden until the user asks for it. */
-	let revealed = $state(false);
-	let hidden = $derived(entry.sensitive && !revealed);
+	/** E-16: a hidden entry shows only its type and time; tapping opens it. */
+	let hidden = $derived(entry.sensitive);
+	let sleep = $derived(sleepFacts(entry));
+	let sleepLine = $derived(
+		sleep
+			? [
+					sleep.minutes !== null
+						? t('entry.sleepLength', {
+								hours: Math.floor(sleep.minutes / 60),
+								minutes: sleep.minutes % 60
+							})
+						: '',
+					sleep.quality !== null ? t('entry.sleepQuality', { value: sleep.quality }) : '',
+					sleep.awakenings ? t('entry.sleepAwakenings', { value: sleep.awakenings }) : ''
+				]
+					.filter(Boolean)
+					.join(' · ')
+			: ''
+	);
 
 	/** How long a finger rests on the card before its menu opens. */
 	const LONG_PRESS_MS = 450;
@@ -92,13 +109,18 @@
 		<div class="body">
 			<div class="top">
 				<span class="title">{t(`kind.${kind}`)}</span>
-				{#if entry.mood}<MoodIcon value={entry.mood} size={20} />{/if}
-				{#if entry.intensity !== null}<span class="pill">{entry.intensity}/10</span>{/if}
+				{#if !hidden && entry.mood}<MoodIcon value={entry.mood} size={20} />{/if}
+				{#if !hidden && entry.intensity !== null}<span class="pill">{entry.intensity}/10</span>{/if}
+				{#if hidden}<span class="hidden-mark" title={t('entry.hidden')}
+						><EyeOff size={16} aria-hidden="true" /><span class="sr-only">{t('entry.hidden')}</span
+						></span
+					>{/if}
 				<time datetime={entry.occurred_at}>{time}</time>
 			</div>
-			{#if hidden}
-				<p class="text">{t('entry.hidden')}</p>
-			{:else if text}
+			{#if !hidden && sleepLine}
+				<p class="text">{sleepLine}</p>
+			{/if}
+			{#if !hidden && text}
 				<p class="text">{text}</p>
 			{/if}
 			{#if !hidden && (entry.incomplete || entry.tags.length > 0 || entry.voice)}
@@ -121,16 +143,6 @@
 			{/if}
 		</div>
 	</a>
-	{#if entry.sensitive && (text || entry.voice)}
-		<button
-			type="button"
-			class="link reveal"
-			aria-expanded={revealed}
-			onclick={() => (revealed = !revealed)}
-		>
-			{revealed ? t('entry.conceal') : t('entry.reveal')}
-		</button>
-	{/if}
 </div>
 
 <style>
@@ -143,11 +155,9 @@
 	.wrap {
 		position: relative;
 	}
-	.reveal {
-		position: absolute;
-		right: 0.5rem;
-		bottom: 0.4rem;
-		font-size: 0.85rem;
+	.hidden-mark {
+		display: inline-flex;
+		color: var(--text-muted);
 	}
 	.row {
 		display: flex;

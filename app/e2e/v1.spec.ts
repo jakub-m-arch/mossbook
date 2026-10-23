@@ -14,11 +14,11 @@ test('nightmare with a rescripted version, hidden on the timeline', async ({ pag
 	await page.screenshot({ path: `${SHOTS}/20-nightmare.png`, fullPage: true });
 	await page.getByRole('button', { name: 'Zapisz' }).click();
 
+	// Hidden on the timeline: only the type, the time and a mark; tapping opens it.
 	const card = page.getByRole('listitem').filter({ hasText: 'Koszmar' });
 	await expect(card).toContainText('Treść ukryta');
 	await expect(card).not.toContainText('ogrodu');
-	await card.getByRole('button', { name: 'Pokaż treść' }).click();
-	await expect(card).toContainText('ogrodu');
+	await expect(card.getByRole('button')).toHaveCount(0);
 
 	// Reopened, the nightmare itself starts collapsed.
 	await card.getByRole('link').click();

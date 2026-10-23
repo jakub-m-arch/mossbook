@@ -25,6 +25,10 @@ All notable changes to Mossbook. Versions follow [Semantic Versioning](https://s
 - Confirmations ("Delete this entry?" and the like) open in a window instead of
   appearing under the button, and start on Cancel.
 - Delete sits next to Save in an entry.
+- On the timeline a hidden entry shows only its type and time, with a small mark;
+  tap it to open it. Sleep entries show how long you slept, the quality and the
+  awakenings.
+- Text fields in the forms are smaller and grow as you write.
 - The readable copy includes the text of voice notes (export format version 3).
 - The app is larger: it now contains the speech recognition engine (sherpa-onnx
   with ONNX Runtime, prebuilt libraries pinned by SHA-256). Building Mossbook

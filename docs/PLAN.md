@@ -167,6 +167,8 @@ Resumed 2026-10-21 (postponed on 2026-10-19 while the tools were missing).
 - [x] "Hiding content" instead of "difficult content", on by default in the form; the report no longer forces a password
 - [x] Delete next to Save in the entry form
 - [x] Entry menu on the timeline: long press or right click → open, hide or stop hiding, delete (with confirmation)
+- [x] Timeline: a hidden entry shows only its type, time and a crossed-out eye (no mood, intensity or "show content" link, which revealed only two lines); tapping opens it. Sleep entries show length, quality and awakenings instead of an empty card
+- [x] Text fields about three lines high, growing with the text where the web view supports `field-sizing` (Chromium)
 - [x] e2e: dialogs, defaults, the menu by touch and by right click
 - [ ] On a real phone: long press in the Android web view (no text selection or system menu)
 

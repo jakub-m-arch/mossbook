@@ -202,11 +202,12 @@
 		"incomplete": "доповнити",
 		"notFound": "Такого запису немає.",
 		"hidden": "Вміст приховано",
-		"reveal": "Показати вміст",
-		"conceal": "Сховати вміст",
 		"menuOpen": "Відкрити",
 		"menuHide": "Приховувати вміст",
-		"menuUnhide": "Не приховувати вміст"
+		"menuUnhide": "Не приховувати вміст",
+		"sleepLength": "{hours} год {minutes} хв",
+		"sleepQuality": "якість {value}/5",
+		"sleepAwakenings": "пробудження: {value}"
 	},
 	"quick": {
 		"open": "Швидкий запис",

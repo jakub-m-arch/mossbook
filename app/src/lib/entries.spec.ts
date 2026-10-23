@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Entry } from './api/index.js';
-import { draftFromEntry, emptyKind, groupByDay, kindTag, newDraft, preview } from './entries';
+import {
+	draftFromEntry,
+	emptyKind,
+	groupByDay,
+	kindTag,
+	newDraft,
+	preview,
+	sleepFacts
+} from './entries';
 
 function entry(overrides: Partial<Entry> = {}): Entry {
 	return {
@@ -83,5 +91,25 @@ describe('groupByDay', () => {
 			['2026-10-15', null, 1]
 		]);
 		expect(groupByDay([], now)).toEqual([]);
+	});
+
+	it('sums up a night of sleep', () => {
+		const night = (bedtime: string | null, wake: string | null) =>
+			entry({
+				kind: {
+					sleep: { bedtime, wake, quality: 4, awakenings: 2, nightmare: false }
+				}
+			});
+		expect(sleepFacts(night('2026-10-18T23:10:00+02:00', '2026-10-19T06:50:00+02:00'))).toEqual({
+			minutes: 460,
+			quality: 4,
+			awakenings: 2
+		});
+		// Missing or implausible times give no length, the rest stays.
+		expect(sleepFacts(night(null, '2026-10-19T06:50:00+02:00'))?.minutes).toBeNull();
+		expect(
+			sleepFacts(night('2026-10-19T07:00:00+02:00', '2026-10-19T06:00:00+02:00'))?.minutes
+		).toBeNull();
+		expect(sleepFacts(entry())).toBeNull();
 	});
 });

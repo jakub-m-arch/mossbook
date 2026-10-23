@@ -169,7 +169,11 @@ textarea::placeholder {
 }
 
 textarea {
-	min-height: 6.5rem;
+	/* About three lines, growing with the text where the web view supports it
+	   (Chromium: Android, Windows); elsewhere it can be resized. */
+	min-height: 5rem;
+	max-height: 60vh;
+	field-sizing: content;
 	resize: vertical;
 }
 

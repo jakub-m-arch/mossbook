@@ -202,11 +202,12 @@
 		"incomplete": "to complete",
 		"notFound": "This entry does not exist.",
 		"hidden": "Content hidden",
-		"reveal": "Show content",
-		"conceal": "Hide content",
 		"menuOpen": "Open",
 		"menuHide": "Hide content",
-		"menuUnhide": "Stop hiding content"
+		"menuUnhide": "Stop hiding content",
+		"sleepLength": "{hours} h {minutes} min",
+		"sleepQuality": "quality {value}/5",
+		"sleepAwakenings": "woke up: {value}"
 	},
 	"quick": {
 		"open": "Quick entry",
