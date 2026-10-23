@@ -122,7 +122,7 @@ editable), an optional mood rating, intensity, tags and a text note.
 | E-13 | Timeline with filters: type, tags, date range, full-text search (in memory after unlocking) | MVP |
 | E-14 | Calendar view, each day tinted by its average mood | v1 |
 | E-15 | **Quick entry without unlocking**: adding an entry without being able to read existing ones (see §6.4) | v1 |
-| E-16 | Hiding the content of chosen entries until tapped ("difficult content") | v1 |
+| E-16 | **Hiding content**: an entry's content shows on the timeline only when tapped; on by default for entries written in the form, off for quick entries; changed in the form or from the entry's menu (long press, right click) (D-24) | v1 |
 | E-17 | An entry form being filled in survives a lock: kept encrypted and offered after unlocking, discarded when the form is left on purpose (D-20) | v1 |
 | E-18 | **Voice note**: up to 5 minutes recorded in the app, attached to an entry, encrypted like the rest and included in backups; no video or other files; recorded on every platform; the readable copy becomes a ZIP with the recordings (D-21) | v2 |
 | E-19 | **Voice note to text**: off by default; turned on per device by importing a speech recognition model the user downloads in the browser; a recording is transcribed on the device on request, and the text is shown for the user to correct before it is saved with the entry and becomes searchable (D-23) | v2 |

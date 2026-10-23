@@ -88,16 +88,16 @@ export function draftFromEntry(entry: Entry): EntryDraft {
 }
 
 export function newDraft(tag: EntryKindTag): EntryDraft {
-	const draft: EntryDraft = {
+	// Content written in the form is hidden on the timeline until tapped, unless
+	// the user unticks it (E-16, D-24). Quick entries, a single number, are not.
+	return {
 		kind: emptyKind(tag),
 		mood: null,
 		intensity: null,
 		tags: [],
-		note: ''
+		note: '',
+		sensitive: true
 	};
-	// A nightmare's content is hidden on the timeline by default (E-5, E-16).
-	if (tag === 'nightmare') draft.sensitive = true;
-	return draft;
 }
 
 /** Free-text fields of an entry, in reading order. */

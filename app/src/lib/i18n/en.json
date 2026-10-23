@@ -189,8 +189,8 @@
 		"content": "The nightmare",
 		"rescripted": "New version",
 		"rehearsals": "Rehearsals of the new version",
-		"sensitive": "Difficult content",
-		"sensitiveHint": "On the timeline show only the type and time; reveal the content on tap."
+		"sensitive": "Hide content",
+		"sensitiveHint": "On the timeline only the type of entry and the time show. The content appears on tap."
 	},
 	"entry": {
 		"new": "New entry",
@@ -203,7 +203,10 @@
 		"notFound": "This entry does not exist.",
 		"hidden": "Content hidden",
 		"reveal": "Show content",
-		"conceal": "Hide content"
+		"conceal": "Hide content",
+		"menuOpen": "Open",
+		"menuHide": "Hide content",
+		"menuUnhide": "Stop hiding content"
 	},
 	"quick": {
 		"open": "Quick entry",
@@ -408,7 +411,6 @@
 		"protection": "File protection",
 		"protect": "Protect the PDF with a password",
 		"protectHint": "The file will require a password to open. Send the password separately.",
-		"sensitiveProtected": "The report includes entries marked as difficult, so password protection is on. You can turn it off.",
 		"password": "PDF password",
 		"passwordRepeat": "Repeat the PDF password",
 		"passwordShort": "The PDF password must be at least 12 characters.",

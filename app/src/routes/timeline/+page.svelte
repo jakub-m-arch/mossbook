@@ -1,21 +1,25 @@
 <script lang="ts">
+	import Eye from '@lucide/svelte/icons/eye';
+	import EyeOff from '@lucide/svelte/icons/eye-off';
+	import Pencil from '@lucide/svelte/icons/pencil';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Search from '@lucide/svelte/icons/search';
 	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
 	import Sprout from '@lucide/svelte/icons/sprout';
+	import Trash from '@lucide/svelte/icons/trash';
 	import { onMount } from 'svelte';
 
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { entriesList, tagsList, unsavedGet } from '#lib/api/index.js';
+	import { entriesList, entryDelete, entrySave, tagsList, unsavedGet } from '#lib/api/index.js';
 	import type { Entry, EntryFilter, EntryKindTag, Tag, UnsavedEntry } from '#lib/api/index.js';
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import EntryCard from '#lib/components/EntryCard.svelte';
 	import QuickEntry from '#lib/components/QuickEntry.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
 	import UnlockedShell from '#lib/components/UnlockedShell.svelte';
-	import { CREATABLE_KINDS, groupByDay, kindTag } from '#lib/entries.js';
+	import { CREATABLE_KINDS, draftFromEntry, groupByDay, kindTag } from '#lib/entries.js';
 	import { locale, t } from '#lib/i18n/index.svelte.js';
 	import { JOURNAL_CHANGED, errorText, handleLocked } from '#lib/session.svelte.js';
 	import { endOfDay, startOfDay } from '#lib/time.js';
@@ -29,6 +33,10 @@
 	let unsaved = $state<UnsavedEntry | null>(null);
 	let quick: QuickEntry;
 	let filters: Sheet;
+	/** The entry whose menu is open (long press or right click). */
+	let menuEntry = $state<Entry | null>(null);
+	let menu: Sheet;
+	let confirmDelete: ConfirmAction;
 
 	// Filters (E-13); search runs in Rust over decrypted entries.
 	let text = $state('');
@@ -48,6 +56,9 @@
 	);
 	let filtered = $derived(text.trim() !== '' || filterCount > 0);
 	let groups = $derived(groupByDay(entries));
+	let menuTime = $derived(
+		new Intl.DateTimeFormat(locale(), { dateStyle: 'medium', timeStyle: 'short' })
+	);
 	let dayFormat = $derived(
 		new Intl.DateTimeFormat(locale(), { weekday: 'long', day: 'numeric', month: 'long' })
 	);
@@ -120,6 +131,50 @@
 		kinds = [];
 		tagFilter = [];
 		incompleteOnly = false;
+	}
+
+	function openMenu(entry: Entry) {
+		menuEntry = entry;
+		menu.open();
+	}
+
+	function menuOpenEntry() {
+		const entry = menuEntry;
+		menu.close();
+		if (entry) void goto(resolve('/entry/[id]', { id: entry.id }));
+	}
+
+	/** Hides or stops hiding the entry's content on the timeline (E-16). */
+	async function menuToggleHidden() {
+		const entry = menuEntry;
+		menu.close();
+		if (!entry) return;
+		try {
+			await entrySave({
+				...draftFromEntry(entry),
+				incomplete: entry.incomplete,
+				sensitive: !entry.sensitive
+			});
+			await load();
+		} catch (e) {
+			if (!(await handleLocked(e))) error = errorText(e);
+		}
+	}
+
+	function menuDelete() {
+		menu.close();
+		confirmDelete.ask();
+	}
+
+	async function deleteMenuEntry() {
+		if (!menuEntry) return;
+		try {
+			await entryDelete(menuEntry.id);
+			menuEntry = null;
+			await load();
+		} catch (e) {
+			if (!(await handleLocked(e))) error = errorText(e);
+		}
 	}
 
 	/** After a quick entry, go straight to its form to add details (or leave). */
@@ -212,7 +267,7 @@
 				</h2>
 				<ul class="list">
 					{#each group.items as entry (entry.id)}
-						<li><EntryCard {entry} tags={tagMap} /></li>
+						<li><EntryCard {entry} tags={tagMap} onmenu={openMenu} /></li>
 					{/each}
 				</ul>
 			</section>
@@ -277,7 +332,42 @@
 	</div>
 </Sheet>
 
+<Sheet
+	bind:this={menu}
+	title={menuEntry
+		? `${t(`kind.${kindTag(menuEntry.kind)}`)} · ${menuTime.format(new Date(menuEntry.occurred_at))}`
+		: ''}
+>
+	<div class="menu">
+		<button type="button" class="secondary" onclick={menuOpenEntry}>
+			<Pencil size={20} />{t('entry.menuOpen')}
+		</button>
+		<button type="button" class="secondary" onclick={menuToggleHidden}>
+			{#if menuEntry?.sensitive}<Eye size={20} />{t('entry.menuUnhide')}{:else}<EyeOff
+					size={20}
+				/>{t('entry.menuHide')}{/if}
+		</button>
+		<button type="button" class="secondary" onclick={menuDelete}>
+			<Trash size={20} />{t('entry.delete')}
+		</button>
+	</div>
+</Sheet>
+<ConfirmAction
+	bind:this={confirmDelete}
+	button={false}
+	label={t('entry.delete')}
+	question={t('entry.deleteConfirm')}
+	onconfirm={deleteMenuEntry}
+/>
+
 <style>
+	.menu {
+		display: grid;
+		gap: 0.5rem;
+	}
+	.menu button {
+		justify-content: flex-start;
+	}
 	.day-filter {
 		display: flex;
 		align-items: center;

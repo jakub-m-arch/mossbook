@@ -77,7 +77,7 @@ test('report: an optional password protects the PDF', async ({ page }) => {
 	expect(passwords).toEqual([password]);
 });
 
-test('report: difficult entries start password-protected', async ({ page }) => {
+test('report: hidden entries do not switch the password on by themselves', async ({ page }) => {
 	await createVault(page);
 	await page.getByRole('button', { name: 'Szybki wpis' }).click();
 	await page.getByRole('dialog').getByRole('button', { name: 'Koszmar' }).click();
@@ -85,7 +85,7 @@ test('report: difficult entries start password-protected', async ({ page }) => {
 	await page.getByRole('link', { name: 'Ustawienia' }).click();
 	await page.getByRole('link', { name: 'Raport dla terapeuty' }).click();
 
-	await expect(page.getByLabel('Zabezpiecz PDF hasłem')).toBeChecked();
-	await expect(page.getByText('Raport zawiera wpisy oznaczone jako trudne')).toBeVisible();
-	await expect(page.getByRole('button', { name: /Zapisz( zaszyfrowany)? PDF/ })).toBeDisabled();
+	// Hiding content is about the timeline only (D-24); the password stays a choice.
+	await expect(page.getByLabel('Zabezpiecz PDF hasłem')).not.toBeChecked();
+	await expect(page.getByRole('button', { name: 'Zapisz PDF' })).toBeEnabled();
 });

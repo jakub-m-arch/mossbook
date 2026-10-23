@@ -68,7 +68,7 @@ test('a kept form can be discarded after a confirmation', async ({ page }) => {
 	await unlock(page);
 	await page.getByRole('button', { name: 'Odrzuć' }).click();
 	await expect(page.getByText('Odrzucić ten wpis? Tego nie da się cofnąć.')).toBeVisible();
-	await page.getByRole('group').getByRole('button', { name: 'Odrzuć' }).click();
+	await page.getByRole('dialog').getByRole('button', { name: 'Odrzuć' }).click();
 	await expect(page.getByRole('heading', { name: 'Niezapisany wpis' })).toBeHidden();
 	await page.getByRole('button', { name: 'Zablokuj' }).click();
 	await unlock(page);

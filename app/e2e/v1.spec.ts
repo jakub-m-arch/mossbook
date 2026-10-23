@@ -10,7 +10,7 @@ test('nightmare with a rescripted version, hidden on the timeline', async ({ pag
 	await page.getByLabel('Nowa wersja').fill('korytarz się rozjaśnia i wychodzę do ogrodu');
 	await page.getByRole('button', { name: 'Ćwiczyłem/ćwiczyłam dziś' }).click();
 	await expect(page.getByText('Jeszcze bez powtórek.')).toBeHidden();
-	await expect(page.getByLabel('Treść trudna')).toBeChecked();
+	await expect(page.getByLabel('Ukrywanie treści')).toBeChecked();
 	await page.screenshot({ path: `${SHOTS}/20-nightmare.png`, fullPage: true });
 	await page.getByRole('button', { name: 'Zapisz' }).click();
 

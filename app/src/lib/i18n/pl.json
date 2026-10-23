@@ -189,8 +189,8 @@
 		"content": "Treść koszmaru",
 		"rescripted": "Nowa wersja",
 		"rehearsals": "Powtórki nowej wersji",
-		"sensitive": "Treść trudna",
-		"sensitiveHint": "Na osi czasu pokaż tylko rodzaj i godzinę, a treść dopiero po stuknięciu."
+		"sensitive": "Ukrywanie treści",
+		"sensitiveHint": "Na osi czasu widać tylko rodzaj wpisu i godzinę. Treść pokaże się po stuknięciu."
 	},
 	"entry": {
 		"new": "Nowy wpis",
@@ -203,7 +203,10 @@
 		"notFound": "Nie ma takiego wpisu.",
 		"hidden": "Treść ukryta",
 		"reveal": "Pokaż treść",
-		"conceal": "Ukryj treść"
+		"conceal": "Ukryj treść",
+		"menuOpen": "Otwórz",
+		"menuHide": "Ukrywaj treść",
+		"menuUnhide": "Nie ukrywaj treści"
 	},
 	"quick": {
 		"open": "Szybki wpis",
@@ -408,7 +411,6 @@
 		"protection": "Zabezpieczenie pliku",
 		"protect": "Zabezpiecz PDF hasłem",
 		"protectHint": "Plik będzie wymagał hasła do otwarcia. Hasło wyślesz osobno.",
-		"sensitiveProtected": "Raport zawiera wpisy oznaczone jako trudne, więc zabezpieczenie hasłem jest włączone. Możesz je wyłączyć.",
 		"password": "Hasło do PDF",
 		"passwordRepeat": "Powtórz hasło do PDF",
 		"passwordShort": "Hasło do PDF musi mieć co najmniej 12 znaków.",

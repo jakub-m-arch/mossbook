@@ -74,7 +74,7 @@ test('transcription is off by default; the model is downloaded in the browser an
 	// Removing the model turns it off again.
 	await section.getByRole('button', { name: 'Usuń model i wyłącz' }).click();
 	await section
-		.getByRole('group', { name: /Usunąć model/ })
+		.getByRole('dialog', { name: /Usunąć model/ })
 		.getByRole('button', { name: 'Usuń model i wyłącz' })
 		.click();
 	await expect(section.getByText('Model usunięty.', { exact: false })).toBeVisible();

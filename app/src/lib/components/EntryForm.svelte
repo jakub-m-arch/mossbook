@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Trash from '@lucide/svelte/icons/trash';
 	import { onMount, untrack } from 'svelte';
 
 	import type {
@@ -15,6 +16,7 @@
 	import { setFlush } from '#lib/unsaved.js';
 
 	import ChipSelect from './ChipSelect.svelte';
+	import ConfirmAction from './ConfirmAction.svelte';
 	import MoodPicker from './MoodPicker.svelte';
 	import ScalePicker from './ScalePicker.svelte';
 	import TagPicker from './TagPicker.svelte';
@@ -26,9 +28,12 @@
 		onsave: (draft: EntryDraft) => Promise<void>;
 		/** Called with the form's state shortly after each change, so a lock does not lose it (D-20). */
 		onchange?: (draft: EntryDraft) => void;
+		/** For a saved entry: deleting it, next to saving, after a confirmation. */
+		ondelete?: () => Promise<void>;
 	}
 
-	let { initial: initialProp, tags, onsave, onchange }: Props = $props();
+	let { initial: initialProp, tags, onsave, onchange, ondelete }: Props = $props();
+	let confirmDelete: ConfirmAction | undefined = $state();
 	// The form is created once per entry (the page keys it by id), so it reads
 	// the initial draft a single time and then owns its state.
 	const initial = untrack(() => $state.snapshot(initialProp) as EntryDraft);
@@ -333,9 +338,29 @@
 	</div>
 
 	<div class="save-bar">
+		{#if ondelete}
+			<button
+				type="button"
+				class="secondary delete"
+				disabled={busy}
+				aria-label={t('entry.delete')}
+				onclick={() => confirmDelete?.ask()}
+			>
+				<Trash size={20} />
+			</button>
+		{/if}
 		<button type="submit" disabled={busy}>{busy ? t('common.working') : t('entry.save')}</button>
 	</div>
 </form>
+{#if ondelete}
+	<ConfirmAction
+		bind:this={confirmDelete}
+		button={false}
+		label={t('entry.delete')}
+		question={t('entry.deleteConfirm')}
+		onconfirm={ondelete}
+	/>
+{/if}
 
 <style>
 	.rehearsals {
@@ -358,8 +383,17 @@
 		padding: 0.75rem 0 calc(0.75rem + env(safe-area-inset-bottom));
 		background: linear-gradient(to top, var(--bg) 70%, transparent);
 	}
-	.save-bar button {
-		width: 100%;
+	.save-bar {
+		display: flex;
+		gap: 0.5rem;
+	}
+	.save-bar button[type='submit'] {
+		flex: 1;
+	}
+	.save-bar .delete {
+		flex: 0 0 var(--tap);
+		padding: 0;
+		justify-content: center;
 	}
 	fieldset.inline {
 		display: flex;

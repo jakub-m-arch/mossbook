@@ -35,12 +35,8 @@
 	let repeat = $state('');
 	let copied = $state(false);
 	let copyError = $state('');
-	/** Auto-protect only until the user makes a choice of their own. */
-	let autoEnabled = $state(false);
-	let userTouched = $state(false);
 
 	let tagMap = $derived(new Map(tags.map((tag) => [tag.id, tag])));
-	let hasSensitive = $derived(entries?.some((entry) => entry.sensitive) ?? false);
 	let longEnough = $derived([...password].length >= MIN_PASSWORD);
 	let mismatch = $derived(protect && repeat.length > 0 && password !== repeat);
 	let passwordReady = $derived(!protect || (longEnough && password === repeat));
@@ -49,21 +45,6 @@
 			? buildReport(entries, { from, to, tags: tagMap, t, locale: locale(), encrypted: protect })
 			: null
 	);
-
-	// A report that includes entries marked as difficult starts protected; the
-	// user can still turn it off.
-	$effect(() => {
-		if (hasSensitive && !userTouched && !autoEnabled) {
-			protect = true;
-			autoEnabled = true;
-		}
-	});
-
-	/** A manual choice wins over the automatic protection. */
-	function onProtectChange() {
-		userTouched = true;
-		autoEnabled = false;
-	}
 
 	const toggle = <T,>(list: T[], item: T) =>
 		list.includes(item) ? list.filter((i) => i !== item) : [...list, item];
@@ -178,14 +159,11 @@
 			<section class="card stack" aria-labelledby="protection">
 				<h2 id="protection">{t('report.protection')}</h2>
 				<label class="check">
-					<input type="checkbox" bind:checked={protect} onchange={onProtectChange} />
+					<input type="checkbox" bind:checked={protect} />
 					<span>{t('report.protect')}</span>
 				</label>
 				{#if protect}
 					<p class="muted small">{t('report.protectHint')}</p>
-					{#if autoEnabled && hasSensitive}
-						<p class="notice">{t('report.sensitiveProtected')}</p>
-					{/if}
 					<div>
 						<PasswordField
 							id="report-password"

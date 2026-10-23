@@ -63,7 +63,7 @@ test('change password, then delete all data', async ({ page }) => {
 	await page.getByRole('button', { name: 'Usuń wszystko' }).click();
 	await expect(page.getByText('Na pewno usunąć wszystkie dane?')).toBeVisible();
 	await page
-		.getByRole('group', { name: 'Na pewno usunąć' })
+		.getByRole('dialog', { name: 'Na pewno usunąć' })
 		.getByRole('button', { name: 'Usuń wszystko' })
 		.click();
 	await expect(page.getByRole('heading', { name: 'Witaj w Mossbook' })).toBeVisible();
@@ -120,7 +120,7 @@ test('backups: last saved copy, automatic copies, recovery key check, readable c
 	await expect(page.getByText(/^Ten plik nie jest zaszyfrowany/)).toBeVisible();
 	await page.getByRole('button', { name: 'Zapisz plik ZIP' }).click();
 	await page
-		.getByRole('group', { name: 'Zapisać plik bez szyfrowania?' })
+		.getByRole('dialog', { name: 'Zapisać plik bez szyfrowania?' })
 		.getByRole('button', { name: 'Zapisz plik ZIP' })
 		.click();
 	await expect(page.getByText('Plik zapisany.')).toBeVisible();

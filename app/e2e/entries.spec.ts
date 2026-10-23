@@ -85,7 +85,7 @@ test('full fear form, edit and delete', async ({ page }) => {
 	await page.getByRole('button', { name: 'Usuń wpis' }).click();
 	await expect(page.getByText('Usunąć ten wpis? Tego nie da się cofnąć.')).toBeVisible();
 	await page
-		.getByRole('group', { name: 'Usunąć ten wpis?' })
+		.getByRole('dialog', { name: 'Usunąć ten wpis?' })
 		.getByRole('button', { name: 'Usuń wpis' })
 		.click();
 	await expect(page.getByText('Tu pojawią się twoje wpisy.')).toBeVisible();

@@ -15,7 +15,16 @@ All notable changes to Mossbook. Versions follow [Semantic Versioning](https://s
   the settings turns it off. Transcription needs about 1.5 GB of memory; phones
   with less than 6 GB get a warning.
 
+- Press and hold an entry on the timeline (or right-click it on a computer) for its
+  menu: open it, hide or stop hiding its content, or delete it.
+
 ### Changed
+- "Difficult content" is now called "Hiding content" and is on by default for new
+  entries written in the form; quick entries stay visible. A report for a therapist
+  no longer switches its password on by itself because of hidden entries.
+- Confirmations ("Delete this entry?" and the like) open in a window instead of
+  appearing under the button, and start on Cancel.
+- Delete sits next to Save in an entry.
 - The readable copy includes the text of voice notes (export format version 3).
 - The app is larger: it now contains the speech recognition engine (sherpa-onnx
   with ONNX Runtime, prebuilt libraries pinned by SHA-256). Building Mossbook

@@ -10,20 +10,84 @@
 	import KindIcon from './KindIcon.svelte';
 	import MoodIcon from './MoodIcon.svelte';
 
-	let { entry, tags }: { entry: Entry; tags: Map<string, Tag> } = $props();
+	interface Props {
+		entry: Entry;
+		tags: Map<string, Tag>;
+		/** Long press (touch) or right click: the entry's menu. */
+		onmenu?: (entry: Entry) => void;
+	}
+
+	let { entry, tags, onmenu }: Props = $props();
 
 	let kind = $derived(kindTag(entry.kind));
 	let time = $derived(
 		new Intl.DateTimeFormat(locale(), { timeStyle: 'short' }).format(new Date(entry.occurred_at))
 	);
 	let text = $derived(preview(entry, 160));
-	/** E-16: difficult content stays hidden until the user asks for it. */
+	/** E-16: hidden content stays hidden until the user asks for it. */
 	let revealed = $state(false);
 	let hidden = $derived(entry.sensitive && !revealed);
+
+	/** How long a finger rests on the card before its menu opens. */
+	const LONG_PRESS_MS = 450;
+	let pressing = $state(false);
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	let start = { x: 0, y: 0 };
+	/** The menu opened from this press: the click that ends it must not navigate. */
+	let opened = false;
+
+	function openMenu() {
+		cancelPress();
+		opened = true;
+		onmenu?.(entry);
+	}
+
+	function onpointerdown(e: PointerEvent) {
+		opened = false;
+		if (!onmenu || e.pointerType === 'mouse' || !e.isPrimary) return;
+		start = { x: e.clientX, y: e.clientY };
+		pressing = true;
+		timer = setTimeout(openMenu, LONG_PRESS_MS);
+	}
+
+	function onpointermove(e: PointerEvent) {
+		if (timer && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) cancelPress();
+	}
+
+	function cancelPress() {
+		clearTimeout(timer);
+		timer = undefined;
+		pressing = false;
+	}
+
+	function oncontextmenu(e: MouseEvent) {
+		if (!onmenu) return;
+		// Android also reports a long press as a context menu; open it once.
+		e.preventDefault();
+		if (!opened) openMenu();
+	}
+
+	function onclick(e: MouseEvent) {
+		if (opened) {
+			e.preventDefault();
+			opened = false;
+		}
+	}
 </script>
 
 <div class="wrap">
-	<a class="row card" href={resolve('/entry/[id]', { id: entry.id })}>
+	<a
+		class="row card"
+		class:pressing
+		href={resolve('/entry/[id]', { id: entry.id })}
+		{onpointerdown}
+		{onpointermove}
+		onpointerup={cancelPress}
+		onpointercancel={cancelPress}
+		onpointerleave={cancelPress}
+		{oncontextmenu}
+		{onclick}
+	>
 		<KindIcon {kind} />
 		<div class="body">
 			<div class="top">
@@ -100,6 +164,22 @@
 	}
 	.row:active {
 		transform: scale(0.99);
+	}
+	/* A held finger slowly presses the card in, until the menu opens. */
+	.row.pressing {
+		transform: scale(0.96);
+		transition: transform 0.45s ease-out;
+	}
+	.row {
+		-webkit-touch-callout: none;
+		-webkit-user-select: none;
+		user-select: none;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.row.pressing {
+			transform: none;
+			box-shadow: var(--shadow-raised);
+		}
 	}
 	.body {
 		flex: 1;

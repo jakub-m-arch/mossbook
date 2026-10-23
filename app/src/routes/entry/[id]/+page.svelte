@@ -6,7 +6,6 @@
 	import { page } from '$app/state';
 	import { entryDelete, entryGet, entrySave, tagsList, unsavedGet } from '#lib/api/index.js';
 	import type { Entry, EntryDraft, Tag } from '#lib/api/index.js';
-	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import EntryForm from '#lib/components/EntryForm.svelte';
 	import UnlockedShell from '#lib/components/UnlockedShell.svelte';
 	import { draftFromEntry, kindTag } from '#lib/entries.js';
@@ -71,20 +70,8 @@
 				{tags}
 				onsave={save}
 				onchange={keepUnsaved}
+				ondelete={remove}
 			/>
 		{/key}
-		<div class="danger">
-			<ConfirmAction
-				label={t('entry.delete')}
-				question={t('entry.deleteConfirm')}
-				onconfirm={remove}
-			/>
-		</div>
 	{/if}
 </UnlockedShell>
-
-<style>
-	.danger {
-		margin-top: 2rem;
-	}
-</style>

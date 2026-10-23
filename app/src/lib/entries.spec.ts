@@ -45,8 +45,11 @@ describe('entries helpers', () => {
 			mood: null,
 			intensity: null,
 			tags: [],
-			note: ''
+			note: '',
+			// Hidden on the timeline unless unticked (D-24).
+			sensitive: true
 		});
+		expect(newDraft('nightmare').sensitive).toBe(true);
 	});
 
 	it('previews join free text and truncate', () => {

@@ -18,7 +18,7 @@ test('sync: choose a folder, join the journal of another device, turn it off', a
 	await join.getByLabel('Hasło dziennika z tamtego urządzenia').fill('a wrong password');
 	await join.getByRole('button', { name: 'Dołącz do tego dziennika' }).click();
 	await join
-		.getByRole('group', { name: /Dołączyć\?/ })
+		.getByRole('dialog', { name: /Dołączyć\?/ })
 		.getByRole('button', { name: 'Dołącz do tego dziennika' })
 		.click();
 	await expect(sync.getByText('To hasło nie pasuje.', { exact: false })).toBeVisible();
@@ -26,7 +26,7 @@ test('sync: choose a folder, join the journal of another device, turn it off', a
 	await join.getByLabel('Hasło dziennika z tamtego urządzenia').fill('phone password');
 	await join.getByRole('button', { name: 'Dołącz do tego dziennika' }).click();
 	await join
-		.getByRole('group', { name: /Dołączyć\?/ })
+		.getByRole('dialog', { name: /Dołączyć\?/ })
 		.getByRole('button', { name: 'Dołącz do tego dziennika' })
 		.click();
 	await expect(sync.getByText('Gotowe. Ten dziennik otwierasz teraz hasłem')).toBeVisible();
@@ -36,7 +36,7 @@ test('sync: choose a folder, join the journal of another device, turn it off', a
 	await expect(sync.getByText('Zsynchronizowano.')).toBeVisible();
 	await sync.getByRole('button', { name: 'Wyłącz synchronizację na tym urządzeniu' }).click();
 	await sync
-		.getByRole('group', { name: /Wyłączyć synchronizację\?/ })
+		.getByRole('dialog', { name: /Wyłączyć synchronizację\?/ })
 		.getByRole('button', { name: 'Wyłącz synchronizację na tym urządzeniu' })
 		.click();
 	await expect(sync.getByRole('button', { name: 'Wybierz folder' })).toBeVisible();
