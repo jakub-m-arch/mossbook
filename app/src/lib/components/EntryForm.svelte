@@ -319,7 +319,11 @@
 			</div>
 		{/if}
 
-		<VoiceNoteField bind:value={voice} onstored={() => onchange && keepNow()} />
+		<VoiceNoteField
+			bind:value={voice}
+			onstored={() => onchange && keepNow()}
+			onkeeptext={(text) => (note = note.trim() ? `${note.trimEnd()}\n\n${text}` : text)}
+		/>
 
 		<TagPicker {tags} bind:selected={selectedTags} />
 

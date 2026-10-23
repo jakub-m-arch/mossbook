@@ -28,6 +28,8 @@
 	let entries = $state<Entry[] | null>(null);
 	let message = $state('');
 	let busy = $state(false);
+	// The text of voice notes (E-19) goes in only when the user chooses it.
+	let transcripts = $state(false);
 
 	// X-3: optional AES-256 encryption of the PDF.
 	let protect = $state(false);
@@ -37,12 +39,21 @@
 	let copyError = $state('');
 
 	let tagMap = $derived(new Map(tags.map((tag) => [tag.id, tag])));
+	let anyTranscript = $derived(entries?.some((e) => e.voice?.transcript?.trim()) ?? false);
 	let longEnough = $derived([...password].length >= MIN_PASSWORD);
 	let mismatch = $derived(protect && repeat.length > 0 && password !== repeat);
 	let passwordReady = $derived(!protect || (longEnough && password === repeat));
 	let doc = $derived(
 		entries && entries.length > 0
-			? buildReport(entries, { from, to, tags: tagMap, t, locale: locale(), encrypted: protect })
+			? buildReport(entries, {
+					from,
+					to,
+					tags: tagMap,
+					t,
+					locale: locale(),
+					encrypted: protect,
+					transcripts: transcripts && anyTranscript
+				})
 			: null
 	);
 
@@ -151,6 +162,15 @@
 							</button>
 						{/each}
 					</div>
+				</div>
+			{/if}
+			{#if anyTranscript}
+				<div>
+					<label class="check">
+						<input type="checkbox" bind:checked={transcripts} />
+						<span>{t('report.transcripts')}</span>
+					</label>
+					<p class="muted small">{t('report.transcriptsHint')}</p>
 				</div>
 			{/if}
 		</div>

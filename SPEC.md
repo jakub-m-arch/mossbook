@@ -125,7 +125,7 @@ editable), an optional mood rating, intensity, tags and a text note.
 | E-16 | **Hiding content**: an entry's content shows on the timeline only when tapped; on by default for entries written in the form, off for quick entries; changed in the form or from the entry's menu (long press, right click) (D-24) | v1 |
 | E-17 | An entry form being filled in survives a lock: kept encrypted and offered after unlocking, discarded when the form is left on purpose (D-20) | v1 |
 | E-18 | **Voice note**: up to 5 minutes recorded in the app, attached to an entry, encrypted like the rest and included in backups; no video or other files; recorded on every platform; the readable copy becomes a ZIP with the recordings (D-21) | v2 |
-| E-19 | **Voice note to text**: off by default; turned on per device by importing a speech recognition model the user downloads in the browser; a recording is transcribed on the device on request, and the text is shown for the user to correct before it is saved with the entry and becomes searchable (D-23) | v2 |
+| E-19 | **Voice note to text**: off by default; turned on per device by importing a speech recognition model the user downloads in the browser; a recording is transcribed on the device on request, and the text is shown for the user to correct before it is saved with the entry and becomes searchable; removing or replacing the recording asks whether its text moves to the note; the PDF report includes it only when the user chooses (D-23) | v2 |
 
 ### 4.3. Plan for a hard moment
 

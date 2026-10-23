@@ -452,7 +452,9 @@
 		"nightmareYes": "Był koszmar",
 		"avoidanceYes": "Było unikanie",
 		"avoidanceNo": "Bez unikania",
-		"sleepTime": "Sen: {from} – {to}"
+		"sleepTime": "Sen: {from} – {to}",
+		"transcripts": "Dołącz tekst nagrań",
+		"transcriptsHint": "Tekst zamieniony z notatek głosowych, tak jak go zapisano. Samych nagrań raport nie zawiera."
 	},
 	"nightmare": {
 		"intro": "Zapisz koszmar, a potem jego nową wersję, spokojniejszą albo zakończoną inaczej. Możesz ją powtarzać w myślach i zaznaczać, kiedy to robisz.",
@@ -578,7 +580,12 @@
 		"transcribeStop": "Przerwij",
 		"transcriptLabel": "Tekst nagrania",
 		"transcriptHint": "Rozpoznany na tym urządzeniu. Może zawierać błędy: przeczytaj go i popraw przed zapisaniem.",
-		"transcriptEmpty": "Nie rozpoznano słów w tym nagraniu."
+		"transcriptEmpty": "Nie rozpoznano słów w tym nagraniu.",
+		"textQuestion": "Co zrobić z tekstem nagrania? To nagranie ma tekst. Możesz przenieść go do notatki wpisu albo usunąć razem z nagraniem.",
+		"keepText": "Zostaw tekst w notatce",
+		"dropText": "Usuń też tekst",
+		"removedKept": "Nagranie zniknie z wpisu po zapisaniu. Jego tekst jest teraz w notatce.",
+		"textMoved": "Tekst poprzedniego nagrania jest teraz w notatce."
 	},
 	"transcription": {
 		"title": "Zamiana nagrań na tekst",

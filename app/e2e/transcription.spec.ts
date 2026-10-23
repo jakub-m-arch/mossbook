@@ -142,3 +142,98 @@ test('transcription: can be stopped, and nothing is invented for silence', async
 	await expect(voice.getByText('Nie rozpoznano słów w tym nagraniu.')).toBeVisible();
 	await expect(voice.getByLabel('Tekst nagrania')).toHaveCount(0);
 });
+
+test('transcription: removing or replacing a recording asks what happens to its text', async ({
+	page
+}) => {
+	await page.addInitScript(() => window.localStorage.setItem('fake-transcription', 'installed'));
+	await createVault(page);
+	const voice = await newNoteWithRecording(page);
+	const note = page.getByLabel('Notatka', { exact: true });
+	await note.fill('Synthetic note');
+	const sheet = page.getByRole('dialog', { name: 'Co zrobić z tekstem nagrania?' });
+
+	// Recording again, keeping the text: it moves to the note once the new recording is stored.
+	await voice.getByRole('button', { name: 'Zamień na tekst' }).click();
+	await expect(voice.getByLabel('Tekst nagrania')).toHaveValue(/river/);
+	await voice.getByRole('button', { name: 'Nagraj od nowa' }).click();
+	await sheet.getByRole('button', { name: 'Anuluj' }).click();
+	await expect(sheet).toBeHidden();
+	await expect(voice.getByLabel('Tekst nagrania')).toHaveValue(/river/);
+	await voice.getByRole('button', { name: 'Nagraj od nowa' }).click();
+	await sheet.getByRole('button', { name: 'Zostaw tekst w notatce' }).click();
+	await expect(voice.getByRole('status')).toContainText('Nagrywanie');
+	await expect(note).toHaveValue('Synthetic note');
+	await page.waitForTimeout(1200);
+	await voice.getByRole('button', { name: 'Zakończ nagrywanie' }).click();
+	await expect(voice.getByText('Tekst poprzedniego nagrania jest teraz w notatce.')).toBeVisible();
+	await expect(note).toHaveValue(
+		'Synthetic note\n\nSynthetic transcript: a calm walk by the river.'
+	);
+	await expect(voice.getByLabel('Tekst nagrania')).toHaveCount(0);
+
+	// Removing, together with the text: the note stays as it is.
+	await voice.getByRole('button', { name: 'Zamień na tekst' }).click();
+	await expect(voice.getByLabel('Tekst nagrania')).toHaveValue(/river/);
+	await voice.getByRole('button', { name: 'Usuń nagranie' }).click();
+	await sheet.getByRole('button', { name: 'Usuń też tekst' }).click();
+	await expect(voice.getByText('Nagranie zniknie z wpisu po zapisaniu.')).toBeVisible();
+	await expect(note).toHaveValue(
+		'Synthetic note\n\nSynthetic transcript: a calm walk by the river.'
+	);
+
+	// Removing, keeping the text.
+	await voice.getByRole('button', { name: 'Nagraj notatkę głosową' }).click();
+	await page.waitForTimeout(1200);
+	await voice.getByRole('button', { name: 'Zakończ nagrywanie' }).click();
+	await voice.getByRole('button', { name: 'Zamień na tekst' }).click();
+	await voice.getByLabel('Tekst nagrania').fill('Synthetic corrected text.');
+	await note.fill('');
+	await voice.getByRole('button', { name: 'Usuń nagranie' }).click();
+	await sheet.getByRole('button', { name: 'Zostaw tekst w notatce' }).click();
+	await expect(voice.getByText('Jego tekst jest teraz w notatce.', { exact: false })).toBeVisible();
+	await expect(note).toHaveValue('Synthetic corrected text.');
+	await page.getByRole('button', { name: 'Zapisz', exact: true }).click();
+	await expect(
+		page.getByRole('listitem').filter({ hasText: 'Synthetic corrected text.' })
+	).toHaveCount(1);
+});
+
+test('transcription: the text of recordings goes into the report only when chosen', async ({
+	page
+}) => {
+	await page.addInitScript(() => window.localStorage.setItem('fake-transcription', 'installed'));
+	await createVault(page);
+	const voice = await newNoteWithRecording(page);
+	await voice.getByRole('button', { name: 'Zamień na tekst' }).click();
+	await expect(voice.getByLabel('Tekst nagrania')).toHaveValue(/river/);
+	await page.getByRole('button', { name: 'Zapisz', exact: true }).click();
+	await expect(page.getByRole('heading', { name: 'Twój dziennik' })).toBeVisible();
+
+	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await page.getByRole('link', { name: 'Raport dla terapeuty' }).click();
+	const preview = page.getByRole('article', { name: 'Mossbook — moje zapiski' });
+	await expect(preview).toContainText(/Notatka głosowa, 0:0\d/);
+	await expect(preview).not.toContainText('river');
+
+	const include = page.getByLabel('Dołącz tekst nagrań');
+	await expect(include).not.toBeChecked();
+	await include.check();
+	await expect(preview).toContainText('Tekst nagrania');
+	await expect(preview).toContainText('Synthetic transcript: a calm walk by the river.');
+
+	await page.getByRole('button', { name: 'Zapisz PDF' }).click();
+	await expect(page.getByText('Raport zapisany.')).toBeVisible();
+	const reports = await page.evaluate(
+		() =>
+			(
+				window as unknown as {
+					__fake: { reports: Array<{ sections: Array<{ items: Array<{ fields: unknown }> }> }> };
+				}
+			).__fake.reports
+	);
+	expect(reports[0].sections[0].items[0].fields).toContainEqual({
+		label: 'Tekst nagrania',
+		value: 'Synthetic transcript: a calm walk by the river.'
+	});
+});

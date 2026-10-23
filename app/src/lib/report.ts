@@ -24,6 +24,8 @@ export interface ReportOptions {
 	locale: string;
 	/** Whether the PDF file will be password-protected (changes the footer). */
 	encrypted?: boolean;
+	/** Whether the text kept from voice notes is included (E-19); off unless chosen. */
+	transcripts?: boolean;
 }
 
 const chip = (t: Translate, prefix: string, item: Emotion | Symptom) =>
@@ -124,11 +126,13 @@ function item(e: Entry, o: ReportOptions, time: Intl.DateTimeFormat): ReportItem
 		}
 	}
 	field(t('field.note'), e.note);
+	if (o.transcripts) field(t('voice.transcriptLabel'), e.voice?.transcript);
 
 	const tagNames = e.tags.map((id) => o.tags.get(id)?.name).filter(Boolean);
 	if (tagNames.length > 0) meta.push(t('report.tagsLine', { tags: tagNames.join(', ') }));
 	if (e.incomplete) meta.push(t('report.incomplete'));
-	// The recording itself is not in the report, only that there is one (D-21).
+	// The recording itself is not in the report, only that there is one (D-21);
+	// its text only when the user chooses it above.
 	if (e.voice) meta.push(t('voice.length', { time: formatClock(e.voice.duration_ms) }));
 
 	return {

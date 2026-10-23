@@ -89,4 +89,32 @@ describe('buildReport', () => {
 		expect(item.meta).toBe('Notatka głosowa, 2:31');
 		expect(item.fields).toEqual([]);
 	});
+
+	it('includes the text of a voice note only when asked to', () => {
+		const spoken = entry('2026-10-19T08:00:00+02:00', {
+			note: 'krótko',
+			voice: {
+				id: 'v1',
+				duration_ms: 151_000,
+				mime: 'audio/ogg; codecs=opus',
+				transcript: ' Synthetic transcript. '
+			}
+		});
+		const without = buildReport([spoken], options).sections[0].items[0];
+		expect(without.fields).toEqual([{ label: 'Notatka', value: 'krótko' }]);
+
+		const withText = buildReport([spoken], { ...options, transcripts: true }).sections[0].items[0];
+		expect(withText.meta).toBe('Notatka głosowa, 2:31');
+		expect(withText.fields).toEqual([
+			{ label: 'Notatka', value: 'krótko' },
+			{ label: 'Tekst nagrania', value: 'Synthetic transcript.' }
+		]);
+
+		const silent = entry('2026-10-19T09:00:00+02:00', {
+			voice: { id: 'v2', duration_ms: 1_000, mime: 'audio/ogg; codecs=opus', transcript: '  ' }
+		});
+		expect(
+			buildReport([silent], { ...options, transcripts: true }).sections[0].items[0].fields
+		).toEqual([]);
+	});
 });

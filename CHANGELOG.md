@@ -2,6 +2,16 @@
 
 All notable changes to Mossbook. Versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Changed
+- Removing a voice note that has text, or recording it again, now asks what to do
+  with the text: keep it in the entry's note or remove it with the recording.
+  Before, the text was removed without asking.
+- A report for a therapist can include the text of voice notes: tick "Include the
+  text of recordings". It is off by default; the recordings themselves are never in
+  the report.
+
 ## 0.5.0 (2026-10-23)
 
 ### Added

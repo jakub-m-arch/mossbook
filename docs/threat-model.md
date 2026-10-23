@@ -76,7 +76,7 @@ Visible to someone with the vault file or a backup, by design:
   the user's to delete.
 - **Plain exports.** The readable copy (a ZIP with the JSON and the voice notes) is
   not encrypted, and the recordings in it are the user's voice. The PDF report is not
-  encrypted by default; it can optionally be protected with a password, but that is
+  encrypted by default (and holds the text of voice notes only when the user ticks it); it can optionally be protected with a password, but that is
   a property of the file, not of the relationship with the therapist. The app warns
   before writing either file; what happens to them afterwards is outside its control.
 - **Inbox injection.** Someone with write access to the vault file can append

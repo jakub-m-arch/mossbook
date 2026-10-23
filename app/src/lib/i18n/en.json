@@ -452,7 +452,9 @@
 		"nightmareYes": "Had a nightmare",
 		"avoidanceYes": "Avoided something",
 		"avoidanceNo": "No avoidance",
-		"sleepTime": "Sleep: {from} – {to}"
+		"sleepTime": "Sleep: {from} – {to}",
+		"transcripts": "Include the text of recordings",
+		"transcriptsHint": "Text turned from voice notes, as it was saved. The recordings themselves are not in the report."
 	},
 	"nightmare": {
 		"intro": "Write down the nightmare, then a new version of it, calmer or with a different ending. You can rehearse it in your mind and mark when you do.",
@@ -578,7 +580,12 @@
 		"transcribeStop": "Stop",
 		"transcriptLabel": "Text of the recording",
 		"transcriptHint": "Recognised on this device. It may contain mistakes: read it and correct it before saving.",
-		"transcriptEmpty": "No words were recognised in this recording."
+		"transcriptEmpty": "No words were recognised in this recording.",
+		"textQuestion": "What should happen to the text of the recording? This recording has text. You can move it to the entry’s note or remove it with the recording.",
+		"keepText": "Keep the text in the note",
+		"dropText": "Remove the text too",
+		"removedKept": "The recording will leave the entry when you save it. Its text is now in the note.",
+		"textMoved": "The text of the previous recording is now in the note."
 	},
 	"transcription": {
 		"title": "Turning recordings into text",

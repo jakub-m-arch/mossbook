@@ -4,6 +4,8 @@
 	// and the form is kept, so a lock right after does not lose it (D-20).
 	// Where the user imported the model, it can be turned into text on the
 	// device (E-19, D-23); the text is shown for checking and saved with the entry.
+	// Removing or replacing a recording with text asks whether the text moves
+	// to the entry's note or goes with the recording.
 	import Captions from '@lucide/svelte/icons/captions';
 	import Mic from '@lucide/svelte/icons/mic';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
@@ -25,15 +27,18 @@
 	import { formatClock } from '#lib/voice/format.js';
 	import { VoiceRecorder, canRecord, startError, type StartError } from '#lib/voice/recorder.js';
 
+	import Sheet from './Sheet.svelte';
 	import VoicePlayer from './VoicePlayer.svelte';
 
 	interface Props {
 		value: VoiceNote | null;
 		/** Called after a recording was stored or removed, to keep the form now. */
 		onstored?: () => void;
+		/** Called with the text of a recording the user removes but whose text they keep. */
+		onkeeptext?: (text: string) => void;
 	}
 
-	let { value = $bindable(), onstored }: Props = $props();
+	let { value = $bindable(), onstored, onkeeptext }: Props = $props();
 
 	let supported = $state<boolean | null>(null);
 	let recorder: VoiceRecorder | undefined;
@@ -41,13 +46,25 @@
 	let saving = $state(false);
 	let elapsed = $state(0);
 	let ticker: ReturnType<typeof setInterval> | undefined;
-	let problem = $state<StartError | 'limit' | 'removed' | null>(null);
+	let problem = $state<StartError | 'limit' | 'removed' | 'removedKept' | 'textMoved' | null>(null);
+
+	// Asking what happens to the text of a recording that is removed or replaced.
+	let textSheet: Sheet;
+	let textCancel: HTMLButtonElement;
+	let pending: 'remove' | 'rerecord' | null = null;
+	/** Text of the recording being replaced, moved to the note once the new one is stored. */
+	let carried: string | null = null;
 
 	// Transcription (D-23): offered only where the model is imported.
 	let canTranscribe = $state(false);
 	let transcribing = $state<{ done: number; total: number } | null>(null);
 	let transcribeMessage = $state('');
 	let stopListening: (() => void) | undefined;
+
+	// Same split as ConfirmAction: the question up to "?" is the title.
+	let textParts = $derived(t('voice.textQuestion').match(/^(.*?\?)\s*(.*)$/s));
+	let textTitle = $derived(textParts ? textParts[1] : t('voice.textQuestion'));
+	let textDetail = $derived(textParts ? textParts[2] : '');
 
 	onMount(() => {
 		canRecord().then((ok) => (supported = ok));
@@ -67,6 +84,7 @@
 		clearInterval(ticker);
 		recorder?.cancel();
 		recorder = undefined;
+		carried = null;
 		stopListening?.();
 		// Leaving the form stops a transcription nobody will see.
 		if (transcribing) void transcriptionCancel().catch(() => {});
@@ -105,6 +123,7 @@
 				void finish();
 			});
 		} catch (e) {
+			carried = null;
 			problem = startError(e);
 			return;
 		}
@@ -124,10 +143,15 @@
 			const bytes = await current.stop();
 			value = await voiceSave(bytes);
 			bytes.fill(0);
+			if (carried) {
+				onkeeptext?.(carried);
+				if (!problem) problem = 'textMoved';
+			}
 			onstored?.();
 		} catch (e) {
 			if (!(await handleLocked(e))) problem = 'failed';
 		} finally {
+			carried = null;
 			saving = false;
 		}
 	}
@@ -135,13 +159,38 @@
 	function cancel() {
 		recorder?.cancel();
 		recorder = undefined;
+		carried = null;
 		clearInterval(ticker);
 		recording = false;
 	}
 
-	function remove() {
+	/** Remove or record again; a recording with text asks first what happens to it. */
+	function ask(action: 'remove' | 'rerecord') {
+		if (value?.transcript?.trim() && onkeeptext) {
+			pending = action;
+			textSheet.open();
+			textCancel.focus();
+		} else if (action === 'remove') remove(false);
+		else void start();
+	}
+
+	function choose(keep: boolean) {
+		const action = pending;
+		pending = null;
+		textSheet.close();
+		if (action === 'remove') remove(keep);
+		else if (action === 'rerecord') {
+			// Moved only once the new recording is stored, so stopping keeps all as it was.
+			carried = keep ? (value?.transcript?.trim() ?? null) : null;
+			void start();
+		}
+	}
+
+	function remove(keep: boolean) {
+		const text = value?.transcript?.trim();
+		if (keep && text) onkeeptext?.(text);
 		value = null;
-		problem = 'removed';
+		problem = keep && text ? 'removedKept' : 'removed';
 		onstored?.();
 	}
 </script>
@@ -192,15 +241,15 @@
 		{/if}
 		{#if supported}
 			<div class="row">
-				<button type="button" class="secondary" onclick={start}>
+				<button type="button" class="secondary" onclick={() => ask('rerecord')}>
 					<RotateCcw size={18} />{t('voice.rerecord')}
 				</button>
-				<button type="button" class="secondary" onclick={remove}>
+				<button type="button" class="secondary" onclick={() => ask('remove')}>
 					<Trash size={18} />{t('voice.remove')}
 				</button>
 			</div>
 		{:else}
-			<button type="button" class="secondary" onclick={remove}>
+			<button type="button" class="secondary" onclick={() => ask('remove')}>
 				<Trash size={18} />{t('voice.remove')}
 			</button>
 		{/if}
@@ -217,6 +266,10 @@
 		<p class="muted small" role="status">{t('voice.limit')}</p>
 	{:else if problem === 'removed'}
 		<p class="muted small" role="status">{t('voice.removed')}</p>
+	{:else if problem === 'removedKept'}
+		<p class="muted small" role="status">{t('voice.removedKept')}</p>
+	{:else if problem === 'textMoved'}
+		<p class="muted small" role="status">{t('voice.textMoved')}</p>
 	{:else if problem === 'denied'}
 		<p class="notice small" role="alert">{t('voice.denied')}</p>
 	{:else if problem === 'no_microphone'}
@@ -228,7 +281,28 @@
 	{/if}
 </section>
 
+<Sheet bind:this={textSheet} title={textTitle} onclose={() => (pending = null)}>
+	<p class="sheet-text">{textDetail}</p>
+	<div class="stack">
+		<button type="button" onclick={() => choose(true)}>{t('voice.keepText')}</button>
+		<button type="button" class="secondary" onclick={() => choose(false)}>
+			{t('voice.dropText')}
+		</button>
+		<button
+			type="button"
+			class="secondary"
+			bind:this={textCancel}
+			onclick={() => textSheet.close()}
+		>
+			{t('common.cancel')}
+		</button>
+	</div>
+</Sheet>
+
 <style>
+	.sheet-text {
+		margin: 0;
+	}
 	progress {
 		width: 100%;
 		accent-color: var(--accent);
