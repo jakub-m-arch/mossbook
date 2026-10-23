@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-import { createVault, expect, test } from './helpers';
+import { createVault, expect, openSettings, test } from './helpers';
 
 /** Test hooks exposed by e2e/fake-tauri.js. */
 type FakeWindow = Window & {
@@ -33,7 +33,7 @@ test('transcription is off by default; the model is downloaded in the browser an
 	await expect(voice.getByRole('button', { name: 'Zamień na tekst' })).toHaveCount(0);
 	await page.getByLabel('Notatka', { exact: true }).fill('Synthetic note');
 	await page.getByRole('button', { name: 'Zapisz', exact: true }).click();
-	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await openSettings(page, 'Notatki głosowe');
 
 	const section = page.getByRole('region', { name: 'Zamiana nagrań na tekst' });
 	await expect(section.getByText('Domyślnie ta funkcja jest wyłączona.')).toBeVisible();
@@ -65,11 +65,12 @@ test('transcription is off by default; the model is downloaded in the browser an
 	await expect(section.getByText(/Włączona\. Model zajmuje 670 MB/)).toBeVisible();
 
 	// Now the saved recording offers it.
+	await page.getByRole('link', { name: 'Wstecz' }).click();
 	await page.getByRole('link', { name: 'Dziennik' }).click();
 	await page.getByRole('listitem').filter({ hasText: 'Synthetic note' }).getByRole('link').click();
 	await expect(voice.getByRole('button', { name: 'Zamień na tekst' })).toBeVisible();
 	await page.goBack();
-	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await openSettings(page, 'Notatki głosowe');
 
 	// Removing the model turns it off again.
 	await section.getByRole('button', { name: 'Usuń model i wyłącz' }).click();
@@ -84,7 +85,7 @@ test('transcription is off by default; the model is downloaded in the browser an
 test('transcription: a warning on a device with little memory', async ({ page }) => {
 	await page.addInitScript(() => window.localStorage.setItem('fake-low-memory', 'yes'));
 	await createVault(page);
-	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await openSettings(page, 'Notatki głosowe');
 	const section = page.getByRole('region', { name: 'Zamiana nagrań na tekst' });
 	await expect(section.getByRole('note')).toContainText('To urządzenie ma 3,9 GB pamięci.');
 });

@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-import { SHOTS, createVault, expect, test } from './helpers';
+import { SHOTS, createVault, expect, openSettings, test } from './helpers';
 
 async function quickMood(page: Page, label: string) {
 	await page.getByRole('button', { name: 'Szybki wpis' }).click();
@@ -37,12 +37,13 @@ test('mood chart with tooltip and table view', async ({ page }) => {
 
 test('language can be chosen in settings', async ({ page }) => {
 	await createVault(page);
-	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await openSettings(page, 'Język i blokada');
 	await page.getByLabel('English').check();
-	await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Journal' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Language and lock', exact: true })).toBeVisible();
 	await page.getByLabel('Українська').check();
-	await expect(page.getByRole('link', { name: 'Щоденник' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Мова і блокування' })).toBeVisible();
 	await page.getByLabel('Як у системі').check();
+	await expect(page.getByRole('heading', { name: 'Język i blokada' })).toBeVisible();
+	await page.getByRole('link', { name: 'Wstecz' }).click();
 	await expect(page.getByRole('link', { name: 'Dziennik' })).toBeVisible();
 });

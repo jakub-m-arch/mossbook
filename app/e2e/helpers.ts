@@ -72,3 +72,11 @@ export async function createVault(page: Page, shots = false) {
 	await expect(page.getByRole('heading', { name: 'Twój dziennik' })).toBeVisible();
 	if (shots) await page.screenshot({ path: `${SHOTS}/5-timeline.png`, fullPage: true });
 }
+
+/** Opens Settings and, with `group`, one of its screens (D-24): its link starts with the title. */
+export async function openSettings(page: Page, group?: string) {
+	// Settings screens have a back button instead of the tab bar.
+	if (/\/settings\/./.test(page.url())) await page.getByRole('link', { name: 'Wstecz' }).click();
+	else await page.getByRole('link', { name: 'Ustawienia', exact: true }).click();
+	if (group) await page.getByRole('link', { name: new RegExp(`^${group}`) }).click();
+}

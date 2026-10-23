@@ -315,10 +315,19 @@
 		"after15_min": "After 15 minutes without activity",
 		"saved": "Saved.",
 		"tags": "Tags",
-		"security": "Security",
-		"data": "Data",
 		"language": "Language",
-		"systemLanguage": "Same as the system"
+		"systemLanguage": "Same as the system",
+		"general": "Language and lock",
+		"generalHint": "App language, automatic lock, fingerprint",
+		"data": "Backups and sync",
+		"dataHint": "Backup, automatic backups, sync, readable copy",
+		"voice": "Voice notes",
+		"voiceHint": "Turning recordings into text",
+		"security": "Password and recovery key",
+		"securityHint": "Change the password, check the 24 words",
+		"about": "About",
+		"aboutHint": "Version, updates, licences",
+		"destroy": "Delete all data"
 	},
 	"backup": {
 		"title": "Backup",

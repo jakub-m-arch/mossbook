@@ -1,9 +1,9 @@
-import { createVault, expect, test } from './helpers';
+import { createVault, expect, openSettings, test } from './helpers';
 
 test('sync: choose a folder, join the journal of another device, turn it off', async ({ page }) => {
 	await page.addInitScript(() => window.localStorage.setItem('fake-sync-other', 'yes'));
 	await createVault(page);
-	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await openSettings(page, 'Kopie i synchronizacja');
 	const sync = page.getByRole('region', { name: 'Synchronizacja' });
 	await expect(sync.getByText('Mossbook nie łączy się z siecią')).toBeVisible();
 	await sync.getByRole('button', { name: 'Wybierz folder' }).click();
@@ -41,6 +41,7 @@ test('sync: choose a folder, join the journal of another device, turn it off', a
 		.click();
 	await expect(sync.getByRole('button', { name: 'Wybierz folder' })).toBeVisible();
 
+	await page.getByRole('link', { name: 'Wstecz' }).click();
 	await page.getByRole('link', { name: 'Dziennik' }).click();
 	await expect(page.getByText('from the phone')).toBeVisible();
 });

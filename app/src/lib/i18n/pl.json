@@ -315,10 +315,19 @@
 		"after15_min": "Po 15 minutach bez aktywności",
 		"saved": "Zapisano.",
 		"tags": "Tagi",
-		"security": "Bezpieczeństwo",
-		"data": "Dane",
 		"language": "Język",
-		"systemLanguage": "Jak w systemie"
+		"systemLanguage": "Jak w systemie",
+		"general": "Język i blokada",
+		"generalHint": "Język aplikacji, automatyczna blokada, odcisk palca",
+		"data": "Kopie i synchronizacja",
+		"dataHint": "Kopia zapasowa, kopie automatyczne, synchronizacja, czytelna kopia",
+		"voice": "Notatki głosowe",
+		"voiceHint": "Zamiana nagrań na tekst",
+		"security": "Hasło i klucz odzyskiwania",
+		"securityHint": "Zmiana hasła, sprawdzenie 24 słów",
+		"about": "O aplikacji",
+		"aboutHint": "Wersja, aktualizacje, licencje",
+		"destroy": "Usuń wszystkie dane"
 	},
 	"backup": {
 		"title": "Kopia zapasowa",

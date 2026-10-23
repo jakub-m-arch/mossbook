@@ -1,4 +1,4 @@
-import { PASSWORD, SHOTS, createVault, expect, test } from './helpers';
+import { PASSWORD, SHOTS, createVault, expect, openSettings, test } from './helpers';
 
 test('restore a backup on a new device', async ({ page }) => {
 	await page.goto('/');
@@ -20,11 +20,12 @@ test('restore a backup on a new device', async ({ page }) => {
 
 test('settings: export, merge import, autolock', async ({ page }) => {
 	await createVault(page);
-	await page.getByRole('link', { name: 'Ustawienia' }).click();
-	await expect(page.getByRole('heading', { name: 'Ustawienia' })).toBeVisible();
+	await openSettings(page, 'Język i blokada');
+	await expect(page.getByRole('heading', { name: 'Język i blokada' })).toBeVisible();
 
 	await page.getByLabel('Po 5 minutach bez aktywności').check();
 	await expect(page.getByText('Zapisano.')).toBeVisible();
+	await openSettings(page, 'Kopie i synchronizacja');
 
 	await page.getByRole('button', { name: 'Zapisz kopię' }).click();
 	await expect(page.getByText('Kopia zapisana.')).toBeVisible();
@@ -44,7 +45,7 @@ test('settings: export, merge import, autolock', async ({ page }) => {
 
 test('change password, then delete all data', async ({ page }) => {
 	await createVault(page);
-	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await openSettings(page, 'Hasło i klucz');
 
 	await page.getByLabel('Obecne hasło').fill(PASSWORD);
 	await page.getByLabel('Nowe hasło').fill('a brand new password');
@@ -58,7 +59,7 @@ test('change password, then delete all data', async ({ page }) => {
 	await page.getByRole('button', { name: 'Otwórz' }).click();
 	await expect(page.getByRole('heading', { name: 'Twój dziennik' })).toBeVisible();
 
-	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await openSettings(page, 'Usuń wszystkie dane');
 	await page.getByLabel('Wpisz hasło, żeby potwierdzić').fill('a brand new password');
 	await page.getByRole('button', { name: 'Usuń wszystko' }).click();
 	await expect(page.getByText('Na pewno usunąć wszystkie dane?')).toBeVisible();
@@ -71,7 +72,7 @@ test('change password, then delete all data', async ({ page }) => {
 
 test('about: version, offline age hint, check for updates opens the browser', async ({ page }) => {
 	await createVault(page);
-	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await openSettings(page, 'O aplikacji');
 	await expect(page.getByText(/^Wersja 0\.1\.0 · zbudowana/)).toBeVisible();
 	await expect(page.getByText('Ta wersja ma już ponad 3 miesiące.')).toBeVisible();
 	await page.getByRole('button', { name: 'Sprawdź aktualizacje' }).click();
@@ -85,7 +86,7 @@ test('backups: last saved copy, automatic copies, recovery key check, readable c
 	page
 }) => {
 	await createVault(page);
-	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await openSettings(page, 'Kopie i synchronizacja');
 
 	await expect(page.getByText('Nie zapisano jeszcze żadnej własnej kopii.')).toBeVisible();
 	await expect(page.getByText(/^Nie ma jeszcze automatycznej kopii/)).toBeVisible();
@@ -98,13 +99,14 @@ test('backups: last saved copy, automatic copies, recovery key check, readable c
 	await page.getByRole('button', { name: 'Zablokuj' }).click();
 	await page.getByLabel('Hasło', { exact: true }).fill(PASSWORD);
 	await page.getByRole('button', { name: 'Otwórz' }).click();
-	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await openSettings(page, 'Kopie i synchronizacja');
 	await expect(page.getByTestId('auto-latest')).toHaveText(/^Ostatnia automatyczna kopia: /);
 	await page.getByRole('button', { name: 'Pokaż w folderze' }).click();
 	await page.getByRole('checkbox', { name: /^Rób kopię przy blokowaniu/ }).uncheck();
 	await expect(page.getByTestId('auto-latest')).toBeHidden();
 
 	// Recovery key check: wrong words, then the right ones.
+	await openSettings(page, 'Hasło i klucz');
 	const words = Array.from({ length: 24 }, (_, i) => `word${i + 1}`);
 	await page.getByLabel('Twoje 24 słowa').fill([...words].reverse().join(' '));
 	await page.getByRole('button', { name: 'Sprawdź klucz' }).click();
@@ -117,6 +119,7 @@ test('backups: last saved copy, automatic copies, recovery key check, readable c
 	await expect(page.getByLabel('Twoje 24 słowa')).toHaveValue('');
 
 	// The readable copy asks first, because the file is not encrypted.
+	await openSettings(page, 'Kopie i synchronizacja');
 	await expect(page.getByText(/^Ten plik nie jest zaszyfrowany/)).toBeVisible();
 	await page.getByRole('button', { name: 'Zapisz plik ZIP' }).click();
 	await page
@@ -133,7 +136,7 @@ test('backups: last saved copy, automatic copies, recovery key check, readable c
 
 test('about: no-warranty notice and licence texts', async ({ page }) => {
 	await createVault(page);
-	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await openSettings(page, 'O aplikacji');
 
 	await expect(page.getByText(/Jest udostępniany bez gwarancji/)).toBeVisible();
 	await expect(page.getByText(/Nie jest wyrobem medycznym/)).toBeVisible();

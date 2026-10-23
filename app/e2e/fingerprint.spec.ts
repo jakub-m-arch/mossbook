@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-import { PASSWORD, SHOTS, createVault, expect, test } from './helpers';
+import { PASSWORD, SHOTS, createVault, expect, openSettings, test } from './helpers';
 
 /** Test hooks exposed by e2e/fake-tauri.js. */
 type FakeWindow = Window & { __fake: { setBiometric(next: string): void } };
@@ -11,7 +11,7 @@ function nextPrompt(page: Page, next: string) {
 }
 
 async function enableFingerprint(page: Page) {
-	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await openSettings(page, 'Język i blokada');
 	const section = page.getByRole('region', { name: 'Odblokowanie odciskiem palca' });
 	await expect(section.getByText('Hasło i 24 słowa klucza odzyskiwania')).toBeVisible();
 	await section.getByLabel('Wpisz hasło, żeby włączyć').fill('not my password');
@@ -44,7 +44,7 @@ test('fingerprint: turn on in settings, unlock, fall back to the password', asyn
 	await expect(page.getByRole('heading', { name: 'Twój dziennik' })).toBeVisible();
 
 	// Turning it off: the lock screen asks for the password only.
-	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await openSettings(page, 'Język i blokada');
 	const section = page.getByRole('region', { name: 'Odblokowanie odciskiem palca' });
 	await section.getByRole('button', { name: 'Wyłącz odblokowanie odciskiem' }).click();
 	await expect(section.getByText('Dziennik otworzysz hasłem.')).toBeVisible();
@@ -92,7 +92,7 @@ test('fingerprint: changed fingerprints turn it off and ask for the password', a
 test('fingerprint: a sensor without fingerprints gets a hint', async ({ page }) => {
 	await page.addInitScript(() => window.localStorage.setItem('fake-biometric', 'enrollable'));
 	await createVault(page);
-	await page.getByRole('link', { name: 'Ustawienia' }).click();
+	await openSettings(page, 'Język i blokada');
 	const section = page.getByRole('region', { name: 'Odblokowanie odciskiem palca' });
 	await expect(section.getByText('nie ma zapisanego żadnego odcisku')).toBeVisible();
 	await expect(section.getByRole('button')).toHaveCount(0);
@@ -101,7 +101,7 @@ test('fingerprint: a sensor without fingerprints gets a hint', async ({ page }) 
 test('fingerprint: the settings section is hidden without biometrics', async ({ page }) => {
 	await page.addInitScript(() => window.localStorage.removeItem('fake-biometric'));
 	await createVault(page);
-	await page.getByRole('link', { name: 'Ustawienia' }).click();
-	await expect(page.getByRole('heading', { name: 'Język' })).toBeVisible();
+	await openSettings(page, 'Język i blokada');
+	await expect(page.getByRole('heading', { name: 'Język', exact: true })).toBeVisible();
 	await expect(page.getByRole('region', { name: 'Odblokowanie odciskiem palca' })).toHaveCount(0);
 });

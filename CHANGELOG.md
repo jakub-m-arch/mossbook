@@ -29,6 +29,9 @@ All notable changes to Mossbook. Versions follow [Semantic Versioning](https://s
   tap it to open it. Sleep entries show how long you slept, the quality and the
   awakenings.
 - Text fields in the forms are smaller and grow as you write.
+- Settings are grouped: a short list (language and lock, backups and sync, voice
+  notes, password and recovery key, about), each opening its own screen, instead
+  of one long page.
 - The readable copy includes the text of voice notes (export format version 3).
 - The app is larger: it now contains the speech recognition engine (sherpa-onnx
   with ONNX Runtime, prebuilt libraries pinned by SHA-256). Building Mossbook

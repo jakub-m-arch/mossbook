@@ -113,7 +113,8 @@ place:
   entry form, charts, calendar, sheets).
 - `routes/`: `setup`, `lock`, `recover`, `restore`, `help` (crisis lines and exercises,
   no unlocking needed), `timeline`, `entry/new`, `entry/[id]`, `tags`, `plan`,
-  `patterns`, `report`, `settings`.
+  `patterns`, `report`, `settings` (a hub) with `settings/general`, `settings/data`,
+  `settings/voice`, `settings/security`, `settings/about` and `settings/delete`.
 
 The UI never builds ids or timestamps and never sees keys: it sends drafts and receives
 decrypted domain objects.
