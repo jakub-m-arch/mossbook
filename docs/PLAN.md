@@ -172,7 +172,7 @@ Resumed 2026-10-21 (postponed on 2026-10-19 while the tools were missing).
 - [ ] Website (pl/en) at the next release, like voice notes: the feature, the build-time exception in "Nie łączy się z internetem", an FAQ entry
 - [x] CI green for `0f768a6`: Rust tests on Linux, desktop builds on Ubuntu 24.04, Windows (static MT libraries link) and macOS arm64, the arm64 APK with the extended checks
 - [x] Three-ABI Android APK built locally (2026-10-23): ARMv7 caught a 32-bit `usize` overflow in the sample limit (fixed, with a test). Native libraries are now compressed in the APK (`useLegacyPackaging`, the user's choice over per-ABI APKs): universal APK 46 MB instead of ~100 MB stored (31 MB in 0.4.0), unpacked on install. Checks pass; on the arm64 emulator the app starts with ONNX Runtime and the sherpa-onnx C API loaded
-- [ ] Release builds still unproven: Linux on ubuntu-22.04's older glibc, macOS x86_64
+- [x] `v0.5.0-rc.2` (2026-10-23): every release build passes (Linux on ubuntu-22.04, Windows, macOS arm64 and x86_64, the signed three-ABI APK). rc.1 lost its APK: CI restored a cached build whose sherpa-onnx build script had already run but not the folder it unpacked into, so `tools/fetch-sherpa-onnx.sh` now unpacks the archives itself
 - [ ] On a real phone: import the model, transcribe 5 minutes, memory and time
 
 ### Stage 16: Sync between the user's own devices (D-22)
