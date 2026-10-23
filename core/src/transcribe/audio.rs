@@ -16,7 +16,8 @@ pub const SAMPLE_RATE: usize = 16_000;
 /// Longest Opus frame (120 ms) at [`SAMPLE_RATE`], per channel.
 const MAX_FRAME: usize = SAMPLE_RATE * 120 / 1000;
 /// Decoded audio is cut off here: a little over the longest recording.
-const MAX_SAMPLES: usize = (MAX_VOICE_MS as usize + 1000) * SAMPLE_RATE / 1000;
+/// Counted in seconds, so the product fits a 32-bit `usize` (ARMv7 Android).
+const MAX_SAMPLES: usize = (MAX_VOICE_MS as usize / 1000 + 1) * SAMPLE_RATE;
 
 /// Pieces are cut between these lengths. In one pass, five minutes took 3.7 GB
 /// of memory and came out worse than in pieces (spike for D-23).
@@ -83,6 +84,11 @@ pub fn pieces(pcm: &[f32]) -> Vec<Range<usize>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_sample_limit_is_five_minutes_and_a_second() {
+        assert_eq!(MAX_SAMPLES, 301 * 16_000);
+    }
 
     #[test]
     fn short_audio_is_one_piece() {

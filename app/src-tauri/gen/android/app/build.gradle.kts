@@ -51,6 +51,12 @@ android {
         // libmossbook_lib.so needs them; tools/check-android-apk.sh fails without them.
         jniLibs.srcDir(rootProject.file("../../../../target/sherpa-onnx-android/jniLibs"))
     }
+    packaging {
+        // Native libraries compressed in the APK and unpacked on install (D-23):
+        // with ONNX Runtime the universal APK would be ~100 MB stored, ~58 MB
+        // compressed, at the cost of ~70 MB more space once installed.
+        jniLibs.useLegacyPackaging = true
+    }
     buildTypes {
         getByName("debug") {
             applicationIdSuffix = ".debug"

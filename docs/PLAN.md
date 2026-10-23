@@ -171,7 +171,8 @@ Resumed 2026-10-21 (postponed on 2026-10-19 while the tools were missing).
 - [x] Docs: SPEC E-19 and principle 1, threat model, SECURITY.md, README (how to turn it on, what it means for "zero network", build prerequisites), `backup-format.md`, `crypto.md`, `architecture.md`, CHANGELOG
 - [ ] Website (pl/en) at the next release, like voice notes: the feature, the build-time exception in "Nie łączy się z internetem", an FAQ entry
 - [x] CI green for `0f768a6`: Rust tests on Linux, desktop builds on Ubuntu 24.04, Windows (static MT libraries link) and macOS arm64, the arm64 APK with the extended checks
-- [ ] Release builds still unproven: Linux on ubuntu-22.04's older glibc, macOS x86_64, the three-ABI Android APK; the APK grows by ~70 MB uncompressed (native libraries are stored, not compressed); decide on compressed packaging or per-ABI APKs
+- [x] Three-ABI Android APK built locally (2026-10-23): ARMv7 caught a 32-bit `usize` overflow in the sample limit (fixed, with a test). Native libraries are now compressed in the APK (`useLegacyPackaging`, the user's choice over per-ABI APKs): universal APK 46 MB instead of ~100 MB stored (31 MB in 0.4.0), unpacked on install. Checks pass; on the arm64 emulator the app starts with ONNX Runtime and the sherpa-onnx C API loaded
+- [ ] Release builds still unproven: Linux on ubuntu-22.04's older glibc, macOS x86_64
 - [ ] On a real phone: import the model, transcribe 5 minutes, memory and time
 
 ### Stage 16: Sync between the user's own devices (D-22)
