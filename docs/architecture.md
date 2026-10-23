@@ -115,7 +115,8 @@ place:
 - `lib/components/`: shared pieces (unlocked shell with the tab bar, quick entry,
   entry form, charts, calendar, sheets).
 - `routes/`: `setup`, `lock`, `recover`, `restore`, `help` (crisis lines and exercises,
-  no unlocking needed), `timeline`, `entry/new`, `entry/[id]`, `tags`, `plan`,
+  no unlocking needed), `timeline`, `session` (for the next session, D-26), `entry/new`,
+  `entry/[id]`, `tags`, `plan`,
   `patterns`, `report`, `settings` (a hub) with `settings/general`, `settings/data`,
   `settings/voice`, `settings/security`, `settings/about` and `settings/delete`.
 

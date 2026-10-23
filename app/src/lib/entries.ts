@@ -2,7 +2,7 @@
 
 import type { Emotion, Entry, EntryDraft, EntryKind, EntryKindTag, Symptom } from './api/index.js';
 
-/** Types offered when creating entries. */
+/** Types offered by quick entry, the way most entries are started. */
 export const CREATABLE_KINDS: EntryKindTag[] = [
 	'mood',
 	'fear',
@@ -11,6 +11,9 @@ export const CREATABLE_KINDS: EntryKindTag[] = [
 	'nightmare',
 	'note'
 ];
+
+/** Every type, e.g. for filters. A session (D-26) is started from "For the next session". */
+export const ALL_KINDS: EntryKindTag[] = [...CREATABLE_KINDS, 'session'];
 
 export const EMOTIONS = [
 	'anxiety',
@@ -62,6 +65,8 @@ export function emptyKind(tag: EntryKindTag): EntryKind {
 			return { nightmare: { content: '', rescripted: '', rehearsals: [] } };
 		case 'note':
 			return 'note';
+		case 'session':
+			return { session: { agreed: '', todo: '', discussed: [] } };
 	}
 }
 
@@ -83,11 +88,12 @@ export function draftFromEntry(entry: Entry): EntryDraft {
 		note: entry.note,
 		incomplete: false,
 		sensitive: entry.sensitive,
-		voice: entry.voice ? { ...entry.voice } : null
+		voice: entry.voice ? { ...entry.voice } : null,
+		discuss: entry.discuss ?? false
 	};
 }
 
-export function newDraft(tag: EntryKindTag): EntryDraft {
+export function newDraft(tag: EntryKindTag, options: { discuss?: boolean } = {}): EntryDraft {
 	// Content written in the form is hidden on the timeline until tapped, unless
 	// the user unticks it (E-16, D-24). Quick entries, a single number, are not.
 	return {
@@ -96,7 +102,8 @@ export function newDraft(tag: EntryKindTag): EntryDraft {
 		intensity: null,
 		tags: [],
 		note: '',
-		sensitive: true
+		sensitive: true,
+		discuss: tag !== 'session' && (options.discuss ?? false)
 	};
 }
 
@@ -112,7 +119,9 @@ export function entryTexts(entry: Entry): string[] {
 					? [k.fear.trigger, k.fear.strategy ?? '']
 					: 'nightmare' in k
 						? [k.nightmare.rescripted]
-						: [];
+						: 'session' in k
+							? [k.session.agreed, k.session.todo]
+							: [];
 	return [...kind, entry.note].map((s) => s.trim()).filter(Boolean);
 }
 

@@ -31,7 +31,7 @@ function entry(overrides: Partial<Entry> = {}): Entry {
 
 describe('entries helpers', () => {
 	it('maps kinds to tags and back', () => {
-		for (const tag of ['mood', 'event', 'fear', 'sleep', 'nightmare', 'note'] as const) {
+		for (const tag of ['mood', 'event', 'fear', 'sleep', 'nightmare', 'note', 'session'] as const) {
 			expect(kindTag(emptyKind(tag))).toBe(tag);
 		}
 	});
@@ -55,9 +55,15 @@ describe('entries helpers', () => {
 			tags: [],
 			note: '',
 			// Hidden on the timeline unless unticked (D-24).
-			sensitive: true
+			sensitive: true,
+			discuss: false
 		});
 		expect(newDraft('nightmare').sensitive).toBe(true);
+		// "Add a question" (D-26); a session is never marked for one itself.
+		expect(newDraft('note', { discuss: true }).discuss).toBe(true);
+		expect(newDraft('session', { discuss: true }).discuss).toBe(false);
+		expect(draftFromEntry(entry({ discuss: true })).discuss).toBe(true);
+		expect(draftFromEntry(entry()).discuss).toBe(false);
 	});
 
 	it('previews join free text and truncate', () => {

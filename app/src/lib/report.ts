@@ -26,6 +26,8 @@ export interface ReportOptions {
 	encrypted?: boolean;
 	/** Whether the text kept from voice notes is included (E-19); off unless chosen. */
 	transcripts?: boolean;
+	/** Entries flagged for the session (D-26), put first whatever the period. */
+	topics?: Entry[];
 }
 
 const chip = (t: Translate, prefix: string, item: Emotion | Symptom) =>
@@ -60,6 +62,15 @@ export function buildReport(entries: Entry[], o: ReportOptions): ReportDoc {
 		summary.push(t('report.moodAverage', { average: number.format(average) }));
 	}
 
+	const dateTime = new Intl.DateTimeFormat(o.locale, { dateStyle: 'medium', timeStyle: 'short' });
+	const topics = [...(o.topics ?? [])].sort(
+		(a, b) => Date.parse(a.occurred_at) - Date.parse(b.occurred_at)
+	);
+	const topicSection =
+		topics.length > 0
+			? [{ heading: t('report.topicsHeading'), items: topics.map((e) => item(e, o, dateTime)) }]
+			: [];
+
 	return {
 		title: t('report.docTitle'),
 		subtitle: t('report.period', {
@@ -67,10 +78,13 @@ export function buildReport(entries: Entry[], o: ReportOptions): ReportDoc {
 			to: date.format(localDate(o.to))
 		}),
 		summary,
-		sections: groups.map((g) => ({
-			heading: day.format(localDate(g.key)),
-			items: g.items.map((e) => item(e, o, time))
-		})),
+		sections: [
+			...topicSection,
+			...groups.map((g) => ({
+				heading: day.format(localDate(g.key)),
+				items: g.items.map((e) => item(e, o, time))
+			}))
+		],
 		footer: t(o.encrypted ? 'report.footerEncrypted' : 'report.footer'),
 		page_label: t('report.page')
 	};
@@ -123,6 +137,12 @@ function item(e: Entry, o: ReportOptions, time: Intl.DateTimeFormat): ReportItem
 		} else if ('nightmare' in k) {
 			field(t('field.content'), k.nightmare.content);
 			field(t('field.rescripted'), k.nightmare.rescripted);
+		} else if ('session' in k) {
+			field(t('field.agreed'), k.session.agreed);
+			field(t('field.todo'), k.session.todo);
+			if (k.session.discussed.length > 0) {
+				meta.push(t('report.discussed', { count: k.session.discussed.length }));
+			}
 		}
 	}
 	field(t('field.note'), e.note);

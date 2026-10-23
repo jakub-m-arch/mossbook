@@ -103,7 +103,9 @@ Records are rows `(id BLOB(16), type INTEGER, blob BLOB)` in `records`, see *Rec
 Recordings (voice notes, E-18, decision D-21) are rows of the same shape in `media`.
 
 Format 2 (schema version 2) adds the `media` table; format 3 (schema version 3)
-adds tombstones in `records` and `password_epoch` (sync, D-22). Opening an older
+adds tombstones in `records` and `password_epoch` (sync, D-22); format 4 (schema
+version 4) changes no table but allows session entries (D-26), which older builds
+cannot read. Opening an older
 file migrates it, one transaction per step. Older builds refuse a newer file
 because of its schema version.
 
@@ -164,6 +166,10 @@ without one encode as before.
   0.4; an older build ignores it and drops it if it saves that entry again. Its plaintext is an Ogg Opus file (RFC 3533, RFC 7845) of at most 4 MiB and
   5 minutes; the journal checks the container and takes the length from the last
   granule position, so the UI cannot store something else or claim another length.
+- `Entry.discuss` (E-20, D-26) marks an entry for the next session and is left out
+  when false. `EntryKind::Session { agreed, todo, discussed }` (E-7, vault format 4)
+  lists entry ids talked about; saving it clears their `discuss` in the same
+  transaction.
 
 Domain types that hold user text are zeroed on drop (`ZeroizeOnDrop`) and have a
 redacted `Debug`, so content is wiped when the vault locks and never reaches logs.

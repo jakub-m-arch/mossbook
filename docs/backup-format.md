@@ -3,7 +3,8 @@
 A Mossbook backup is a single file holding the encrypted journal. This document is
 normative: [`tools/read-backup.py`](../tools/read-backup.py) is an independent reader
 written from it, and checks the committed fixtures
-`core/tests/fixtures/backup-v1.mossbook`, `backup-v2.mossbook` and `backup-v3.mossbook`.
+`core/tests/fixtures/backup-v1.mossbook`, `backup-v2.mossbook`, `backup-v3.mossbook` and
+`backup-v4.mossbook`.
 A sync file (decision D-22) is a backup in this format, written by one of the user's
 devices for the others; see *Sync files* below.
 
@@ -14,7 +15,7 @@ Cryptographic primitives and key derivation are described in [`crypto.md`](crypt
 ```
 offset  size  content
 0       8     magic "MOSSBOOK" (ASCII)
-8       2     backup format version, u16 little-endian (currently 3; 1 and 2 are still read)
+8       2     backup format version, u16 little-endian (currently 4; 1–3 are still read)
 10      …     body: one CBOR item (RFC 8949)
 ```
 
@@ -32,7 +33,7 @@ A CBOR map with these keys (byte strings are CBOR major type 2):
 | `kdf_salt`        | bytes (16)           | password salt                                               |
 | `wrapped_dek_pwd` | bytes (72)           | DEK wrapped under the password key                          |
 | `wrapped_dek_rec` | bytes (72)           | DEK wrapped under the recovery key                          |
-| `password_epoch`  | unsigned int         | version 3: how many times the password was changed (0 if absent) |
+| `password_epoch`  | unsigned int         | from version 3: how many times the password was changed (0 if absent) |
 | `records`         | array of maps        | `{ "id": bytes(16), "type": uint 1–4 or 6, "blob": bytes }` (6, a tombstone, from version 3) |
 | `media`           | array of maps        | version 2 only, may be absent when empty: recordings, `{ "id": bytes(16), "type": 5, "blob": bytes }` |
 | `manifest`        | bytes                | sealed digest of the records (and recordings), see below    |
@@ -63,11 +64,15 @@ header   = u32le(password_epoch) || kdf_params (13) || kdf_salt (16)
 
 version 1:  digest = SHA-256( list(records) )
 version 2:  digest = SHA-256( list(records) || list(media) )
-version 3:  digest = SHA-256( header || list(records) || list(media) )
+version 3+: digest = SHA-256( header || list(records) || list(media) )
 AAD      = "mossbook/backup/v" || version (ASCII) || vault_id
 
 manifest = nonce (24) || XChaCha20-Poly1305(DEK, AAD, digest) || tag (16)
 ```
+
+Version 4 has the body of version 3; it comes from vault format 4, whose records may
+include session entries (D-26) that an older build cannot read, so an older build
+must refuse it rather than count them as damaged.
 
 The version is part of the AAD, so a backup cannot be relabelled as an older
 version with its recordings or tombstones cut out. From version 3 the header fields
@@ -152,7 +157,7 @@ voice/<voice id>.ogg        each voice note, Ogg Opus, named by `entries[].voice
 ```json
 {
   "format": "mossbook-export",
-  "version": 2,
+  "version": 4,
   "exported_at": "2026-10-20T11:00:00+02:00",
   "entries": [ … ],
   "tags": [ … ],
@@ -169,9 +174,12 @@ shapes of the domain types in `core/src/domain/` (field names in `snake_case`,
 timestamps in RFC 3339 with the local offset, ids as UUID strings, entry kinds as
 `{"fear": {…}}` or `"note"`). An entry with a recording has
 `"voice": { "id": …, "duration_ms": …, "mime": "audio/ogg; codecs=opus" }`, plus
-`"transcript": "…"` when the user kept a text made from it (E-19, D-23).
+`"transcript": "…"` when the user kept a text made from it (E-19, D-23). An entry
+marked for the next session has `"discuss": true`; a session entry has the kind
+`{"session": {"agreed": …, "todo": …, "discussed": [entry ids]}}` (E-7, E-20, D-26).
 A change to these shapes increments `version`: version 1 (Mossbook 0.1–0.3) was the
-JSON file alone, without `voice`; version 2 (0.4) had no `transcript`.
+JSON file alone, without `voice`; version 2 (0.4) had no `transcript`; version 3
+(0.5) had no session entries or `discuss`.
 
 ## Versioning
 

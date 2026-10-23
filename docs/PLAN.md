@@ -164,10 +164,11 @@ Resumed 2026-10-21 (postponed on 2026-10-19 while the tools were missing).
 - [ ] Reviews: a psychotherapist (exercises, IRT, tone), a native Ukrainian speaker
 
 ### Stage 20: Preparing for a therapy session (E-7, E-20, D-26)
-- [ ] Core: `Entry.discuss`, `EntryKind::Session`, `EntryKindTag::Session` (refused by quick entry and the inbox), saving a session clears the flags of the entries it lists in one write, `EntryFilter.discuss_only`; vault format 4, backup version 4, export version 4, fixtures v4, `tools/read-backup.py`; tests incl. negative ones and migration from v3
-- [ ] Tauri: sync reports a newer file as `newer_version`
-- [ ] UI: the flag in the form and the entry menu; the Session form with the list of flagged entries; "For the next session" screen and its card on the timeline; "Add a question"; filters, icon, colours; report option; pl/en/uk; e2e
-- [ ] Docs: SPEC (E-7, E-20, §5, X-3), `crypto.md`, `backup-format.md`, CHANGELOG
+- [x] Core: `Entry.discuss`, `EntryKind::Session`, `EntryKindTag::Session` (refused by quick entry and the inbox), saving a session clears in one write the flags of the entries it newly lists (editing it later leaves an entry flagged again alone), `EntryFilter.discuss_only`; vault format 4, backup version 4, export version 4, fixtures v4 (v3 frozen), `tools/read-backup.py`; tests incl. negative ones (a flagged session, quick entry and a sealed inbox item of the type, too long a list, unknown, deleted, repeated or own ids, a v4 backup relabelled as v3, newer labels) and the migration from v3
+- [x] Tauri: sync reports a newer file as `newer_version` (with a test)
+- [x] UI: the flag in the form, the entry menu and on the card; the Session form with the flagged entries to tick (hidden content stays hidden there); "For the next session" screen (to-do from the latest session, topics, take off the list, add a question, write the session) and its card on the timeline; filters, icon, colour; report option and session fields; pl/en/uk; unit tests and e2e
+- [x] Docs: SPEC (E-7, E-20, §5, X-3), `crypto.md`, `backup-format.md`, `architecture.md`, CHANGELOG
+- [ ] Website (pl/en) and screenshots after the release; a psychotherapist's view on the wording
 
 ### Stage 19: Recording while the screen turns off (D-25)
 - [x] Tauri: `voice_recording(active)`; `Session::set_recording`, `on_background(now)` defers the lock while recording, `on_tick` locks once the grace is over and keeps the idle timer away while recording; a thread runs the deferred lock after the grace; every lock clears the screen flag. Tests: idle timer and its limit, the lock waiting for the UI, the lock after the grace without the UI, nothing carried to the next unlock, other policies unchanged, recording needs an open journal

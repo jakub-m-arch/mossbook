@@ -113,6 +113,7 @@ editable), an optional mood rating, intensity, tags and a text note.
 | E-4 | **Sleep** | bedtime, wake time, quality 1–5, number of awakenings, whether there was a nightmare | MVP |
 | E-5 | **Nightmare (IRT)** | the nightmare (optionally hidden by default), the rescripted version, dates the new version was rehearsed | v1 |
 | E-6 | **Free note** | text only | MVP |
+| E-7 | **Session** (D-26) | after a therapy session: what was agreed, what to do before the next one, which entries marked for it were talked about (those lose the mark); written in the form only, not by quick entry | v2 |
 
 | ID | Feature | Priority |
 |---|---|---|
@@ -126,6 +127,7 @@ editable), an optional mood rating, intensity, tags and a text note.
 | E-17 | An entry form being filled in survives a lock: kept encrypted and offered after unlocking, discarded when the form is left on purpose (D-20) | v1 |
 | E-18 | **Voice note**: up to 5 minutes recorded in the app, attached to an entry, encrypted like the rest and included in backups; no video or other files; recorded on every platform; the readable copy becomes a ZIP with the recordings (D-21) | v2 |
 | E-19 | **Voice note to text**: off by default; turned on per device by importing a speech recognition model the user downloads in the browser; a recording is transcribed on the device on request, and the text is shown for the user to correct before it is saved with the entry and becomes searchable; removing or replacing the recording asks whether its text moves to the note; the PDF report includes it only when the user chooses (D-23) | v2 |
+| E-20 | **For the next session** (D-26): any entry can be marked "For the session" (in the form or its menu); a question is a note marked that way; a screen, linked from the timeline, shows the marked entries and what to do from the latest session | v2 |
 
 ### 4.3. Plan for a hard moment
 
@@ -159,7 +161,7 @@ period) overviews are not shown.
 |---|---|---|
 | X-1 | **Encrypted backup**: a single `.mossbook` file encrypted with the same key (opens with the password or the recovery key). Saved through the system file dialog | MVP |
 | X-2 | Importing a backup: merge (no duplicates, by id) or replace | MVP |
-| X-3 | **Report for a therapist (PDF)**: choice of period, types and tags; preview before saving; optional password protection (AES-256, PDF 2.0); a clear warning when the PDF is **not encrypted** and about sending the password through a different channel | v1 |
+| X-3 | **Report for a therapist (PDF)**: choice of period, types and tags; preview before saving; optional password protection (AES-256, PDF 2.0); a clear warning when the PDF is **not encrypted** and about sending the password through a different channel; optionally starting with the entries marked for the session, whatever the period (D-26) | v1 |
 | X-4 | Plain JSON export (full portability), with a warning; with voice notes (E-18) a ZIP holding the JSON and the recordings (D-21) | v1 |
 | X-5 | Deleting all data (V-9) | MVP |
 | X-6 | **Automatic local backups** when the journal locks (daily, newest seven), plus a note in the settings of when a backup was last saved elsewhere (D-16) | v1 |
@@ -208,6 +210,7 @@ pub struct Entry {
     pub incomplete: bool,            // quick entry still to complete
     pub sensitive: bool,             // hide the content until tapped
     pub voice: Option<VoiceNote>,    // E-18: { id, duration_ms, mime, transcript } → a row of `media`
+    pub discuss: bool,               // E-20: marked for the next session
 }
 
 pub enum EntryKind {
@@ -219,6 +222,7 @@ pub enum EntryKind {
                 quality: Option<u8>, awakenings: Option<u8>, nightmare: bool },
     Nightmare { content: String, rescripted: String, rehearsals: Vec<Timestamp> },
     Note,
+    Session   { agreed: String, todo: String, discussed: Vec<Id> },  // E-7
 }
 
 pub struct Tag { pub id: Id, pub name: String, pub color: String }

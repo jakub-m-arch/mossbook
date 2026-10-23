@@ -90,6 +90,27 @@ describe('buildReport', () => {
 		expect(item.fields).toEqual([]);
 	});
 
+	it('shows a session and can start with the topics, whatever the period', () => {
+		const topic = entry('2026-01-05T10:00:00+01:00', { note: 'stary temat', discuss: true });
+		const session = entry('2026-10-19T18:00:00+02:00', {
+			kind: { session: { agreed: 'krótsze wieczory', todo: '  ', discussed: ['a', 'b'] } }
+		});
+		const doc = buildReport([session], { ...options, topics: [topic] });
+		expect(doc.sections.map((s) => s.heading)).toEqual([
+			'Tematy na tę sesję',
+			'poniedziałek, 19 października 2026'
+		]);
+		expect(doc.sections[0].items[0].title).toMatch(/2026, 10:00 · Notatka$/);
+		expect(doc.sections[0].items[0].fields).toEqual([{ label: 'Notatka', value: 'stary temat' }]);
+		const s = doc.sections[1].items[0];
+		expect(s.title).toBe('18:00 · Sesja');
+		expect(s.meta).toBe('Omówione wpisy: 2');
+		expect(s.fields).toEqual([{ label: 'Co ustaliliśmy', value: 'krótsze wieczory' }]);
+		// Not counted with the period's entries.
+		expect(doc.summary[0]).toBe('Liczba wpisów: 1');
+		expect(buildReport([session], options).sections).toHaveLength(1);
+	});
+
 	it('includes the text of a voice note only when asked to', () => {
 		const spoken = entry('2026-10-19T08:00:00+02:00', {
 			note: 'krótko',

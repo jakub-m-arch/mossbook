@@ -16,7 +16,7 @@
 	import { copyWithClear, errorText, handleLocked } from '#lib/session.svelte.js';
 	import { endOfDay, startOfDay } from '#lib/time.js';
 
-	const KINDS: EntryKindTag[] = ['mood', 'fear', 'event', 'sleep', 'nightmare', 'note'];
+	const KINDS: EntryKindTag[] = ['mood', 'fear', 'event', 'sleep', 'nightmare', 'note', 'session'];
 	/** Mirrors MIN_REPORT_PASSWORD_CHARS in the core. */
 	const MIN_PASSWORD = 12;
 
@@ -30,6 +30,9 @@
 	let busy = $state(false);
 	// The text of voice notes (E-19) goes in only when the user chooses it.
 	let transcripts = $state(false);
+	// Entries flagged for the session (D-26) go first, unless the user unticks it.
+	let topics = $state<Entry[]>([]);
+	let withTopics = $state(true);
 
 	// X-3: optional AES-256 encryption of the PDF.
 	let protect = $state(false);
@@ -39,12 +42,15 @@
 	let copyError = $state('');
 
 	let tagMap = $derived(new Map(tags.map((tag) => [tag.id, tag])));
-	let anyTranscript = $derived(entries?.some((e) => e.voice?.transcript?.trim()) ?? false);
+	let anyTranscript = $derived(
+		[...(entries ?? []), ...topics].some((e) => e.voice?.transcript?.trim())
+	);
+	let leadTopics = $derived(withTopics ? topics : []);
 	let longEnough = $derived([...password].length >= MIN_PASSWORD);
 	let mismatch = $derived(protect && repeat.length > 0 && password !== repeat);
 	let passwordReady = $derived(!protect || (longEnough && password === repeat));
 	let doc = $derived(
-		entries && entries.length > 0
+		entries && (entries.length > 0 || leadTopics.length > 0)
 			? buildReport(entries, {
 					from,
 					to,
@@ -52,7 +58,8 @@
 					t,
 					locale: locale(),
 					encrypted: protect,
-					transcripts: transcripts && anyTranscript
+					transcripts: transcripts && anyTranscript,
+					topics: leadTopics
 				})
 			: null
 	);
@@ -61,7 +68,10 @@
 		list.includes(item) ? list.filter((i) => i !== item) : [...list, item];
 
 	onMount(async () => {
-		tags = await tagsList().catch(() => []);
+		[tags, topics] = await Promise.all([
+			tagsList().catch(() => []),
+			entriesList({ discuss_only: true }).catch(() => [])
+		]);
 	});
 
 	$effect(() => {
@@ -162,6 +172,15 @@
 							</button>
 						{/each}
 					</div>
+				</div>
+			{/if}
+			{#if topics.length > 0}
+				<div>
+					<label class="check">
+						<input type="checkbox" bind:checked={withTopics} />
+						<span>{t('report.topics')}</span>
+					</label>
+					<p class="muted small">{t('report.topicsHint')}</p>
 				</div>
 			{/if}
 			{#if anyTranscript}

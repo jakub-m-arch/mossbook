@@ -2,15 +2,17 @@
 	import Trash from '@lucide/svelte/icons/trash';
 	import { onMount, untrack } from 'svelte';
 
+	import { entriesList, entryGet } from '#lib/api/index.js';
 	import type {
 		Emotion,
+		Entry,
 		EntryDraft,
 		EntryKind,
 		EntryKindTag,
 		Symptom,
 		Tag
 	} from '#lib/api/index.js';
-	import { EMOTIONS, SYMPTOMS, emptyKind, jsonCopy, kindTag } from '#lib/entries.js';
+	import { EMOTIONS, SYMPTOMS, emptyKind, jsonCopy, kindTag, preview } from '#lib/entries.js';
 	import { locale, t } from '#lib/i18n/index.svelte.js';
 	import { fromLocalInput, toLocalInput, toRfc3339 } from '#lib/time.js';
 	import { setFlush } from '#lib/unsaved.js';
@@ -54,6 +56,11 @@
 	let fear = $state(pick('fear').fear);
 	let sleep = $state(pick('sleep').sleep);
 	let nightmare = $state(pick('nightmare').nightmare);
+	let session = $state(pick('session').session);
+	// A session (D-26): the entries flagged for it, and those it already lists.
+	let topics = $state<Entry[] | null>(null);
+	let discussed = $state<string[]>([...session.discussed]);
+	let discuss = $state(initial.discuss ?? false);
 	let emotions = $state<Emotion[]>(moodKind.emotions);
 	let symptoms = $state<Symptom[]>(fear.symptoms);
 	let strategy = $state(fear.strategy ?? '');
@@ -92,7 +99,28 @@
 				return { nightmare };
 			case 'note':
 				return 'note';
+			case 'session':
+				return { session: { ...session, discussed } };
 		}
+	}
+
+	onMount(async () => {
+		if (tag !== 'session') return;
+		const [flagged, listed] = await Promise.all([
+			entriesList({ discuss_only: true }).catch(() => []),
+			Promise.all(session.discussed.map((id) => entryGet(id).catch(() => null)))
+		]);
+		const known = new Set(flagged.map((e) => e.id));
+		topics = [...listed.filter((e): e is Entry => !!e && !known.has(e.id)), ...flagged].filter(
+			(e) => e.id !== initial.id
+		);
+	});
+
+	/** What a topic shows in the list; hidden content stays hidden (E-16). */
+	function topicLabel(e: Entry) {
+		const head = `${t(`kind.${kindTag(e.kind)}`)} · ${dateFormat.format(new Date(e.occurred_at))}`;
+		const text = e.sensitive ? '' : preview(e, 80);
+		return text ? `${head} · ${text}` : head;
 	}
 
 	function current(incomplete: boolean): EntryDraft {
@@ -106,7 +134,8 @@
 			note,
 			incomplete,
 			sensitive,
-			voice: $state.snapshot(voice)
+			voice: $state.snapshot(voice),
+			discuss: tag !== 'session' && discuss
 		};
 	}
 
@@ -297,6 +326,29 @@
 				<button type="button" class="secondary" onclick={rehearse}>{t('nightmare.rehearse')}</button
 				>
 			</div>
+		{:else if tag === 'session'}
+			<fieldset class="topics">
+				<legend>{t('field.discussed')}</legend>
+				{#if topics && topics.length === 0}
+					<p class="muted small">{t('field.discussedNone')}</p>
+				{:else if topics}
+					<p class="muted small">{t('field.discussedHint')}</p>
+					{#each topics as topic (topic.id)}
+						<label class="choice topic">
+							<input type="checkbox" bind:group={discussed} value={topic.id} />
+							<span>{topicLabel(topic)}</span>
+						</label>
+					{/each}
+				{/if}
+			</fieldset>
+			<div>
+				<label for="agreed">{t('field.agreed')}</label>
+				<textarea id="agreed" bind:value={session.agreed}></textarea>
+			</div>
+			<div>
+				<label for="todo">{t('field.todo')}</label>
+				<textarea id="todo" bind:value={session.todo}></textarea>
+			</div>
 		{/if}
 
 		{#if tag === 'note'}
@@ -337,6 +389,16 @@
 			</span>
 		</label>
 
+		{#if tag !== 'session'}
+			<label class="choice sensitive">
+				<input type="checkbox" bind:checked={discuss} />
+				<span>
+					{t('field.discuss')}
+					<span class="muted small hint">{t('field.discussHint')}</span>
+				</span>
+			</label>
+		{/if}
+
 		<div>
 			<label for="occurred-at">{t('field.occurredAt')}</label>
 			<input id="occurred-at" type="datetime-local" bind:value={occurredAt} />
@@ -374,6 +436,21 @@
 		padding-left: 1.2rem;
 	}
 	.sensitive {
+		align-items: flex-start;
+	}
+	fieldset.topics {
+		display: grid;
+		gap: 0.25rem;
+		border: 0;
+		margin: 0;
+		padding: 0;
+	}
+	fieldset.topics legend {
+		font-size: 0.9rem;
+		font-weight: 600;
+		margin-bottom: 0.4rem;
+	}
+	.topic {
 		align-items: flex-start;
 	}
 	.sensitive .hint {

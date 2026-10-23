@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Calendar from '@lucide/svelte/icons/calendar';
+	import MessagesSquare from '@lucide/svelte/icons/messages-square';
 	import CloudMoon from '@lucide/svelte/icons/cloud-moon';
 	import CloudSun from '@lucide/svelte/icons/cloud-sun';
 	import Moon from '@lucide/svelte/icons/moon';
@@ -16,7 +17,8 @@
 		fear: Wind,
 		sleep: Moon,
 		note: PenLine,
-		nightmare: CloudMoon
+		nightmare: CloudMoon,
+		session: MessagesSquare
 	} as const;
 
 	let Icon = $derived(ICONS[kind]);

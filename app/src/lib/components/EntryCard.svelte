@@ -123,9 +123,10 @@
 			{#if !hidden && text}
 				<p class="text">{text}</p>
 			{/if}
-			{#if !hidden && (entry.incomplete || entry.tags.length > 0 || entry.voice)}
+			{#if !hidden && (entry.incomplete || entry.discuss || entry.tags.length > 0 || entry.voice)}
 				<div class="meta">
 					{#if entry.incomplete}<span class="pill notice-pill">{t('entry.incomplete')}</span>{/if}
+					{#if entry.discuss}<span class="pill">{t('field.discuss')}</span>{/if}
 					{#if entry.voice}
 						<span class="pill voice"
 							><Mic size={14} aria-hidden="true" /><span class="sr-only"

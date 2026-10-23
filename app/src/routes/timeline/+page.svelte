@@ -1,5 +1,7 @@
 <script lang="ts">
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Eye from '@lucide/svelte/icons/eye';
+	import MessagesSquare from '@lucide/svelte/icons/messages-square';
 	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import Plus from '@lucide/svelte/icons/plus';
@@ -16,10 +18,11 @@
 	import type { Entry, EntryFilter, EntryKindTag, Tag, UnsavedEntry } from '#lib/api/index.js';
 	import ConfirmAction from '#lib/components/ConfirmAction.svelte';
 	import EntryCard from '#lib/components/EntryCard.svelte';
+	import KindIcon from '#lib/components/KindIcon.svelte';
 	import QuickEntry from '#lib/components/QuickEntry.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
 	import UnlockedShell from '#lib/components/UnlockedShell.svelte';
-	import { CREATABLE_KINDS, draftFromEntry, groupByDay, kindTag } from '#lib/entries.js';
+	import { ALL_KINDS, draftFromEntry, groupByDay, kindTag } from '#lib/entries.js';
 	import { locale, t } from '#lib/i18n/index.svelte.js';
 	import { JOURNAL_CHANGED, errorText, handleLocked } from '#lib/session.svelte.js';
 	import { endOfDay, startOfDay } from '#lib/time.js';
@@ -49,6 +52,9 @@
 	let from = $state(pickedDay);
 	let to = $state(pickedDay);
 	let incompleteOnly = $state(false);
+	/** For the next session (D-26): how many entries are flagged, and the latest session's to-do. */
+	let topicCount = $state(0);
+	let lastTodo = $state('');
 
 	let tagMap = $derived(new Map(tags.map((tag) => [tag.id, tag])));
 	let filterCount = $derived(
@@ -78,9 +84,19 @@
 	async function load() {
 		const id = ++request;
 		try {
-			const result = await entriesList(filter());
+			const [result, flagged, sessions] = await Promise.all([
+				entriesList(filter()),
+				entriesList({ discuss_only: true }),
+				entriesList({ kinds: ['session'] })
+			]);
 			if (id === request) {
 				entries = result;
+				topicCount = flagged.length;
+				const latest = sessions[0]?.kind;
+				lastTodo =
+					latest && typeof latest !== 'string' && 'session' in latest
+						? latest.session.todo.trim()
+						: '';
 				loaded = true;
 				error = '';
 			}
@@ -154,6 +170,23 @@
 				...draftFromEntry(entry),
 				incomplete: entry.incomplete,
 				sensitive: !entry.sensitive
+			});
+			await load();
+		} catch (e) {
+			if (!(await handleLocked(e))) error = errorText(e);
+		}
+	}
+
+	/** Marks the entry for the next session or takes it off the list (E-20). */
+	async function menuToggleDiscuss() {
+		const entry = menuEntry;
+		menu.close();
+		if (!entry) return;
+		try {
+			await entrySave({
+				...draftFromEntry(entry),
+				incomplete: entry.incomplete,
+				discuss: !entry.discuss
 			});
 			await load();
 		} catch (e) {
@@ -242,6 +275,19 @@
 			</section>
 		{/if}
 
+		{#if !filtered && (topicCount > 0 || lastTodo)}
+			<a class="card session-card" href={resolve('/session')}>
+				<KindIcon kind="session" size={40} />
+				<span class="session-text">
+					<strong>{t('session.title')}</strong>
+					<span class="muted small">
+						{topicCount > 0 ? t('session.card', { count: topicCount }) : t('session.cardTodo')}
+					</span>
+				</span>
+				<ChevronRight size={20} />
+			</a>
+		{/if}
+
 		{#if loaded && entries.length === 0}
 			{#if filtered}
 				<div class="empty">
@@ -282,7 +328,7 @@
 		<div>
 			<p class="eyebrow">{t('filter.kinds')}</p>
 			<div class="chips" role="group" aria-label={t('filter.kinds')}>
-				{#each CREATABLE_KINDS as kind (kind)}
+				{#each ALL_KINDS as kind (kind)}
 					<button
 						type="button"
 						class="chip"
@@ -347,6 +393,13 @@
 					size={20}
 				/>{t('entry.menuHide')}{/if}
 		</button>
+		{#if menuEntry && kindTag(menuEntry.kind) !== 'session'}
+			<button type="button" class="secondary" onclick={menuToggleDiscuss}>
+				<MessagesSquare size={20} />{menuEntry.discuss
+					? t('entry.menuUndiscuss')
+					: t('entry.menuDiscuss')}
+			</button>
+		{/if}
 		<button type="button" class="secondary" onclick={menuDelete}>
 			<Trash size={20} />{t('entry.delete')}
 		</button>
@@ -361,6 +414,18 @@
 />
 
 <style>
+	.session-card {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		color: inherit;
+		text-decoration: none;
+	}
+	.session-text {
+		flex: 1;
+		display: grid;
+		gap: 0.1rem;
+	}
 	.menu {
 		display: grid;
 		gap: 0.5rem;

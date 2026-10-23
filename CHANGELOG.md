@@ -4,6 +4,23 @@ All notable changes to Mossbook. Versions follow [Semantic Versioning](https://s
 
 ## Unreleased
 
+### Added
+- Preparing for a therapy session. Mark any entry "For the session" (in its form,
+  or press and hold it on the timeline). The new screen "For the next session",
+  linked from the top of the timeline, lists what you marked, lets you add a
+  question, and shows what you planned to do since the last session. After a
+  session, write a "Session" entry: what you agreed, what to do before the next
+  one, and tick the entries you talked about; they leave the list, the rest wait.
+- A report for a therapist can start with the entries marked for the session,
+  whatever the period you chose.
+
+### Important
+- The journal file format changes (version 4). Once this version opens your
+  journal, older versions of Mossbook cannot open it, nor its backups. If you sync
+  between devices, update Mossbook on all of them: version 0.5 reports the other
+  device's file as damaged. From now on a newer file is reported as coming from a
+  newer version.
+
 ### Fixed
 - A voice note is no longer lost when the phone's screen turns off while you
   speak. The screen now stays on while recording, the journal does not lock for

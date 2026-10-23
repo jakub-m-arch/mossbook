@@ -27,6 +27,7 @@
 	--kind-sleep: #4c6aa8;
 	--kind-note: #5f7a5c;
 	--kind-nightmare: #6a6290;
+	--kind-session: #3d8580;
 
 	/* Chart series and grid (validated: chroma, lightness band, contrast vs surface). */
 	--chart-series: #2e7d4f;

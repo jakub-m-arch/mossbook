@@ -89,7 +89,7 @@ export type LockReason = 'manual' | 'background' | 'idle';
 
 // ---- entries ----
 
-export type EntryKindTag = 'mood' | 'event' | 'fear' | 'sleep' | 'nightmare' | 'note';
+export type EntryKindTag = 'mood' | 'event' | 'fear' | 'sleep' | 'nightmare' | 'note' | 'session';
 
 export type Emotion =
 	| 'anxiety'
@@ -141,7 +141,9 @@ export type EntryKind =
 			};
 	  }
 	| { nightmare: { content: string; rescripted: string; rehearsals: Timestamp[] } }
-	| 'note';
+	| 'note'
+	/** E-7 (D-26): after a therapy session; saving it clears the flag of `discussed`. */
+	| { session: { agreed: string; todo: string; discussed: Id[] } };
 
 export interface Entry {
 	id: Id;
@@ -160,6 +162,8 @@ export interface Entry {
 	sensitive: boolean;
 	/** A recording attached to the entry (E-18); absent when there is none. */
 	voice?: VoiceNote | null;
+	/** Flagged for the next session (E-20); absent when not. */
+	discuss?: boolean;
 }
 
 /** A voice note (E-18, D-21): Ogg Opus, at most 5 minutes, decrypted only for playback. */
@@ -185,6 +189,7 @@ export interface EntryDraft {
 	sensitive?: boolean;
 	/** As returned by `voiceSave`; only its id is trusted by the core. */
 	voice?: VoiceNote | null;
+	discuss?: boolean;
 }
 
 export interface EntryFilter {
@@ -194,6 +199,8 @@ export interface EntryFilter {
 	to?: Timestamp;
 	text?: string;
 	incomplete_only?: boolean;
+	/** Only entries flagged for the next session (E-20). */
+	discuss_only?: boolean;
 }
 
 // ---- tags, plan, settings ----

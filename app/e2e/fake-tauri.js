@@ -24,7 +24,8 @@
 				sleep: { bedtime: null, wake: null, quality: null, awakenings: null, nightmare: false }
 			},
 			nightmare: { nightmare: { content: '', rescripted: '', rehearsals: [] } },
-			note: 'note'
+			note: 'note',
+			session: { session: { agreed: '', todo: '', discussed: [] } }
 		})[tag];
 
 	const state = {
@@ -175,6 +176,7 @@
 				.filter((e) => !filter.kinds?.length || filter.kinds.includes(kindTag(e.kind)))
 				.filter((e) => !filter.tags?.length || e.tags.some((t) => filter.tags.includes(t)))
 				.filter((e) => !filter.incomplete_only || e.incomplete)
+				.filter((e) => !filter.discuss_only || e.discuss)
 				.filter((e) => !filter.from || Date.parse(e.occurred_at) >= Date.parse(filter.from))
 				.filter((e) => !filter.to || Date.parse(e.occurred_at) < Date.parse(filter.to))
 				.filter((e) => {
@@ -208,6 +210,7 @@
 				note: draft.note ?? '',
 				incomplete: draft.incomplete ?? false,
 				sensitive: draft.sensitive ?? false,
+				discuss: draft.discuss ?? false,
 				// Like Rust: the length comes from the stored file, not the form; the
 				// transcript the user kept comes from the form (D-23).
 				voice:
@@ -224,7 +227,25 @@
 				(draft.voice && !entry.voice)
 			)
 				return fail('invalid_field');
+			const session = kindTag(entry.kind) === 'session' ? entry.kind.session : null;
+			if (session && entry.discuss) return fail('invalid_field');
 			if (!entry.voice) delete entry.voice;
+			if (!entry.discuss) delete entry.discuss;
+			// Like Rust (D-26): a session lists existing entries once and clears the
+			// flag of those it newly lists.
+			if (session) {
+				const before =
+					existing && kindTag(existing.kind) === 'session' ? existing.kind.session.discussed : [];
+				session.discussed = [...new Set(session.discussed)].filter(
+					(id) => id !== entry.id && state.entries.some((e) => e.id === id)
+				);
+				for (const other of state.entries) {
+					if (session.discussed.includes(other.id) && !before.includes(other.id) && other.discuss) {
+						delete other.discuss;
+						other.updated_at = now;
+					}
+				}
+			}
 			if (existing?.voice && existing.voice.id !== entry.voice?.id) {
 				state.voices.delete(existing.voice.id);
 			}
@@ -308,15 +329,17 @@
 			return before !== state.entries.length;
 		},
 		quick_entry: ({ kind, value }) =>
-			commands.entry_save({
-				draft: {
-					kind: emptyKind(kind),
-					mood: kind === 'mood' ? value : null,
-					intensity: kind === 'mood' ? null : value,
-					incomplete: true,
-					sensitive: kind === 'nightmare'
-				}
-			}),
+			kind === 'session'
+				? fail('invalid_field')
+				: commands.entry_save({
+						draft: {
+							kind: emptyKind(kind),
+							mood: kind === 'mood' ? value : null,
+							intensity: kind === 'mood' ? null : value,
+							incomplete: true,
+							sensitive: kind === 'nightmare'
+						}
+					}),
 		quick_entry_locked: ({ kind, value }) => {
 			if (state.vault !== 'locked') return fail('invalid_state');
 			state.inbox.push({ kind, value });

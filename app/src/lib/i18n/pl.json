@@ -119,7 +119,8 @@
 		"fear": "Lęk / wyzwalacz",
 		"sleep": "Sen",
 		"nightmare": "Koszmar",
-		"note": "Notatka"
+		"note": "Notatka",
+		"session": "Sesja"
 	},
 	"mood": {
 		"label": "Jak się czujesz",
@@ -190,7 +191,14 @@
 		"rescripted": "Nowa wersja",
 		"rehearsals": "Powtórki nowej wersji",
 		"sensitive": "Ukrywanie treści",
-		"sensitiveHint": "Na osi czasu widać tylko rodzaj wpisu i godzinę. Treść pokaże się po stuknięciu."
+		"sensitiveHint": "Na osi czasu widać tylko rodzaj wpisu i godzinę. Treść pokaże się po stuknięciu.",
+		"agreed": "Co ustaliliśmy",
+		"todo": "Co mam zrobić do następnej sesji",
+		"discuss": "Na sesję",
+		"discussHint": "Wpis pojawi się na liście tematów na następną sesję.",
+		"discussed": "O czym rozmawialiście?",
+		"discussedHint": "Zaznaczone wpisy znikną z listy na następną sesję. Pozostałe poczekają na kolejną.",
+		"discussedNone": "Żaden wpis nie jest oznaczony na sesję."
 	},
 	"entry": {
 		"new": "Nowy wpis",
@@ -207,7 +215,9 @@
 		"menuUnhide": "Nie ukrywaj treści",
 		"sleepLength": "{hours} godz. {minutes} min",
 		"sleepQuality": "jakość {value}/5",
-		"sleepAwakenings": "wybudzenia: {value}"
+		"sleepAwakenings": "wybudzenia: {value}",
+		"menuDiscuss": "Na sesję",
+		"menuUndiscuss": "Zdejmij z listy na sesję"
 	},
 	"quick": {
 		"open": "Szybki wpis",
@@ -454,7 +464,11 @@
 		"avoidanceNo": "Bez unikania",
 		"sleepTime": "Sen: {from} – {to}",
 		"transcripts": "Dołącz tekst nagrań",
-		"transcriptsHint": "Tekst zamieniony z notatek głosowych, tak jak go zapisano. Samych nagrań raport nie zawiera."
+		"transcriptsHint": "Tekst zamieniony z notatek głosowych, tak jak go zapisano. Samych nagrań raport nie zawiera.",
+		"topics": "Zacznij od tematów na sesję",
+		"topicsHint": "Wpisy oznaczone „Na sesję”, niezależnie od wybranego okresu.",
+		"topicsHeading": "Tematy na tę sesję",
+		"discussed": "Omówione wpisy: {count}"
 	},
 	"nightmare": {
 		"intro": "Zapisz koszmar, a potem jego nową wersję, spokojniejszą albo zakończoną inaczej. Możesz ją powtarzać w myślach i zaznaczać, kiedy to robisz.",
@@ -634,6 +648,21 @@
 		"problem_folder_unavailable": "Nie mogę otworzyć folderu synchronizacji. Sprawdź, czy nadal istnieje.",
 		"problem_damaged_file": "Plik z innego urządzenia jest niekompletny albo uszkodzony. Spróbuję ponownie, gdy Syncthing go dośle.",
 		"problem_merge_failed": "Nie udało się wczytać zmian z innego urządzenia.",
-		"problem_write_failed": "Nie udało się zapisać pliku tego urządzenia."
+		"problem_write_failed": "Nie udało się zapisać pliku tego urządzenia.",
+		"problem_newer_version": "Inne urządzenie ma nowszą wersję Mossbooka. Zaktualizuj Mossbooka na tym urządzeniu, żeby wczytać jego zmiany."
+	},
+	"session": {
+		"title": "Na następną sesję",
+		"intro": "Oznaczaj wpisy „Na sesję”, żeby mieć je pod ręką. Pytania możesz dopisać tutaj, a po sesji zapisać, co ustaliliście.",
+		"card": "Tematy: {count}",
+		"cardTodo": "Do zrobienia z ostatniej sesji",
+		"todoTitle": "Do zrobienia z ostatniej sesji",
+		"todoFrom": "Sesja: {date}",
+		"topics": "Tematy",
+		"topicsEmpty": "Nic jeszcze nie jest oznaczone. Wpis oznaczysz w jego formularzu albo przytrzymując go na osi czasu.",
+		"addQuestion": "Dodaj pytanie",
+		"write": "Zapisz notatkę po sesji",
+		"unflag": "Zdejmij z listy",
+		"unflagged": "Wpis zdjęty z listy."
 	}
 }

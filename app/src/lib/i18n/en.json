@@ -119,7 +119,8 @@
 		"fear": "Fear / trigger",
 		"sleep": "Sleep",
 		"nightmare": "Nightmare",
-		"note": "Note"
+		"note": "Note",
+		"session": "Session"
 	},
 	"mood": {
 		"label": "How do you feel",
@@ -190,7 +191,14 @@
 		"rescripted": "New version",
 		"rehearsals": "Rehearsals of the new version",
 		"sensitive": "Hide content",
-		"sensitiveHint": "On the timeline only the type of entry and the time show. The content appears on tap."
+		"sensitiveHint": "On the timeline only the type of entry and the time show. The content appears on tap.",
+		"agreed": "What we agreed",
+		"todo": "What to do before the next session",
+		"discuss": "For the session",
+		"discussHint": "The entry will be on the list of topics for the next session.",
+		"discussed": "What did you talk about?",
+		"discussedHint": "Ticked entries leave the list for the next session. The others wait for the one after.",
+		"discussedNone": "No entry is marked for the session."
 	},
 	"entry": {
 		"new": "New entry",
@@ -207,7 +215,9 @@
 		"menuUnhide": "Stop hiding content",
 		"sleepLength": "{hours} h {minutes} min",
 		"sleepQuality": "quality {value}/5",
-		"sleepAwakenings": "woke up: {value}"
+		"sleepAwakenings": "woke up: {value}",
+		"menuDiscuss": "For the session",
+		"menuUndiscuss": "Take off the session list"
 	},
 	"quick": {
 		"open": "Quick entry",
@@ -454,7 +464,11 @@
 		"avoidanceNo": "No avoidance",
 		"sleepTime": "Sleep: {from} – {to}",
 		"transcripts": "Include the text of recordings",
-		"transcriptsHint": "Text turned from voice notes, as it was saved. The recordings themselves are not in the report."
+		"transcriptsHint": "Text turned from voice notes, as it was saved. The recordings themselves are not in the report.",
+		"topics": "Start with the topics for the session",
+		"topicsHint": "Entries marked “For the session”, whatever the period.",
+		"topicsHeading": "Topics for this session",
+		"discussed": "Entries talked about: {count}"
 	},
 	"nightmare": {
 		"intro": "Write down the nightmare, then a new version of it, calmer or with a different ending. You can rehearse it in your mind and mark when you do.",
@@ -634,6 +648,21 @@
 		"problem_folder_unavailable": "The sync folder cannot be opened. Check that it still exists.",
 		"problem_damaged_file": "A file from another device is incomplete or damaged. Mossbook tries again once Syncthing has delivered it.",
 		"problem_merge_failed": "The changes from another device could not be read.",
-		"problem_write_failed": "This device's file could not be written."
+		"problem_write_failed": "This device's file could not be written.",
+		"problem_newer_version": "Another device has a newer version of Mossbook. Update Mossbook on this device to read its changes."
+	},
+	"session": {
+		"title": "For the next session",
+		"intro": "Mark entries “For the session” to have them at hand. You can add questions here, and after the session write down what you agreed.",
+		"card": "Topics: {count}",
+		"cardTodo": "To do from the last session",
+		"todoTitle": "To do from the last session",
+		"todoFrom": "Session: {date}",
+		"topics": "Topics",
+		"topicsEmpty": "Nothing is marked yet. Mark an entry in its form, or press and hold it on the timeline.",
+		"addQuestion": "Add a question",
+		"write": "Write notes after the session",
+		"unflag": "Take off the list",
+		"unflagged": "The entry is off the list."
 	}
 }
