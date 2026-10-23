@@ -66,7 +66,7 @@ export function emptyKind(tag: EntryKindTag): EntryKind {
 		case 'note':
 			return 'note';
 		case 'session':
-			return { session: { agreed: '', todo: '', discussed: [] } };
+			return { session: { agreed: '', todo: [], discussed: [] } };
 	}
 }
 
@@ -120,7 +120,7 @@ export function entryTexts(entry: Entry): string[] {
 					: 'nightmare' in k
 						? [k.nightmare.rescripted]
 						: 'session' in k
-							? [k.session.agreed, k.session.todo]
+							? [k.session.agreed, ...k.session.todo.map((item) => item.text)]
 							: [];
 	return [...kind, entry.note].map((s) => s.trim()).filter(Boolean);
 }

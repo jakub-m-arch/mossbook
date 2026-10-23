@@ -19,7 +19,7 @@
 	interface Props {
 		title: string;
 		/** Sub-screen: a back button to this screen instead of the tab bar. */
-		back?: '/timeline' | '/settings' | '/session';
+		back?: '/timeline' | '/settings' | '/session' | '/plan';
 		/** Floating action (e.g. quick entry) above the tab bar. */
 		fab?: Snippet;
 		children: Snippet;

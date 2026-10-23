@@ -18,6 +18,7 @@ import type {
 	EntryDraft,
 	EntryFilter,
 	EntryKindTag,
+	Help,
 	Id,
 	LockReason,
 	MoodPoint,
@@ -99,6 +100,8 @@ export const onPrivacyCurtain = (handler: (covered: boolean) => void): Promise<U
 export const entriesList = (filter: EntryFilter = {}) =>
 	invoke<Entry[]>('entries_list', { filter });
 export const entryGet = (id: Id) => invoke<Entry>('entry_get', { id });
+/** What has helped (D-27), over the whole journal. */
+export const helpsList = () => invoke<Help[]>('helps_list');
 export const entrySave = (draft: EntryDraft) => invoke<Entry>('entry_save', { draft });
 export const entryDelete = (id: Id) => invoke<boolean>('entry_delete', { id });
 

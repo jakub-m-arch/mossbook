@@ -113,7 +113,7 @@ editable), an optional mood rating, intensity, tags and a text note.
 | E-4 | **Sleep** | bedtime, wake time, quality 1–5, number of awakenings, whether there was a nightmare | MVP |
 | E-5 | **Nightmare (IRT)** | the nightmare (optionally hidden by default), the rescripted version, dates the new version was rehearsed | v1 |
 | E-6 | **Free note** | text only | MVP |
-| E-7 | **Session** (D-26) | after a therapy session: what was agreed, what to do before the next one, which entries marked for it were talked about (those lose the mark); written in the form only, not by quick entry | v2 |
+| E-7 | **Session** (D-26) | after a therapy session: what was agreed, what to do before the next one (items ticked off on the "For the next session" screen), which entries marked for it were talked about (those lose the mark); written in the form only, not by quick entry | v2 |
 
 | ID | Feature | Priority |
 |---|---|---|
@@ -149,6 +149,7 @@ things get hard. The sections and their wording are our own (D-19).
 | A-2 | Most frequent tags and triggers in a period | v1 |
 | A-3 | Overviews: mood versus the previous night's sleep, time of day, day of the week | v1 |
 | A-4 | Strategy effectiveness: average drop in fear intensity after a given strategy | v1 |
+| A-5 | **What helps me** (D-27): the strategies from fear entries and what helped from event entries, in the user's own words, grouped by wording, with how many entries, the latest date and, where rated before and after, the average change in fear; over the whole journal, no minimum; opened from the plan, each item can be added to "What I can do on my own" | v2 |
 
 **Language rules for A-x:** observations only, never clinical conclusions. Good: "On
 days after sleep rated 1–2 your mood was lower on average." Bad: "You have a sleep
@@ -222,7 +223,7 @@ pub enum EntryKind {
                 quality: Option<u8>, awakenings: Option<u8>, nightmare: bool },
     Nightmare { content: String, rescripted: String, rehearsals: Vec<Timestamp> },
     Note,
-    Session   { agreed: String, todo: String, discussed: Vec<Id> },  // E-7
+    Session   { agreed: String, todo: Vec<Todo>, discussed: Vec<Id> },  // E-7; Todo { text, done }
 }
 
 pub struct Tag { pub id: Id, pub name: String, pub color: String }

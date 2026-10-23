@@ -176,7 +176,7 @@ timestamps in RFC 3339 with the local offset, ids as UUID strings, entry kinds a
 `"voice": { "id": …, "duration_ms": …, "mime": "audio/ogg; codecs=opus" }`, plus
 `"transcript": "…"` when the user kept a text made from it (E-19, D-23). An entry
 marked for the next session has `"discuss": true`; a session entry has the kind
-`{"session": {"agreed": …, "todo": …, "discussed": [entry ids]}}` (E-7, E-20, D-26).
+`{"session": {"agreed": …, "todo": [{"text": …, "done": …}], "discussed": [entry ids]}}` (E-7, E-20, D-26).
 A change to these shapes increments `version`: version 1 (Mossbook 0.1–0.3) was the
 JSON file alone, without `voice`; version 2 (0.4) had no `transcript`; version 3
 (0.5) had no session entries or `discuss`.

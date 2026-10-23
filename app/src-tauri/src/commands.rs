@@ -17,7 +17,7 @@ use mossbook_core::domain::{
     VoiceNote,
 };
 use mossbook_core::journal::ImportMode;
-use mossbook_core::query::{EntryFilter, MoodPoint, Patterns, StatsRange};
+use mossbook_core::query::{EntryFilter, Help, MoodPoint, Patterns, StatsRange};
 use mossbook_core::report::{ReportDoc, ReportError, render_pdf};
 use mossbook_core::transcribe::{PARAKEET_V3, Transcriber, model};
 use serde::Serialize;
@@ -853,6 +853,12 @@ pub fn stats_patterns(state: State<'_, AppState>, range: StatsRange) -> AppResul
         let now = s.now();
         Ok(s.journal()?.patterns(range, now))
     })
+}
+
+/// What has helped, from the whole journal (D-27).
+#[tauri::command(async)]
+pub fn helps_list(state: State<'_, AppState>) -> AppResult<Vec<Help>> {
+    with_session(&state, |s| Ok(s.journal()?.helps()))
 }
 
 // ---- about and updates (no network, decision D-15) ----

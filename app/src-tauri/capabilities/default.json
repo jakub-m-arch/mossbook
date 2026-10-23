@@ -53,6 +53,7 @@
     "allow-unsaved-discard",
     "allow-stats-mood",
     "allow-stats-patterns",
+    "allow-helps-list",
     "allow-clipboard-clear-if",
     "allow-crisis-lines",
     "allow-dial",

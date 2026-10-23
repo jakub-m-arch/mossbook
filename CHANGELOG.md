@@ -13,6 +13,12 @@ All notable changes to Mossbook. Versions follow [Semantic Versioning](https://s
   one, and tick the entries you talked about; they leave the list, the rest wait.
 - A report for a therapist can start with the entries marked for the session,
   whatever the period you chose.
+- What to do before the next session is a list: add items one by one and tick
+  them off on the "For the next session" screen.
+- "What helps me", opened from the plan: the strategies from your fear entries
+  and what helped in your event entries, in your own words, with how often you
+  wrote them and, where you rated the fear before and after, how it changed on
+  average. Add any of them to your plan with one tap.
 
 ### Important
 - The journal file format changes (version 4). Once this version opens your

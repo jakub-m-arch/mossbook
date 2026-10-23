@@ -143,7 +143,23 @@ export type EntryKind =
 	| { nightmare: { content: string; rescripted: string; rehearsals: Timestamp[] } }
 	| 'note'
 	/** E-7 (D-26): after a therapy session; saving it clears the flag of `discussed`. */
-	| { session: { agreed: string; todo: string; discussed: Id[] } };
+	| { session: { agreed: string; todo: Todo[]; discussed: Id[] } };
+
+/** One thing to do before the next session (E-7), ticked off when done. */
+export interface Todo {
+	text: string;
+	done: boolean;
+}
+
+/** What has helped (D-27), from the user's own fear and event entries. */
+export interface Help {
+	label: string;
+	count: number;
+	last: Timestamp;
+	/** Average fall in fear intensity, where measured; positive means it went down. */
+	average_drop: number | null;
+	measured: number;
+}
 
 export interface Entry {
 	id: Id;

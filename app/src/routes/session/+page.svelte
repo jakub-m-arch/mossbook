@@ -8,7 +8,7 @@
 
 	import { resolve } from '$app/paths';
 	import { entriesList, entrySave, tagsList } from '#lib/api/index.js';
-	import type { Entry, Tag } from '#lib/api/index.js';
+	import type { Entry, Tag, Todo } from '#lib/api/index.js';
 	import EntryCard from '#lib/components/EntryCard.svelte';
 	import UnlockedShell from '#lib/components/UnlockedShell.svelte';
 	import { draftFromEntry } from '#lib/entries.js';
@@ -22,10 +22,8 @@
 	let message = $state('');
 
 	let tagMap = $derived(new Map(tags.map((tag) => [tag.id, tag])));
-	let todo = $derived(
-		last && typeof last.kind !== 'string' && 'session' in last.kind
-			? last.kind.session.todo.trim()
-			: ''
+	let todo = $derived<Todo[]>(
+		last && typeof last.kind !== 'string' && 'session' in last.kind ? last.kind.session.todo : []
 	);
 	let dateFormat = $derived(new Intl.DateTimeFormat(locale(), { dateStyle: 'long' }));
 
@@ -51,6 +49,22 @@
 		return () => window.removeEventListener(JOURNAL_CHANGED, load);
 	});
 
+	/** Ticks a thing to do off (or back on); saved in the latest session at once. */
+	async function toggleTodo(index: number) {
+		const session = last;
+		if (!session || typeof session.kind === 'string' || !('session' in session.kind)) return;
+		const draft = draftFromEntry(session);
+		const kind = draft.kind as { session: { todo: Todo[] } };
+		kind.session.todo = kind.session.todo.map((item, i) =>
+			i === index ? { ...item, done: !item.done } : item
+		);
+		try {
+			last = await entrySave({ ...draft, incomplete: session.incomplete });
+		} catch (e) {
+			if (!(await handleLocked(e))) error = errorText(e);
+		}
+	}
+
 	async function unflag(entry: Entry) {
 		message = '';
 		try {
@@ -68,10 +82,17 @@
 		<p class="muted">{t('session.intro')}</p>
 		{#if error}<p class="notice">{error}</p>{/if}
 
-		{#if last && todo}
+		{#if last && todo.length > 0}
 			<section class="card stack" aria-labelledby="todo-title">
 				<h2 id="todo-title">{t('session.todoTitle')}</h2>
-				<p class="todo">{todo}</p>
+				<div class="todo">
+					{#each todo as item, i (i)}
+						<label class="check" class:done={item.done}>
+							<input type="checkbox" checked={item.done} onchange={() => toggleTodo(i)} />
+							<span>{item.text}</span>
+						</label>
+					{/each}
+				</div>
 				<a class="muted small" href={resolve('/entry/[id]', { id: last.id })}>
 					{t('session.todoFrom', { date: dateFormat.format(new Date(last.occurred_at)) })}
 				</a>
@@ -110,8 +131,25 @@
 
 <style>
 	.todo {
+		display: grid;
+		gap: 0.25rem;
+	}
+	.check {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.6rem;
+		min-height: var(--tap);
+		padding-top: 0.6rem;
+	}
+	.check input {
+		width: 1.3rem;
+		min-height: 1.3rem;
+		flex: none;
 		margin: 0;
-		white-space: pre-wrap;
+	}
+	.done span {
+		color: var(--text-muted);
+		text-decoration: line-through;
 	}
 	.list {
 		display: grid;

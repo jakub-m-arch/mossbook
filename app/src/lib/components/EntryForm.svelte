@@ -1,5 +1,7 @@
 <script lang="ts">
+	import Plus from '@lucide/svelte/icons/plus';
 	import Trash from '@lucide/svelte/icons/trash';
+	import X from '@lucide/svelte/icons/x';
 	import { onMount, untrack } from 'svelte';
 
 	import { entriesList, entryGet } from '#lib/api/index.js';
@@ -60,6 +62,7 @@
 	// A session (D-26): the entries flagged for it, and those it already lists.
 	let topics = $state<Entry[] | null>(null);
 	let discussed = $state<string[]>([...session.discussed]);
+	let todos = $state(session.todo.map((item) => ({ ...item })));
 	let discuss = $state(initial.discuss ?? false);
 	let emotions = $state<Emotion[]>(moodKind.emotions);
 	let symptoms = $state<Symptom[]>(fear.symptoms);
@@ -100,7 +103,7 @@
 			case 'note':
 				return 'note';
 			case 'session':
-				return { session: { ...session, discussed } };
+				return { session: { ...session, todo: todos, discussed } };
 		}
 	}
 
@@ -345,10 +348,34 @@
 				<label for="agreed">{t('field.agreed')}</label>
 				<textarea id="agreed" bind:value={session.agreed}></textarea>
 			</div>
-			<div>
-				<label for="todo">{t('field.todo')}</label>
-				<textarea id="todo" bind:value={session.todo}></textarea>
-			</div>
+			<fieldset class="topics">
+				<legend>{t('field.todo')}</legend>
+				{#each todos as item, i (i)}
+					<div class="todo">
+						<input
+							type="checkbox"
+							bind:checked={item.done}
+							aria-label={t('field.todoDone', { n: i + 1 })}
+						/>
+						<input bind:value={item.text} aria-label={t('field.todoItem', { n: i + 1 })} />
+						<button
+							type="button"
+							class="icon"
+							aria-label={t('field.todoRemove', { n: i + 1 })}
+							onclick={() => (todos = todos.filter((_, j) => j !== i))}
+						>
+							<X size={18} />
+						</button>
+					</div>
+				{/each}
+				<button
+					type="button"
+					class="secondary"
+					onclick={() => (todos = [...todos, { text: '', done: false }])}
+				>
+					<Plus size={18} />{t('field.todoAdd')}
+				</button>
+			</fieldset>
 		{/if}
 
 		{#if tag === 'note'}
@@ -452,6 +479,20 @@
 	}
 	.topic {
 		align-items: flex-start;
+	}
+	.todo {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.todo input[type='checkbox'] {
+		width: 1.4rem;
+		min-height: 1.4rem;
+		flex: none;
+	}
+	.todo input:not([type]) {
+		flex: 1;
+		min-width: 0;
 	}
 	.sensitive .hint {
 		display: block;

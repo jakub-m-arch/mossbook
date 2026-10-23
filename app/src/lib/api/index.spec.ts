@@ -84,6 +84,7 @@ async function invokedCommands(): Promise<string[]> {
 		api.unsavedDiscard,
 		() => api.statsMood('week'),
 		() => api.statsPatterns('week'),
+		api.helpsList,
 		() => api.clipboardClearIf('copied'),
 		() => api.crisisLines('PL'),
 		() => api.dial('112'),

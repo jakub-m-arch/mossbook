@@ -139,7 +139,14 @@ function item(e: Entry, o: ReportOptions, time: Intl.DateTimeFormat): ReportItem
 			field(t('field.rescripted'), k.nightmare.rescripted);
 		} else if ('session' in k) {
 			field(t('field.agreed'), k.session.agreed);
-			field(t('field.todo'), k.session.todo);
+			field(
+				t('field.todo'),
+				k.session.todo
+					.map((item) =>
+						t(item.done ? 'report.todoDone' : 'report.todoOpen', { text: item.text.trim() })
+					)
+					.join('\n')
+			);
 			if (k.session.discussed.length > 0) {
 				meta.push(t('report.discussed', { count: k.session.discussed.length }));
 			}

@@ -167,7 +167,8 @@ without one encode as before.
   5 minutes; the journal checks the container and takes the length from the last
   granule position, so the UI cannot store something else or claim another length.
 - `Entry.discuss` (E-20, D-26) marks an entry for the next session and is left out
-  when false. `EntryKind::Session { agreed, todo, discussed }` (E-7, vault format 4)
+  when false. `EntryKind::Session { agreed, todo, discussed }` (E-7, vault format 4; `todo` is a
+  list of `{ text, done }`)
   lists entry ids talked about; saving it clears their `discuss` in the same
   transaction.
 

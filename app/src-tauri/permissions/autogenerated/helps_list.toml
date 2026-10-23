@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-helps-list"
+description = "Enables the helps_list command without any pre-configured scope."
+commands.allow = ["helps_list"]
+
+[[permission]]
+identifier = "deny-helps-list"
+description = "Denies the helps_list command without any pre-configured scope."
+commands.deny = ["helps_list"]

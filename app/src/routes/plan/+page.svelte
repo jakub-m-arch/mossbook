@@ -1,6 +1,7 @@
 <script lang="ts">
 	// Plan for a hard moment (P-1).
 	import Phone from '@lucide/svelte/icons/phone';
+	import Sprout from '@lucide/svelte/icons/sprout';
 	import { onMount } from 'svelte';
 
 	import { resolve } from '$app/paths';
@@ -63,6 +64,7 @@
 	<div class="stack">
 		<p>{t('plan.intro')}</p>
 		<a class="button secondary" href={resolve('/help')}><Phone size={18} />{t('help.open')}</a>
+		<a class="button secondary" href={resolve('/helps')}><Sprout size={18} />{t('helps.open')}</a>
 
 		{#if plan}
 			<form class="stack" onsubmit={save}>

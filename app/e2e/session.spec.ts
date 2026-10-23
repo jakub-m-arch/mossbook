@@ -65,16 +65,24 @@ test('session: mark topics, add a question, write the session, and what waits', 
 	await talked.getByLabel(/Synthetic walk/).check();
 	await talked.getByLabel(/Synthetic question/).check();
 	await page.getByLabel('Co ustaliliśmy').fill('Synthetic agreement: shorter evenings');
-	await page
-		.getByLabel('Co mam zrobić do następnej sesji')
-		.fill('Synthetic homework: note the evenings');
+	// Things to do, one item each; an empty one is dropped, a removed one goes.
+	const todo = page.getByRole('group', { name: 'Co mam zrobić do następnej sesji' });
+	for (let i = 0; i < 4; i++) await todo.getByRole('button', { name: 'Dodaj punkt' }).click();
+	await todo.getByLabel('Punkt 1', { exact: true }).fill('Synthetic homework: note the evenings');
+	await todo.getByLabel('Punkt 2', { exact: true }).fill('Synthetic walk twice');
+	await todo.getByLabel('Punkt 3', { exact: true }).fill('Synthetic item removed');
+	await todo.getByRole('button', { name: 'Usuń punkt 3' }).click();
+	await expect(todo.getByRole('textbox')).toHaveCount(3);
 	await page.getByRole('button', { name: 'Zapisz', exact: true }).click();
 
 	await expect(page.getByRole('heading', { name: 'Na następną sesję' })).toBeVisible();
-	await expect(page.getByRole('region', { name: 'Do zrobienia z ostatniej sesji' })).toContainText(
-		'Synthetic homework: note the evenings'
-	);
+	const todos = page.getByRole('region', { name: 'Do zrobienia z ostatniej sesji' });
+	await expect(todos.getByRole('checkbox')).toHaveCount(2);
+	await expect(todos).not.toContainText('removed');
 	await expect(topics.getByRole('listitem')).toHaveCount(1, { timeout: 5000 });
+	// Ticked off here, kept in the session.
+	await todos.getByLabel('Synthetic walk twice').check();
+	await expect(todos.getByLabel('Synthetic walk twice')).toBeChecked();
 
 	// The rest waits; taking it off the list empties it.
 	await topics.getByRole('button', { name: 'Zdejmij z listy' }).click();
@@ -82,7 +90,7 @@ test('session: mark topics, add a question, write the session, and what waits', 
 
 	// The timeline still points to the to-do; the session is a searchable entry.
 	await page.getByRole('link', { name: 'Wstecz' }).click();
-	await expect(card).toContainText('Do zrobienia z ostatniej sesji');
+	await expect(card).toContainText('Do zrobienia: 1');
 	await page.getByPlaceholder('Szukaj').fill('evenings');
 	await expect(page.getByRole('listitem').filter({ hasText: 'Sesja' })).toHaveCount(1);
 });

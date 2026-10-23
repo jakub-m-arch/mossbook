@@ -198,7 +198,11 @@
 		"discussHint": "Wpis pojawi się na liście tematów na następną sesję.",
 		"discussed": "O czym rozmawialiście?",
 		"discussedHint": "Zaznaczone wpisy znikną z listy na następną sesję. Pozostałe poczekają na kolejną.",
-		"discussedNone": "Żaden wpis nie jest oznaczony na sesję."
+		"discussedNone": "Żaden wpis nie jest oznaczony na sesję.",
+		"todoAdd": "Dodaj punkt",
+		"todoItem": "Punkt {n}",
+		"todoDone": "Punkt {n} zrobiony",
+		"todoRemove": "Usuń punkt {n}"
 	},
 	"entry": {
 		"new": "Nowy wpis",
@@ -468,7 +472,9 @@
 		"topics": "Zacznij od tematów na sesję",
 		"topicsHint": "Wpisy oznaczone „Na sesję”, niezależnie od wybranego okresu.",
 		"topicsHeading": "Tematy na tę sesję",
-		"discussed": "Omówione wpisy: {count}"
+		"discussed": "Omówione wpisy: {count}",
+		"todoOpen": "• {text}",
+		"todoDone": "• {text} (zrobione)"
 	},
 	"nightmare": {
 		"intro": "Zapisz koszmar, a potem jego nową wersję, spokojniejszą albo zakończoną inaczej. Możesz ją powtarzać w myślach i zaznaczać, kiedy to robisz.",
@@ -655,7 +661,7 @@
 		"title": "Na następną sesję",
 		"intro": "Oznaczaj wpisy „Na sesję”, żeby mieć je pod ręką. Pytania możesz dopisać tutaj, a po sesji zapisać, co ustaliliście.",
 		"card": "Tematy: {count}",
-		"cardTodo": "Do zrobienia z ostatniej sesji",
+		"cardTodo": "Do zrobienia: {count}",
 		"todoTitle": "Do zrobienia z ostatniej sesji",
 		"todoFrom": "Sesja: {date}",
 		"topics": "Tematy",
@@ -664,5 +670,17 @@
 		"write": "Zapisz notatkę po sesji",
 		"unflag": "Zdejmij z listy",
 		"unflagged": "Wpis zdjęty z listy."
+	},
+	"helps": {
+		"open": "Co mi pomaga",
+		"title": "Co mi pomaga",
+		"intro": "Zebrane z Twoich wpisów: strategie z wpisów „Lęk / wyzwalacz” i to, co pomogło, z wpisów „Zdarzenie”. To Twoje własne obserwacje, nie zalecenia.",
+		"empty": "Gdy we wpisie „Lęk / wyzwalacz” zapiszesz strategię albo we wpisie „Zdarzenie” to, co pomogło, pojawi się to tutaj.",
+		"seen": "Wpisy: {count} · ostatnio {date}",
+		"lower": "Lęk po: średnio o {value} niżej (wpisy z oceną przed i po: {count})",
+		"higher": "Lęk po: średnio o {value} wyżej (wpisy z oceną przed i po: {count})",
+		"unchanged": "Lęk po: średnio bez zmiany (wpisy z oceną przed i po: {count})",
+		"addToPlan": "Dodaj do planu",
+		"inPlan": "W planie, w „Co mogę zrobić sam/sama”"
 	}
 }

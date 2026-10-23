@@ -54,7 +54,7 @@
 	let incompleteOnly = $state(false);
 	/** For the next session (D-26): how many entries are flagged, and the latest session's to-do. */
 	let topicCount = $state(0);
-	let lastTodo = $state('');
+	let openTodos = $state(0);
 
 	let tagMap = $derived(new Map(tags.map((tag) => [tag.id, tag])));
 	let filterCount = $derived(
@@ -93,10 +93,10 @@
 				entries = result;
 				topicCount = flagged.length;
 				const latest = sessions[0]?.kind;
-				lastTodo =
+				openTodos =
 					latest && typeof latest !== 'string' && 'session' in latest
-						? latest.session.todo.trim()
-						: '';
+						? latest.session.todo.filter((item) => !item.done).length
+						: 0;
 				loaded = true;
 				error = '';
 			}
@@ -275,13 +275,18 @@
 			</section>
 		{/if}
 
-		{#if !filtered && (topicCount > 0 || lastTodo)}
+		{#if !filtered && (topicCount > 0 || openTodos > 0)}
 			<a class="card session-card" href={resolve('/session')}>
 				<KindIcon kind="session" size={40} />
 				<span class="session-text">
 					<strong>{t('session.title')}</strong>
 					<span class="muted small">
-						{topicCount > 0 ? t('session.card', { count: topicCount }) : t('session.cardTodo')}
+						{[
+							topicCount > 0 ? t('session.card', { count: topicCount }) : '',
+							openTodos > 0 ? t('session.cardTodo', { count: openTodos }) : ''
+						]
+							.filter(Boolean)
+							.join(' · ')}
 					</span>
 				</span>
 				<ChevronRight size={20} />

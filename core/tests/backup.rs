@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use mossbook_core::backup::{Backup, BackupError, MAGIC};
 use mossbook_core::crypto::kdf::KdfParams;
 use mossbook_core::domain::{
-    AutoLock, Contact, Entry, EntryKind, EntryKindTag, SafetyPlan, Settings, Timestamp,
+    AutoLock, Contact, Entry, EntryKind, EntryKindTag, SafetyPlan, Settings, Timestamp, Todo,
 };
 use mossbook_core::journal::{ImportMode, ImportReport, Journal};
 use mossbook_core::query::EntryFilter;
@@ -704,7 +704,10 @@ fn imports_format_v4_fixture() {
         session.kind,
         EntryKind::Session {
             agreed: "fixture agreed".into(),
-            todo: "fixture todo".into(),
+            todo: vec![Todo {
+                text: "fixture todo".into(),
+                done: true,
+            }],
             discussed: vec![talked.id],
         }
     );
@@ -728,7 +731,10 @@ fn generate_backup_v4_fixture() {
     let session = Entry::new(
         EntryKind::Session {
             agreed: "fixture agreed".into(),
-            todo: "fixture todo".into(),
+            todo: vec![Todo {
+                text: "fixture todo".into(),
+                done: true,
+            }],
             discussed: vec![talked],
         },
         NOW,

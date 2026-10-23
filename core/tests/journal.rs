@@ -9,7 +9,7 @@ use mossbook_core::crypto::kdf::KdfParams;
 use mossbook_core::domain::DomainError;
 use mossbook_core::domain::{
     AutoLock, Contact, Emotion, Entry, EntryKind, EntryKindTag, Id, SafetyPlan, Settings, Symptom,
-    Timestamp, encode,
+    Timestamp, Todo, encode,
 };
 use mossbook_core::journal::{Journal, JournalError};
 use mossbook_core::query::{EntryFilter, StatsRange};
@@ -390,12 +390,15 @@ fn kind() -> impl Strategy<Value = EntryKind> {
         Just(EntryKind::Note),
         (
             text(),
-            text(),
+            proptest::collection::vec((text(), any::<bool>()), 0..3),
             proptest::collection::vec(any::<[u8; 16]>(), 0..3)
         )
             .prop_map(|(agreed, todo, ids)| EntryKind::Session {
                 agreed,
-                todo,
+                todo: todo
+                    .into_iter()
+                    .map(|(text, done)| Todo { text, done })
+                    .collect(),
                 discussed: ids.into_iter().map(Id::from_bytes).collect(),
             }),
     ]
@@ -806,11 +809,18 @@ fn flagged_note(j: &mut Journal, text: &str) -> Id {
     j.save_entry(e, NOW).unwrap().id
 }
 
+fn homework() -> Todo {
+    Todo {
+        text: "synthetic homework".into(),
+        done: false,
+    }
+}
+
 fn session(discussed: Vec<Id>) -> Entry {
     Entry::new(
         EntryKind::Session {
             agreed: "synthetic agreement".into(),
-            todo: "synthetic homework".into(),
+            todo: vec![homework()],
             discussed,
         },
         NOW,
@@ -867,7 +877,7 @@ fn a_session_lists_only_existing_entries_once_and_not_itself() {
         saved.kind,
         EntryKind::Session {
             agreed: "synthetic agreement".into(),
-            todo: "synthetic homework".into(),
+            todo: vec![homework()],
             discussed: vec![a],
         }
     );
@@ -906,6 +916,55 @@ fn a_session_cannot_be_flagged_quick_or_list_too_much() {
 }
 
 #[test]
+fn things_to_do_are_kept_ticked_and_empty_ones_dropped() {
+    let (fx, mut j) = create();
+    let mut s = session(Vec::new());
+    if let EntryKind::Session { todo, .. } = &mut s.kind {
+        todo.push(Todo {
+            text: "  ".into(),
+            done: false,
+        });
+        todo.push(Todo {
+            text: "synthetic walk".into(),
+            done: true,
+        });
+    }
+    let id = j.save_entry(s, NOW).unwrap().id;
+    let j = reopen(&fx, j);
+    let EntryKind::Session { todo, .. } = &j.entry(&id).unwrap().kind else {
+        panic!("a session")
+    };
+    assert_eq!(
+        todo,
+        &vec![
+            homework(),
+            Todo {
+                text: "synthetic walk".into(),
+                done: true
+            }
+        ]
+    );
+    let search = EntryFilter {
+        text: Some("walk".into()),
+        ..EntryFilter::default()
+    };
+    assert_eq!(j.entries(&search).len(), 1);
+}
+
+#[test]
+fn too_many_things_to_do_are_refused() {
+    let (_fx, mut j) = create();
+    let mut s = session(Vec::new());
+    if let EntryKind::Session { todo, .. } = &mut s.kind {
+        *todo = vec![homework(); mossbook_core::domain::MAX_TODOS + 1];
+    }
+    assert_eq!(
+        j.save_entry(s, NOW).unwrap_err(),
+        JournalError::Domain(DomainError::InvalidField("todo"))
+    );
+}
+
+#[test]
 fn the_flag_and_sessions_reach_the_readable_copy() {
     let (_fx, mut j) = create();
     let a = flagged_note(&mut j, "synthetic topic");
@@ -923,7 +982,10 @@ fn the_flag_and_sessions_reach_the_readable_copy() {
         .iter()
         .find(|e| e["kind"].get("session").is_some())
         .unwrap();
-    assert_eq!(s["kind"]["session"]["todo"], "synthetic homework");
+    assert_eq!(
+        s["kind"]["session"]["todo"][0],
+        serde_json::json!({ "text": "synthetic homework", "done": false })
+    );
     assert_eq!(s["kind"]["session"]["discussed"][0], a.to_string());
 }
 

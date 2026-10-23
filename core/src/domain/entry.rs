@@ -53,6 +53,24 @@ fn is_false(value: &bool) -> bool {
 
 /// Most entries one session can list as talked about (E-7).
 pub const MAX_DISCUSSED: usize = 1000;
+/// Most things to do one session can hold (E-7).
+pub const MAX_TODOS: usize = 100;
+
+/// One thing to do before the next session (E-7, D-26), ticked off when done.
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Zeroize)]
+pub struct Todo {
+    pub text: String,
+    #[serde(default)]
+    pub done: bool,
+}
+
+impl fmt::Debug for Todo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Todo")
+            .field("done", &self.done)
+            .finish_non_exhaustive()
+    }
+}
 
 impl Entry {
     /// A new, empty entry of the given kind, happening at `now`.
@@ -260,9 +278,9 @@ pub enum EntryKind {
         /// What was agreed.
         #[serde(default)]
         agreed: String,
-        /// What to do before the next session.
+        /// What to do before the next session, each ticked off when done.
         #[serde(default)]
-        todo: String,
+        todo: Vec<Todo>,
         /// Entries flagged for the session that were talked about; saving the
         /// session clears their flag.
         #[serde(default)]
@@ -307,7 +325,7 @@ impl EntryKind {
             EntryKindTag::Note => Self::Note,
             EntryKindTag::Session => Self::Session {
                 agreed: String::new(),
-                todo: String::new(),
+                todo: Vec::new(),
                 discussed: Vec::new(),
             },
         }
@@ -334,6 +352,9 @@ impl EntryKind {
             Self::Sleep { quality, .. } => check_range(*quality, 1..=5, "quality"),
             Self::Session { discussed, .. } if discussed.len() > MAX_DISCUSSED => {
                 Err(DomainError::InvalidField("discussed"))
+            }
+            Self::Session { todo, .. } if todo.len() > MAX_TODOS => {
+                Err(DomainError::InvalidField("todo"))
             }
             Self::Event { .. } | Self::Nightmare { .. } | Self::Note | Self::Session { .. } => {
                 Ok(())
@@ -372,9 +393,9 @@ impl EntryKind {
                 rescripted,
                 ..
             } => Box::new([content.as_str(), rescripted.as_str()].into_iter()),
-            Self::Session { agreed, todo, .. } => {
-                Box::new([agreed.as_str(), todo.as_str()].into_iter())
-            }
+            Self::Session { agreed, todo, .. } => Box::new(
+                core::iter::once(agreed.as_str()).chain(todo.iter().map(|t| t.text.as_str())),
+            ),
             Self::Sleep { .. } | Self::Note => Box::new(core::iter::empty()),
         }
     }

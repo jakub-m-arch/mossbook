@@ -198,7 +198,11 @@
 		"discussHint": "The entry will be on the list of topics for the next session.",
 		"discussed": "What did you talk about?",
 		"discussedHint": "Ticked entries leave the list for the next session. The others wait for the one after.",
-		"discussedNone": "No entry is marked for the session."
+		"discussedNone": "No entry is marked for the session.",
+		"todoAdd": "Add an item",
+		"todoItem": "Item {n}",
+		"todoDone": "Item {n} done",
+		"todoRemove": "Remove item {n}"
 	},
 	"entry": {
 		"new": "New entry",
@@ -468,7 +472,9 @@
 		"topics": "Start with the topics for the session",
 		"topicsHint": "Entries marked “For the session”, whatever the period.",
 		"topicsHeading": "Topics for this session",
-		"discussed": "Entries talked about: {count}"
+		"discussed": "Entries talked about: {count}",
+		"todoOpen": "• {text}",
+		"todoDone": "• {text} (done)"
 	},
 	"nightmare": {
 		"intro": "Write down the nightmare, then a new version of it, calmer or with a different ending. You can rehearse it in your mind and mark when you do.",
@@ -655,7 +661,7 @@
 		"title": "For the next session",
 		"intro": "Mark entries “For the session” to have them at hand. You can add questions here, and after the session write down what you agreed.",
 		"card": "Topics: {count}",
-		"cardTodo": "To do from the last session",
+		"cardTodo": "To do: {count}",
 		"todoTitle": "To do from the last session",
 		"todoFrom": "Session: {date}",
 		"topics": "Topics",
@@ -664,5 +670,17 @@
 		"write": "Write notes after the session",
 		"unflag": "Take off the list",
 		"unflagged": "The entry is off the list."
+	},
+	"helps": {
+		"open": "What helps me",
+		"title": "What helps me",
+		"intro": "Gathered from your entries: strategies from “Fear / trigger” entries and what helped from “Event” entries. These are your own observations, not advice.",
+		"empty": "When you write a strategy in a “Fear / trigger” entry, or what helped in an “Event” entry, it will show up here.",
+		"seen": "Entries: {count} · last on {date}",
+		"lower": "Fear afterwards: {value} lower on average (entries rated before and after: {count})",
+		"higher": "Fear afterwards: {value} higher on average (entries rated before and after: {count})",
+		"unchanged": "Fear afterwards: unchanged on average (entries rated before and after: {count})",
+		"addToPlan": "Add to the plan",
+		"inPlan": "In the plan, under “What I can do on my own”"
 	}
 }

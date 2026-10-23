@@ -46,6 +46,7 @@ pub const COMMANDS: &[&str] = &[
     "unsaved_discard",
     "stats_mood",
     "stats_patterns",
+    "helps_list",
     "clipboard_clear_if",
     "crisis_lines",
     "dial",

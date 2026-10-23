@@ -18,7 +18,7 @@ use crate::domain::{
     inspect_ogg_opus,
 };
 use crate::query::stats::{MoodPoint, mood_by_day};
-use crate::query::{EntryFilter, Patterns, StatsRange};
+use crate::query::{EntryFilter, Help, Patterns, StatsRange};
 use crate::vault::{LoadedRecord, UnlockedVault, VaultError};
 
 mod sync;
@@ -307,7 +307,7 @@ impl Journal {
             .map(|id| *id.as_bytes())
             .into_iter()
             .collect();
-        let cleared = self.discussed_in(&mut entry, now);
+        let cleared = self.prepare_session(&mut entry, now);
         let bytes = encode(&entry)?;
         let cleared_bytes = cleared.iter().map(encode).collect::<Result<Vec<_>, _>>()?;
         let mut puts = vec![(*entry.id.as_bytes(), RecordType::Entry, bytes.as_slice())];
@@ -329,18 +329,23 @@ impl Journal {
         Ok(&self.entries[&id])
     }
 
-    /// For a session (E-7, D-26): keeps in `discussed` only entries that exist
-    /// (not the session itself, each once) and returns those it newly lists
-    /// that are still flagged, with the flag cleared, to be saved with it.
-    /// Editing a session later leaves alone an entry flagged again since.
-    fn discussed_in(&self, entry: &mut Entry, now: OffsetDateTime) -> Vec<Entry> {
+    /// For a session (E-7, D-26): drops empty things to do, keeps in
+    /// `discussed` only entries that exist (not the session itself, each once)
+    /// and returns those it newly lists that are still flagged, with the flag
+    /// cleared, to be saved with it. Editing a session later leaves alone an
+    /// entry flagged again since.
+    fn prepare_session(&self, entry: &mut Entry, now: OffsetDateTime) -> Vec<Entry> {
         let before: &[Id] = match self.entries.get(&entry.id).map(|e| &e.kind) {
             Some(EntryKind::Session { discussed, .. }) => discussed,
             _ => &[],
         };
-        let EntryKind::Session { discussed, .. } = &mut entry.kind else {
+        let EntryKind::Session {
+            discussed, todo, ..
+        } = &mut entry.kind
+        else {
             return Vec::new();
         };
+        todo.retain(|t| !t.text.trim().is_empty());
         let mut kept: Vec<Id> = Vec::with_capacity(discussed.len());
         for id in discussed.iter() {
             // Deleted since the form opened (possibly on another device): left out.
@@ -1008,6 +1013,11 @@ impl Journal {
     pub fn patterns(&self, range: StatsRange, now: OffsetDateTime) -> Patterns {
         let (from, to) = range.bounds(now);
         crate::query::patterns::patterns(self.entries.values(), &self.tags, from, to)
+    }
+
+    /// What has helped, from the whole journal (D-27).
+    pub fn helps(&self) -> Vec<Help> {
+        crate::query::helps::helps(self.entries.values())
     }
 
     /// Daily mood averages for the chart (A-1).

@@ -93,7 +93,16 @@ describe('buildReport', () => {
 	it('shows a session and can start with the topics, whatever the period', () => {
 		const topic = entry('2026-01-05T10:00:00+01:00', { note: 'stary temat', discuss: true });
 		const session = entry('2026-10-19T18:00:00+02:00', {
-			kind: { session: { agreed: 'krótsze wieczory', todo: '  ', discussed: ['a', 'b'] } }
+			kind: {
+				session: {
+					agreed: 'krótsze wieczory',
+					todo: [
+						{ text: 'spacer ', done: true },
+						{ text: 'zapisywać wieczory', done: false }
+					],
+					discussed: ['a', 'b']
+				}
+			}
 		});
 		const doc = buildReport([session], { ...options, topics: [topic] });
 		expect(doc.sections.map((s) => s.heading)).toEqual([
@@ -105,7 +114,13 @@ describe('buildReport', () => {
 		const s = doc.sections[1].items[0];
 		expect(s.title).toBe('18:00 · Sesja');
 		expect(s.meta).toBe('Omówione wpisy: 2');
-		expect(s.fields).toEqual([{ label: 'Co ustaliliśmy', value: 'krótsze wieczory' }]);
+		expect(s.fields).toEqual([
+			{ label: 'Co ustaliliśmy', value: 'krótsze wieczory' },
+			{
+				label: 'Co mam zrobić do następnej sesji',
+				value: '• spacer (zrobione)\n• zapisywać wieczory'
+			}
+		]);
 		// Not counted with the period's entries.
 		expect(doc.summary[0]).toBe('Liczba wpisów: 1');
 		expect(buildReport([session], options).sections).toHaveLength(1);

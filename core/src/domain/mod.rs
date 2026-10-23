@@ -22,7 +22,8 @@ use zeroize::Zeroizing;
 use crate::crypto::{CryptoError, random_bytes};
 
 pub use entry::{
-    Emotion, Entry, EntryDraft, EntryKind, EntryKindTag, InboxEntry, MAX_DISCUSSED, Symptom,
+    Emotion, Entry, EntryDraft, EntryKind, EntryKindTag, InboxEntry, MAX_DISCUSSED, MAX_TODOS,
+    Symptom, Todo,
 };
 pub use plan::{Contact, SafetyPlan};
 pub use settings::{AutoLock, Reminder, Settings, UnsavedEntry};

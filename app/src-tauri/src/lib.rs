@@ -116,6 +116,7 @@ pub fn run() {
             commands::unsaved_discard,
             commands::stats_mood,
             commands::stats_patterns,
+            commands::helps_list,
             commands::clipboard_clear_if,
             commands::crisis_lines,
             commands::dial,

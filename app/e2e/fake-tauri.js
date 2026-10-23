@@ -234,6 +234,7 @@
 			// Like Rust (D-26): a session lists existing entries once and clears the
 			// flag of those it newly lists.
 			if (session) {
+				session.todo = session.todo.filter((item) => item.text.trim());
 				const before =
 					existing && kindTag(existing.kind) === 'session' ? existing.kind.session.discussed : [];
 				session.discussed = [...new Set(session.discussed)].filter(
@@ -384,6 +385,37 @@
 			return null;
 		},
 		// Simplified mirror of core::query::patterns (tags, time of day, strategies).
+		// Like Rust (D-27): strategies and what helped, grouped by wording.
+		helps_list: () => {
+			if (state.vault !== 'unlocked') return fail('locked');
+			const groups = new Map();
+			for (const e of state.entries) {
+				const k = typeof e.kind === 'string' ? null : e.kind;
+				const text = (k?.fear?.strategy ?? k?.event?.helped ?? '').trim();
+				if (!text) continue;
+				const key = text.toLowerCase().split(/\s+/).join(' ');
+				const g = groups.get(key) ?? {
+					label: text,
+					count: 0,
+					last: e.occurred_at,
+					drop: 0,
+					measured: 0
+				};
+				g.count += 1;
+				if (Date.parse(e.occurred_at) >= Date.parse(g.last)) {
+					g.last = e.occurred_at;
+					g.label = text;
+				}
+				if (k.fear && e.intensity !== null && k.fear.intensity_after !== null) {
+					g.drop += e.intensity - k.fear.intensity_after;
+					g.measured += 1;
+				}
+				groups.set(key, g);
+			}
+			return [...groups.values()]
+				.map(({ drop, ...g }) => ({ ...g, average_drop: g.measured ? drop / g.measured : null }))
+				.sort((a, b) => b.count - a.count || Date.parse(b.last) - Date.parse(a.last));
+		},
 		stats_patterns: ({ range }) => {
 			if (state.vault !== 'unlocked') return fail('locked');
 			const days = { week: 7, month: 30, three_months: 90 }[range];
