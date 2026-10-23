@@ -28,13 +28,13 @@ test('voice note: record, save with the entry, play, remove', async ({ page }) =
 	expect(saved).toHaveLength(1);
 	expect(saved[0].duration_ms).toBeGreaterThan(1500);
 	expect(saved[0].duration_ms).toBeLessThan(4000);
-	await expect(voice).toContainText(/0:0[1-3]/);
+	await expect(voice).toContainText(/(?<![\d:])0:0[1-3]/);
 
 	await page.getByLabel('Notatka', { exact: true }).fill('Synthetic note with a recording');
 	await page.getByRole('button', { name: 'Zapisz', exact: true }).click();
 	await expect(page.getByRole('heading', { name: 'Twój dziennik' })).toBeVisible();
 	const card = page.getByRole('listitem').filter({ hasText: 'Synthetic note' });
-	await expect(card).toContainText(/0:0[1-3]/);
+	await expect(card).toContainText(/(?<![\d:])0:0[1-3]/);
 
 	// Played back from memory: the audio element advances.
 	await card.getByRole('link').click();
@@ -52,7 +52,8 @@ test('voice note: record, save with the entry, play, remove', async ({ page }) =
 	await page.getByRole('button', { name: 'Zapisz', exact: true }).click();
 	await expect(page.getByRole('heading', { name: 'Twój dziennik' })).toBeVisible();
 	await expect(card).toBeVisible();
-	await expect(card).not.toContainText(/0:0\d/);
+	// A recording's length (0:0x), not the time of day: 10:02 must not count.
+	await expect(card).not.toContainText(/(?<![\d:])0:0\d/);
 	expect(await page.evaluate(() => (window as unknown as FakeWindow).__fake.voiceCount())).toBe(0);
 });
 

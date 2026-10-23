@@ -110,7 +110,7 @@ test('transcription: turn a recording into text, correct it, save and find it', 
 
 	// Searchable like any other text.
 	await page.getByPlaceholder('Szukaj').fill('lake');
-	const card = page.getByRole('listitem').filter({ hasText: /0:0\d/ });
+	const card = page.getByRole('listitem').filter({ hasText: /(?<![\d:])0:0\d/ });
 	await expect(card).toHaveCount(1);
 	await page.getByPlaceholder('Szukaj').fill('river');
 	await expect(card).toHaveCount(0);
